@@ -65,8 +65,8 @@ class WebViewFragment : Fragment() {
 
             webView.addJavascriptInterface(AndroidRequestScanQr(this), "Android");
 
+            webView.clearCache(true)
             webView.loadUrl("http://192.168.1.8:8888")
-            webView.reload()
         }
 
         return result
