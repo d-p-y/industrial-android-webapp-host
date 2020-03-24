@@ -46,3 +46,6 @@ _ReSharper*/
 packages/
 /DemoWebSite/script.js
 /DemoWebSite/script.js.map
+/AndroidApp/.idea/caches/build_file_checksums.ser
+/AndroidApp/.idea/libraries/*
+/AndroidApp/.idea/workspace.xml
