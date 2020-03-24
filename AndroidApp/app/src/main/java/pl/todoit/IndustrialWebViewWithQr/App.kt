@@ -1,10 +1,18 @@
 package pl.todoit.IndustrialWebViewWithQr
 
 import android.app.Application
+import kotlinx.serialization.Serializable
 
-class ScanRequest(
+data class ScanRequest(
     public var label : String,
     public var regexp : String?) {}
+
+@Serializable
+data class AndroidReply (
+    var PromiseId : String,
+    var IsSuccess : Boolean,
+    var Reply : String?
+)
 
 class App : Application() {
     var showScanQrImpl : ((req:ScanRequest)->Unit)? = null

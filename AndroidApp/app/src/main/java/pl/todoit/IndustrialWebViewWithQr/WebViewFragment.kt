@@ -11,8 +11,11 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.FrameLayout
 import android.widget.Toast
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 
 class AndroidRequestScanQr(var host:WebViewFragment) {
+    val json = Json(JsonConfiguration.Stable)
 
     @JavascriptInterface
     public fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
@@ -20,14 +23,14 @@ class AndroidRequestScanQr(var host:WebViewFragment) {
         host.getApp()?.requestScanQr(
             ScanRequest(label, regexpOrNull),
             { x:String ->
-                var replyJson = """{"PromiseId":"${promiseId}","IsSuccess":true,"Reply":"${x}"}"""
+                var replyJson = json.stringify(AndroidReply.serializer(), AndroidReply(promiseId, true, x))
                 var msg = "androidPostReplyToPromise(\"" +
                     replyJson.replace("\"", "\\\"") +
                     "\")"
                 host.getWebView()?.evaluateJavascript(msg, null)
             },
             {
-                var replyJson = """{"PromiseId":"${promiseId}","IsSuccess":false}"""
+                var replyJson = json.stringify(AndroidReply.serializer(), AndroidReply(promiseId, false, null))
                 var msg = "androidPostReplyToPromise(\"" +
                     replyJson.replace("\"", "\\\"") +
                     "\")"
