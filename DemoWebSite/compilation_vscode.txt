@@ -1,0 +1,1 @@
+Ctrl+Shift+B then choose: tsc: watch - tsconfig.json.
