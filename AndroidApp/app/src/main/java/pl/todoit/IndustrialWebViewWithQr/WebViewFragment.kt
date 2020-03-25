@@ -14,29 +14,24 @@ import android.widget.Toast
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 
+val json = Json(JsonConfiguration.Stable)
+
+fun postReply(host : WebViewFragment, reply : AndroidReply) {
+    var replyJson = json.stringify(AndroidReply.serializer(), reply)
+    var msg = "androidPostReplyToPromise(\"" +
+            replyJson.replace("\"", "\\\"") +
+            "\")"
+    host.getWebView()?.evaluateJavascript(msg, null)
+}
+
 class AndroidRequestScanQr(var host:WebViewFragment) {
-    val json = Json(JsonConfiguration.Stable)
 
     @JavascriptInterface
     public fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
-
         host.getApp()?.requestScanQr(
             ScanRequest(label, regexpOrNull),
-            { x:String ->
-                var replyJson = json.stringify(AndroidReply.serializer(), AndroidReply(promiseId, true, x))
-                var msg = "androidPostReplyToPromise(\"" +
-                    replyJson.replace("\"", "\\\"") +
-                    "\")"
-                host.getWebView()?.evaluateJavascript(msg, null)
-            },
-            {
-                var replyJson = json.stringify(AndroidReply.serializer(), AndroidReply(promiseId, false, null))
-                var msg = "androidPostReplyToPromise(\"" +
-                    replyJson.replace("\"", "\\\"") +
-                    "\")"
-                host.getWebView()?.evaluateJavascript(msg, null)
-            }
-        )
+            { postReply(host, AndroidReply(promiseId, true, it)) },
+            { postReply(host, AndroidReply(promiseId, false, null)) } )
     }
 }
 
