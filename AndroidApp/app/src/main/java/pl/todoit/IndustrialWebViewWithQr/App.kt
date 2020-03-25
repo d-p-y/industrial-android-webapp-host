@@ -2,6 +2,7 @@ package pl.todoit.IndustrialWebViewWithQr
 
 import android.app.Application
 import kotlinx.serialization.Serializable
+import timber.log.Timber
 
 data class ScanRequest(
     public var label : String,
@@ -33,5 +34,12 @@ class App : Application() {
         }
 
         showScanQrImpl?.invoke(req)
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        Timber.plant(Timber.DebugTree())
+
+        Timber.i("logging initialized")
     }
 }
