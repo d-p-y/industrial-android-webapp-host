@@ -59,6 +59,6 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
-        app?.hideScanQrImpl?.invoke()
+        app.hideScanQrImpl?.invoke()
     }
 }

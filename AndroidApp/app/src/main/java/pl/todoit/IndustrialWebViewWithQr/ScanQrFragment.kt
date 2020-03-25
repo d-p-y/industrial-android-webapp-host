@@ -35,7 +35,7 @@ class ScanQrFragment : Fragment() {
                 var qr = scannedQr.text.toString()
                 Toast.makeText(act, "scanned ${qr}", Toast.LENGTH_SHORT).show()
 
-                app?.onQrScanSuccessImpl?.invoke(qr)
+                app.onQrScanSuccessImpl?.invoke(qr)
             }
         }
 
@@ -46,7 +46,7 @@ class ScanQrFragment : Fragment() {
             var scannedQr = result.findViewById<TextView>(R.id.qrInput)
 
             if (act != null && app is App && scannedQr != null) {
-                app?.onQrScanCancelImpl?.invoke(Unit)
+                app.onQrScanCancelImpl?.invoke(Unit)
             }
         }
 
