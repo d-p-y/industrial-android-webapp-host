@@ -37,6 +37,7 @@ class AndroidRequestScanQr(var host:WebViewFragment) {
 }
 
 class WebViewFragment : Fragment() {
+    var onPostCreate : ((x:WebView)->Unit)? = null
 
     fun getApp() : App? {
         var app = activity?.application
@@ -48,9 +49,16 @@ class WebViewFragment : Fragment() {
         return app
     }
 
-    fun getWebView() : WebView? {
-        return activity?.findViewById(R.id.webView)
+    fun setNavigation(inp:ConnectionInfo) {
+        onPostCreate = {
+            it.loadUrl(inp.url)
+        }
     }
+
+    fun getWebView() : WebView? {
+        return view?.findViewById(R.id.webView)
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_web_view, container, false)
 
@@ -64,7 +72,8 @@ class WebViewFragment : Fragment() {
             webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
             webView.addJavascriptInterface(AndroidRequestScanQr(this), "Android")
             webView.clearCache(true)
-            webView.loadUrl("http://192.168.1.8:8888")
+
+            onPostCreate?.invoke(webView)
         }
 
         return result

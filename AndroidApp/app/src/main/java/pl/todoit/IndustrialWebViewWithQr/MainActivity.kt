@@ -2,12 +2,33 @@ package pl.todoit.IndustrialWebViewWithQr
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.appcompat.widget.Toolbar
 
 class MainActivity : AppCompatActivity() {
-    val webviewFragmentName = "base"
-    val scanQrFragmentName = "popup"
+    val webviewFragmentName = "baseWebBrowser"
+    val connsSettsFragmentName = "baseConnsSetts"
+    val scanQrFragmentName = "qrPopup"
+
+    fun setWebBrowserBase() : WebViewFragment {
+        var baseViewSetFragmentTran = supportFragmentManager.beginTransaction()
+        var frag = WebViewFragment()
+        baseViewSetFragmentTran.add(R.id.base_fragment, frag, webviewFragmentName)
+        baseViewSetFragmentTran.commit()
+        return frag
+    }
+
+    fun setConnectionsSettingsBase() : ConnectionsSettingsFragment {
+        var baseViewSetFragmentTran = supportFragmentManager.beginTransaction()
+        var frag = ConnectionsSettingsFragment()
+        baseViewSetFragmentTran.add(R.id.base_fragment, frag, connsSettsFragmentName)
+        baseViewSetFragmentTran.commit()
+        return frag
+    }
 
     fun setQrPopup() : ScanQrFragment {
         var popupViewSetFragmentTran = supportFragmentManager.beginTransaction()
@@ -17,8 +38,8 @@ class MainActivity : AppCompatActivity() {
         return scanQrFrag
     }
 
-    fun unsetQrPopup() {
-        val frag = supportFragmentManager.findFragmentByTag(scanQrFragmentName)
+    fun unsetFragment(fragmentTagName : String) {
+        val frag = supportFragmentManager.findFragmentByTag(fragmentTagName)
 
         if (frag == null) {
             return
@@ -61,6 +82,27 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        app.showWebBrowser = { it:ConnectionInfo ->
+            var frag = setWebBrowserBase()
+            frag.setNavigation(it)
+        }
+
+        app.hideWebBrowser = { runOnUiThread({ unsetFragment(webviewFragmentName) }) }
+
+        app.hideConnectionsSettings = { runOnUiThread({
+            unsetFragment(connsSettsFragmentName)
+            var frag = setWebBrowserBase()
+            frag.setNavigation(app.currentConnection)
+        }) }
+
+        app.showConnectionsSettings = {
+            app.hideWebBrowser?.invoke()
+            var frag = setConnectionsSettingsBase()
+            frag.setNavigation(it, {
+                app.hideConnectionsSettings?.invoke()
+            })
+        }
+
         app.showScanQrImpl = { x:ScanRequest ->
             runOnUiThread({
                 val frag = setQrPopup()
@@ -74,10 +116,11 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread({
                 var popupFrag = findViewById<ViewGroup>(R.id.popup_fragment)
                 popupFrag.visibility = View.GONE
-                unsetQrPopup()
+                unsetFragment(scanQrFragmentName)
             })
         }
 
+        app.showWebBrowser?.invoke(app.currentConnection)
         app.hideScanQrImpl?.invoke()
     }
 }

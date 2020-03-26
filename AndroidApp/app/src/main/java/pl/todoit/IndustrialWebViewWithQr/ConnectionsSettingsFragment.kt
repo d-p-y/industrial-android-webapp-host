@@ -9,15 +9,18 @@ import android.widget.Button
 import android.widget.EditText
 
 class ConnectionsSettingsFragment : Fragment() {
+    var onPostCreate : ((x:View)->Unit)? = null
+    var onQuiting : ((Unit)->Unit)? = null
 
-    fun setInput(inp : ConnectionInfo) {
-        var editor = view?.findViewById<EditText>(R.id.inpUrl)
+    fun setNavigation(inp : ConnectionInfo, onQuiting:((Unit)->Unit)) {
+        onPostCreate = {
+            var editor = it.findViewById<EditText>(R.id.inpUrl)
 
-        if (editor == null) {
-            return
+            if (editor != null) {
+                editor.setText(inp.url)
+            }
         }
-
-        editor.setText(inp.url)
+        this.onQuiting = onQuiting
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -29,9 +32,10 @@ class ConnectionsSettingsFragment : Fragment() {
 
             if (app is App && editor != null) {
                 app.currentConnection.url = editor.text.toString()
-                app.hideConnectionsSettings?.invoke()
+                onQuiting?.invoke(Unit)
             }
         }
+        onPostCreate?.invoke(result)
         return result
     }
 }

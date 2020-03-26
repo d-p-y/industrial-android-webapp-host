@@ -20,7 +20,7 @@ data class ConnectionInfo(var url : String)
 class App : Application() {
     //base "canvas"
     var showWebBrowser : ((x:ConnectionInfo)->Unit)? = null
-    //var hideWebBrowser : (()->Unit)? = null
+    var hideWebBrowser : (()->Unit)? = null
 
     var showConnectionsSettings : ((x:ConnectionInfo)->Unit)? = null
     var hideConnectionsSettings : (()->Unit)? = null
