@@ -5,72 +5,43 @@
     android:layout_height="match_parent"
     tools:context=".ConnectionsSettingsFragment">
 
-    <TableRow
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:maxLines="2"
+        android:padding="5sp"
+        android:text="Simplified settings. In future it will let edit list of possible connections" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="99"
-            android:padding="5sp"
-            android:text="Simplified settings. In future it will let edit list of possible connections" />
-    </TableRow>
-
-    <TableRow
+    <View
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="2dp"
+        android:background="#989898" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:background="#989898" />
-    </TableRow>
-
-    <TableRow
+    <TextView
+        android:id="@+id/textView2"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:padding="5sp"
+        android:text="Site:" />
 
-        <TextView
-            android:id="@+id/textView2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="5sp"
-            android:text="Site:" />
-    </TableRow>
-
-    <TableRow
+    <EditText
+        android:id="@+id/inpUrl"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:hint="http://example.com"
+        android:inputType="textPersonName" />
 
-        <EditText
-            android:id="@+id/inpUrl"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="http://example.com"
-            android:inputType="textPersonName" />
-    </TableRow>
-
-    <TableRow
+    <View
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="2dp"
+        android:background="#989898" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:background="#989898" />
-    </TableRow>
-
-    <TableRow
+    <Button
+        android:id="@+id/btnSave"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:text="Save" />
 
-        <Button
-            android:id="@+id/btnSave"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Save" />
-    </TableRow>
 </TableLayout>
