@@ -15,12 +15,25 @@ data class AndroidReply (
     var Reply : String?
 )
 
+data class ConnectionInfo(var url : String)
+
 class App : Application() {
+    //base "canvas"
+    var showWebBrowser : ((x:ConnectionInfo)->Unit)? = null
+    //var hideWebBrowser : (()->Unit)? = null
+
+    var showConnectionsSettings : ((x:ConnectionInfo)->Unit)? = null
+    var hideConnectionsSettings : (()->Unit)? = null
+
+    //popups
     var showScanQrImpl : ((req:ScanRequest)->Unit)? = null
     var hideScanQrImpl : (()->Unit)? = null
 
     var onQrScanSuccessImpl : ((x:String) -> Unit)? = null
     var onQrScanCancelImpl : ((_:Unit) -> Unit)? = null
+
+    //TODO use persistence
+    var currentConnection = ConnectionInfo("http://192.168.1.8:8888")
 
     public fun requestScanQr(req : ScanRequest, onSuccess : ((x:String) -> Unit), onCancel:((_:Unit) -> Unit) ) {
         onQrScanSuccessImpl = { x : String ->
