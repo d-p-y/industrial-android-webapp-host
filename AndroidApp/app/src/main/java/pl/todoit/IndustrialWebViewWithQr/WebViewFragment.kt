@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
 import kotlinx.serialization.json.Json
@@ -60,9 +61,8 @@ class WebViewFragment : Fragment() {
         if (webView != null && app is App) {
             webView.settings.javaScriptEnabled = true
             webView.settings.loadsImagesAutomatically = true
-
-            webView.addJavascriptInterface(AndroidRequestScanQr(this), "Android");
-
+            webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
+            webView.addJavascriptInterface(AndroidRequestScanQr(this), "Android")
             webView.clearCache(true)
             webView.loadUrl("http://192.168.1.8:8888")
         }
