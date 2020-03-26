@@ -27,14 +27,33 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction().remove(frag).commit()
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.menuItemSettings) {
+            Toast.makeText(this,"Settings run", Toast.LENGTH_SHORT).show()
+
+            var app = application
+
+            if (app is App) {
+                app.showConnectionsSettings?.invoke(app.currentConnection)
+            }
+
+            return true
+        }
+
+        return super.onOptionsItemSelected(item)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        var baseViewSetFragmentTran = supportFragmentManager.beginTransaction()
-        var webViewFrag = WebViewFragment()
-        baseViewSetFragmentTran.add(R.id.base_fragment, webViewFrag, webviewFragmentName)
-        baseViewSetFragmentTran.commit()
+        var toolBar = findViewById<Toolbar>(R.id.toolBar)
+        setSupportActionBar(toolBar)
 
         var app = application
 
