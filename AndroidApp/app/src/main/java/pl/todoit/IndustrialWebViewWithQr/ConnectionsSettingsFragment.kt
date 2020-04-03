@@ -1,41 +1,33 @@
 package pl.todoit.IndustrialWebViewWithQr
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import androidx.fragment.app.Fragment
+import kotlinx.coroutines.channels.Channel
 
-class ConnectionsSettingsFragment : Fragment() {
-    var onPostCreate : ((x:View)->Unit)? = null
-    var onQuiting : ((Unit)->Unit)? = null
-
-    fun setNavigation(inp : ConnectionInfo, onQuiting:((Unit)->Unit)) {
-        onPostCreate = {
-            var editor = it.findViewById<EditText>(R.id.inpUrl)
-
-            if (editor != null) {
-                editor.setText(inp.url)
-            }
-        }
-        this.onQuiting = onQuiting
-    }
+class ConnectionsSettingsFragment(private val navigation : Channel<NavigationRequest>, private val connInfo : ConnectionInfo) : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_connections_settings, container, false)
 
         result.findViewById<Button>(R.id.btnSave)?.setOnClickListener {
-            var app = activity?.application
+            var act = activity
             var editor = view?.findViewById<EditText>(R.id.inpUrl)
 
-            if (app is App && editor != null) {
-                app.currentConnection.url = editor.text.toString()
-                onQuiting?.invoke(Unit)
+            if (act is MainActivity && editor != null) {
+                act.launchCoroutine(suspend {
+                    navigation.send(NavigationRequest.ConnectionSettings_Save(ConnectionInfo(editor.text.toString())))
+                })
             }
         }
-        onPostCreate?.invoke(result)
+
+        var editor = result.findViewById<EditText>(R.id.inpUrl)
+        editor.setText(connInfo.url)
+
         return result
     }
 }
