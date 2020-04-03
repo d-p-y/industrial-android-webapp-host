@@ -1,5 +1,7 @@
 package pl.todoit.IndustrialWebViewWithQr
 
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
