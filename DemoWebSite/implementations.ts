@@ -74,6 +74,16 @@ Window.prototype.scanQr = function(label : string, regexpOrNull : string) : Prom
     });    
 }
 
+Window.prototype.showToast = function(label : string, longDuration : boolean) : void {
+    if (self.Android === undefined) {
+        //dev friendly polyfill
+        window.alert(label);
+        return;
+    }
+
+    self.Android.showToast(label, longDuration);
+}
+
 interface HTMLElement {
     removeAllChildren() : void;
 }
@@ -94,10 +104,10 @@ window.addEventListener('load', (_) => {
 window.addEventListener('load', (_) => {
     document.body.removeAllChildren();
 
-    var btn = document.createElement("input");
-    btn.type = "button";
-    btn.value = "Request scan QR";
-    btn.onclick = async _ => {
+    var btnRequestScanQr = document.createElement("input");
+    btnRequestScanQr.type = "button";
+    btnRequestScanQr.value = "Request scan QR";
+    btnRequestScanQr.onclick = async _ => {
         try {            
             var res = await window.scanQr("give me some integer QR", "^[0-9]{1,10}$");
             window.debugLogToBody("scanned: "+res);
@@ -105,11 +115,21 @@ window.addEventListener('load', (_) => {
             window.debugLogToBody("scanner rejected: "+error);
         }
     };
-
-    document.body.appendChild(btn);
+    document.body.appendChild(btnRequestScanQr);
     
+    var btnShowToastShort = document.createElement("input");
+    btnShowToastShort.type = "button";
+    btnShowToastShort.value = "Short toast";
+    btnShowToastShort.onclick = () => window.showToast("some short toast from web", false);    
+    document.body.appendChild(btnShowToastShort);
+
+    var btnShowToastLong = document.createElement("input");
+    btnShowToastLong.type = "button";
+    btnShowToastLong.value = "Long toast";
+    btnShowToastLong.onclick = () => window.showToast("some long toast from web", true);    
+    document.body.appendChild(btnShowToastLong);
+
     var lbl = document.createElement("div");
     lbl.innerText = new Date().toJSON() + "";
-    document.body.appendChild(lbl);
-    
+    document.body.appendChild(lbl);    
 });

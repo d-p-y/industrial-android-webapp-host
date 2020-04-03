@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
@@ -23,7 +24,12 @@ suspend fun postReply(host : WebViewFragment, reply : AndroidReply) {
     host.getWebView()?.evaluateJavascript(msg, null)
 }
 
-class AndroidRequestScanQr(var host:WebViewFragment) {
+class WebviewExposedMethods(var host:WebViewFragment) {
+
+    @JavascriptInterface
+    public fun showToast(text : String, durationLong: Boolean) {
+        Toast.makeText(host.activity, text, if (durationLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+    }
 
     @JavascriptInterface
     public fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
@@ -59,7 +65,7 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
             webView.settings.javaScriptEnabled = true
             webView.settings.loadsImagesAutomatically = true
             webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
-            webView.addJavascriptInterface(AndroidRequestScanQr(this), "Android")
+            webView.addJavascriptInterface(WebviewExposedMethods(this), "Android")
             webView.clearCache(true)
 
             Timber.d("navigating to ${inp.url}")
