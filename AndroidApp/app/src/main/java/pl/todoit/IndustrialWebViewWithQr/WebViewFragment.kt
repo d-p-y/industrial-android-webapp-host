@@ -51,7 +51,6 @@ class WebviewExposedMethods(var host:WebViewFragment) {
 }
 
 class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:ConnectionInfo) : Fragment() {
-
     fun getWebView() : WebView? = view?.findViewById(R.id.webView)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -73,5 +72,30 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
         }
 
         return result
+    }
+
+    val trues = arrayOf("true")
+    val nulls = arrayOf(null, "null")
+
+    //true if consumed
+    suspend fun onBackPressedConsumed() : Boolean? {
+        var act = activity
+
+        if (act !is MainActivity) {
+            Timber.e("not in MainActivity")
+            return null
+        }
+
+        val result = Channel<Boolean?>()
+        getWebView()?.evaluateJavascript("(window.androidBackConsumed === undefined) ? null : window.androidBackConsumed()", {
+            act.launchCoroutine (suspend {
+                if (it in nulls) {
+                    result.send(null)
+                } else {
+                    result.send(it in trues)
+                } })
+        })
+
+        return result.receive()
     }
 }

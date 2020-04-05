@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private var currentMasterFragmentTag : String? = null
     private var currentPopupFragmentTag : String? = null
     private var currentPopup:IBackAcceptingFragment? = null
+    private var currentWebView:WebViewFragment? = null
 
     public fun launchCoroutine (block : suspend () -> Unit) {
         launch {
@@ -128,6 +129,13 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         removeMasterFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment, fragmentTagName).commit()
         currentMasterFragmentTag = fragmentTagName
+
+        if (fragment is WebViewFragment) {
+            currentWebView = fragment
+        } else {
+            currentWebView = null //webview is replaced with something else
+        }
+
         Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
     }
 
@@ -162,7 +170,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private fun replacePopupWithScanQr(navigation : Channel<NavigationRequest>, scanReq:ScanRequest) =
         replacePopupFragment(ScanQrFragment(navigation, scanReq), "qrScanner")
 
-    private fun consumeNavigationRequest(app:App, request:NavigationRequest) {
+    private suspend fun consumeNavigationRequest(app:App, request:NavigationRequest) {
         Timber.d("mainActivityNavigator() received navigationrequest=$request currentMaster=$currentMasterFragmentTag currentPopup=$currentPopup")
 
         when (request) {
@@ -184,6 +192,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                 } else {
                     //TODO delegate asking webapp to act. Depending on its reply either swallow event OR call finish()
                     Timber.d("trying to delegate back button to webView fragment")
+                    var backConsumed = currentWebView?.onBackPressedConsumed()
+
+                    Timber.d("webView backButton consume=$backConsumed")
+                    if (backConsumed == false) {
+                        finish()
+                    }
                 }
             }
         }

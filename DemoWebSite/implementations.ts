@@ -104,6 +104,22 @@ window.addEventListener('load', (_) => {
 window.addEventListener('load', (_) => {
     document.body.removeAllChildren();
 
+    let chbConsumeBackButton = document.createElement("input");
+    chbConsumeBackButton.type = "checkbox";
+    chbConsumeBackButton.id = "chbk";
+    chbConsumeBackButton.checked = true;
+    document.body.appendChild(chbConsumeBackButton);
+    
+    let chbConsumeBackButtonLabel = document.createElement("label");
+    chbConsumeBackButtonLabel.htmlFor = chbConsumeBackButton.id;
+    chbConsumeBackButtonLabel.textContent = "Consume backbutton event?"
+    document.body.appendChild( chbConsumeBackButtonLabel);
+    
+    Window.prototype.androidBackConsumed = function () {
+        window.debugLogToBody("got consume back button request");
+        return chbConsumeBackButton.checked;
+    };
+
     let btnRequestScanQr = document.createElement("input");
     btnRequestScanQr.type = "button";
     btnRequestScanQr.value = "Request scan QR";

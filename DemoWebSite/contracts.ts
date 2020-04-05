@@ -14,6 +14,7 @@ interface Window {
     Android:IAndroid;
 
     androidPostReplyToPromise(replyJson : string) : void;
+    androidBackConsumed() : boolean;
 
     scanQr(label : string, regexpOrNull : string) : Promise<string>;
     showToast(label : string, longDuration : boolean) : void;
