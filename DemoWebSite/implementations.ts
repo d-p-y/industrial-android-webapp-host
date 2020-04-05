@@ -75,13 +75,13 @@ Window.prototype.scanQr = function(label : string, regexpOrNull : string) : Prom
 }
 
 Window.prototype.showToast = function(label : string, longDuration : boolean) : void {
-    if (self.Android === undefined) {
+    if (this.Android === undefined) {
         //dev friendly polyfill
         window.alert(label);
         return;
     }
 
-    self.Android.showToast(label, longDuration);
+    this.Android.showToast(label, longDuration);
 }
 
 interface HTMLElement {
