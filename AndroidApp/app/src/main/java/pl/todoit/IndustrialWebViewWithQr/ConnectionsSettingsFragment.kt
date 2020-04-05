@@ -9,7 +9,7 @@ import android.widget.EditText
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 
-class ConnectionsSettingsFragment(private val navigation : Channel<NavigationRequest>, private val connInfo : ConnectionInfo) : Fragment() {
+class ConnectionsSettingsFragment(private val navigation : Channel<NavigationRequest>, private val connInfo : ConnectionInfo) : Fragment(),IBackAcceptingFragment {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_connections_settings, container, false)
@@ -29,5 +29,15 @@ class ConnectionsSettingsFragment(private val navigation : Channel<NavigationReq
         editor.setText(connInfo.url)
 
         return result
+    }
+
+    override fun onBackPressed() {
+        var act = activity
+
+        if (act is MainActivity) {
+            act.launchCoroutine(suspend {
+                navigation.send(NavigationRequest.ConnectionSettings_Back())
+            })
+        }
     }
 }

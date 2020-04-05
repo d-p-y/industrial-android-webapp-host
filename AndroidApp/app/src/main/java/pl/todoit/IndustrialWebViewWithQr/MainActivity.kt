@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private var currentMasterFragmentTag : String? = null
     private var currentPopupFragmentTag : String? = null
     private var currentPopup:IBackAcceptingFragment? = null
-    private var currentWebView:WebViewFragment? = null
+    private var currentMasterFragment:Fragment? = null
 
     public fun launchCoroutine (block : suspend () -> Unit) {
         launch {
@@ -129,13 +129,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         removeMasterFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment, fragmentTagName).commit()
         currentMasterFragmentTag = fragmentTagName
-
-        if (fragment is WebViewFragment) {
-            currentWebView = fragment
-        } else {
-            currentWebView = null //webview is replaced with something else
-        }
-
+        currentMasterFragment = fragment
         Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
     }
 
@@ -186,19 +180,32 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             is NavigationRequest.ScanQr_Back -> removePopupFragmentIfNeeded()
             is NavigationRequest._Activity_Back -> {
                 var currentPopupCopy = currentPopup
+                var currentMasterCopy = currentMasterFragment
+
                 if (currentPopupCopy != null) {
                     Timber.d("delegating back button to popup fragment")
                     currentPopupCopy.onBackPressed()
-                } else {
-                    //TODO delegate asking webapp to act. Depending on its reply either swallow event OR call finish()
+                    return
+                }
+
+                if (currentMasterCopy is WebViewFragment) {
+                    //delegate question to webapp
                     Timber.d("trying to delegate back button to webView fragment")
-                    var backConsumed = currentWebView?.onBackPressedConsumed()
+                    var backConsumed = currentMasterCopy.onBackPressedConsumed()
 
                     Timber.d("webView backButton consume=$backConsumed")
                     if (backConsumed == false) {
                         finish()
                     }
+                    return
                 }
+
+                if (currentMasterCopy is IBackAcceptingFragment) {
+                    currentMasterCopy.onBackPressed()
+                    return
+                }
+
+                Timber.d("no fragment is eligible for backbutton processing")
             }
         }
     }
