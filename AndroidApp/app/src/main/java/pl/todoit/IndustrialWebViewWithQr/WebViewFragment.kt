@@ -27,9 +27,11 @@ suspend fun postReply(host : WebViewFragment, reply : AndroidReply) {
 class WebviewExposedMethods(var host:WebViewFragment) {
 
     @JavascriptInterface
-    public fun showToast(text : String, durationLong: Boolean) {
+    public fun setTitle(currentTitle: String) = host.onTitleChanged(currentTitle)
+
+    @JavascriptInterface
+    public fun showToast(text : String, durationLong: Boolean) =
         Toast.makeText(host.activity, text, if (durationLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
-    }
 
     @JavascriptInterface
     public fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
@@ -50,7 +52,10 @@ class WebviewExposedMethods(var host:WebViewFragment) {
     }
 }
 
-class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:ConnectionInfo) : Fragment() {
+val trues = arrayOf("true")
+val nulls = arrayOf(null, "null")
+
+class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:ConnectionInfo, var _currentTitle : String = "Untitled WebApp") : Fragment(),IHasTitleFragment {
     fun getWebView() : WebView? = view?.findViewById(R.id.webView)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -74,9 +79,6 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
         return result
     }
 
-    val trues = arrayOf("true")
-    val nulls = arrayOf(null, "null")
-
     //true if consumed
     suspend fun onBackPressedConsumed() : Boolean? {
         var act = activity
@@ -97,5 +99,20 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
         })
 
         return result.receive()
+    }
+
+    override fun getTitle(): String = _currentTitle
+
+    fun onTitleChanged(currentTitle: String) {
+        _currentTitle = currentTitle
+
+        var act = activity
+
+        if (act !is MainActivity) {
+            Timber.e("not in MainActivity")
+            return
+        }
+
+        act.launchCoroutine { navigation.send(NavigationRequest._TitleChanged(this)) }
     }
 }

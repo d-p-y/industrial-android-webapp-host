@@ -31,6 +31,10 @@ interface IBackAcceptingFragment {
     fun onBackPressed()
 }
 
+interface IHasTitleFragment {
+    fun getTitle() : String
+}
+
 /**
  * convention for form initiated navigation (form requests navigation): Sender_ActionName
  * convention for non-form initiated navigation (top level request to navigate to some form): _Sender_ActionName
@@ -44,6 +48,7 @@ public sealed class NavigationRequest {
     class WebBrowser_RequestedScanQr(val req:ScanRequest) : NavigationRequest()
     class ScanQr_Scanned() : NavigationRequest()
     class ScanQr_Back() : NavigationRequest()
+    class _TitleChanged(val sender : IHasTitleFragment) : NavigationRequest()
 }
 
 class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
@@ -130,6 +135,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment, fragmentTagName).commit()
         currentMasterFragmentTag = fragmentTagName
         currentMasterFragment = fragment
+        supportActionBar?.title = if (fragment is IHasTitleFragment) fragment.getTitle() else fragmentTagName
         Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
     }
 
@@ -178,6 +184,13 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             is NavigationRequest.WebBrowser_RequestedScanQr -> replacePopupWithScanQr(navigation, request.req)
             is NavigationRequest.ScanQr_Scanned -> removePopupFragmentIfNeeded()
             is NavigationRequest.ScanQr_Back -> removePopupFragmentIfNeeded()
+            is NavigationRequest._TitleChanged ->
+                if (request.sender == currentMasterFragment) {
+                    supportActionBar?.title = request.sender.getTitle()
+                } else {
+                    Timber.d("ignored change name request from inactive master fragment")
+                }
+
             is NavigationRequest._Activity_Back -> {
                 var currentPopupCopy = currentPopup
                 var currentMasterCopy = currentMasterFragment
@@ -197,6 +210,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                     if (backConsumed == false) {
                         finish()
                     }
+
                     return
                 }
 

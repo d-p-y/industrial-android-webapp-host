@@ -84,6 +84,14 @@ Window.prototype.showToast = function(label : string, longDuration : boolean) : 
     this.Android.showToast(label, longDuration);
 }
 
+Window.prototype.setTitle = function (title : string) {
+    document.title = title;
+
+    if (this.Android !== undefined) {
+        this.Android.setTitle(title);
+    }
+}
+
 interface HTMLElement {
     removeAllChildren() : void;
 }
@@ -103,22 +111,30 @@ window.addEventListener('load', (_) => {
 
 window.addEventListener('load', (_) => {
     document.body.removeAllChildren();
+    document.body.style.display = "flex";
+    document.body.style.flexDirection = "column";
+
+
+    let backWrapper = document.createElement("div");
 
     let chbConsumeBackButton = document.createElement("input");
     chbConsumeBackButton.type = "checkbox";
     chbConsumeBackButton.id = "chbk";
     chbConsumeBackButton.checked = true;
-    document.body.appendChild(chbConsumeBackButton);
+    backWrapper.appendChild(chbConsumeBackButton);
     
     let chbConsumeBackButtonLabel = document.createElement("label");
     chbConsumeBackButtonLabel.htmlFor = chbConsumeBackButton.id;
     chbConsumeBackButtonLabel.textContent = "Consume backbutton event?"
-    document.body.appendChild( chbConsumeBackButtonLabel);
+    backWrapper.appendChild( chbConsumeBackButtonLabel);
+    
+    document.body.appendChild(backWrapper);
     
     Window.prototype.androidBackConsumed = function () {
         window.debugLogToBody("got consume back button request");
         return chbConsumeBackButton.checked;
     };
+    
 
     let btnRequestScanQr = document.createElement("input");
     btnRequestScanQr.type = "button";
@@ -144,6 +160,12 @@ window.addEventListener('load', (_) => {
     btnShowToastLong.value = "Long toast";
     btnShowToastLong.onclick = () => window.showToast("some long toast from web", true);    
     document.body.appendChild(btnShowToastLong);
+
+    let btnChangeTitle = document.createElement("input");
+    btnChangeTitle.type = "button";
+    btnChangeTitle.value = "Change title";
+    btnChangeTitle.onclick = () => window.setTitle("some title #" + new Date().getMilliseconds());
+    document.body.appendChild(btnChangeTitle);
 
     let lbl = document.createElement("div");
     lbl.innerText = new Date().toJSON() + "";

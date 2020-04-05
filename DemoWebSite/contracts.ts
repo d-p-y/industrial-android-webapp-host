@@ -8,6 +8,7 @@ interface AndroidReply {
 interface IAndroid {
     requestScanQr(promiseId : string, label : string, regexpOrNull : string) : void;
     showToast(label : string, longDuration : boolean) : void;
+    setTitle(title : String) : void;
 }
 
 interface Window {  
@@ -15,9 +16,10 @@ interface Window {
 
     androidPostReplyToPromise(replyJson : string) : void;
     androidBackConsumed() : boolean;
-
+    
     scanQr(label : string, regexpOrNull : string) : Promise<string>;
     showToast(label : string, longDuration : boolean) : void;
+    setTitle(title : String) : void;
     
     //helpers to keep track of promises
     nextPromiseId : number;
