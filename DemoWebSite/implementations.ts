@@ -2,17 +2,17 @@
 Window.prototype.androidPostReplyToPromise = function (replyToJson : string) {
     window.debugLogToBody("processing android reply: "+replyToJson);
 
-    var decoded : AndroidReply = JSON.parse(replyToJson);
+    let decoded : AndroidReply = JSON.parse(replyToJson);
     window.debugLogToBody("processing android reply[2]: "+decoded);
 
-    var resolved = window.promiseResolvedCallBacks.get(decoded.PromiseId);
+    let resolved = window.promiseResolvedCallBacks.get(decoded.PromiseId);
     window.promiseResolvedCallBacks.delete(decoded.PromiseId);
     if (resolved === undefined) {
         window.debugLogToBody("resolved reply is undefined");
         return;
     }
 
-    var rejected = window.promiseRejectedCallBacks.get(decoded.PromiseId);
+    let rejected = window.promiseRejectedCallBacks.get(decoded.PromiseId);
     window.promiseRejectedCallBacks.delete(decoded.PromiseId);
     if (rejected === undefined) {
         window.debugLogToBody("rejected reply is undefined");
@@ -37,20 +37,20 @@ Window.prototype.androidPostReplyToPromise = function (replyToJson : string) {
 };
 
 Window.prototype.debugLogToBody = function (msg : string) {
-    var logItm = document.createElement("div");
+    let logItm = document.createElement("div");
     logItm.innerText = msg;
 
     document.body.appendChild(logItm);
 };
 
 Window.prototype.scanQr = function(label : string, regexpOrNull : string) : Promise<string> {
-    var self = this;
+    let self = this;
 
     return new Promise(function (resolve,reject) {        
         if (self.Android === undefined) {
             //dev friendly polyfill
             while (true) {
-                var result = window.prompt(label);
+                let result = window.prompt(label);
     
                 if (result == null) {
                     return reject("user cancelled window.prompt()");
@@ -63,7 +63,7 @@ Window.prototype.scanQr = function(label : string, regexpOrNull : string) : Prom
         }
 
         //calls android host
-        var promiseId = (self.nextPromiseId++).toString();
+        let promiseId = (self.nextPromiseId++).toString();
         
         self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
         self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
@@ -104,12 +104,12 @@ window.addEventListener('load', (_) => {
 window.addEventListener('load', (_) => {
     document.body.removeAllChildren();
 
-    var btnRequestScanQr = document.createElement("input");
+    let btnRequestScanQr = document.createElement("input");
     btnRequestScanQr.type = "button";
     btnRequestScanQr.value = "Request scan QR";
     btnRequestScanQr.onclick = async _ => {
         try {            
-            var res = await window.scanQr("give me some integer QR", "^[0-9]{1,10}$");
+            let res = await window.scanQr("give me some integer QR", "^[0-9]{1,10}$");
             window.debugLogToBody("scanned: "+res);
         } catch (error) {
             window.debugLogToBody("scanner rejected: "+error);
@@ -117,19 +117,19 @@ window.addEventListener('load', (_) => {
     };
     document.body.appendChild(btnRequestScanQr);
     
-    var btnShowToastShort = document.createElement("input");
+    let btnShowToastShort = document.createElement("input");
     btnShowToastShort.type = "button";
     btnShowToastShort.value = "Short toast";
     btnShowToastShort.onclick = () => window.showToast("some short toast from web", false);    
     document.body.appendChild(btnShowToastShort);
 
-    var btnShowToastLong = document.createElement("input");
+    let btnShowToastLong = document.createElement("input");
     btnShowToastLong.type = "button";
     btnShowToastLong.value = "Long toast";
     btnShowToastLong.onclick = () => window.showToast("some long toast from web", true);    
     document.body.appendChild(btnShowToastLong);
 
-    var lbl = document.createElement("div");
+    let lbl = document.createElement("div");
     lbl.innerText = new Date().toJSON() + "";
     document.body.appendChild(lbl);    
 });
