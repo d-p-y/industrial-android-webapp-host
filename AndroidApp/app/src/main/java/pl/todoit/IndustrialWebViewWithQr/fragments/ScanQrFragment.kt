@@ -1,4 +1,4 @@
-package pl.todoit.IndustrialWebViewWithQr
+package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,9 +8,14 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
+import pl.todoit.IndustrialWebViewWithQr.MainActivity
+import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
+import pl.todoit.IndustrialWebViewWithQr.R
+import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
+import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
 
-class ScanQrFragment(val navigation:Channel<NavigationRequest>, val req:ScanRequest) : Fragment(),IBackAcceptingFragment {
+class ScanQrFragment(val navigation:Channel<NavigationRequest>, val req: ScanRequest) : Fragment(),IProcessesBackButtonEvents {
     override fun onBackPressed() {
         var act = activity
 

@@ -10,51 +10,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
-import kotlinx.serialization.Serializable
+import pl.todoit.IndustrialWebViewWithQr.fragments.ConnectionsSettingsFragment
+import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
+import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
+import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
+import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
+import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
+import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
-
-class ScanRequest(
-    public var label : String,
-    public var regexp : String?,
-    public val scanResult : Channel<String?> = Channel() ) {}
-
-@Serializable
-data class AndroidReply (
-    var PromiseId : String,
-    var IsSuccess : Boolean,
-    var Reply : String?
-)
-
-data class ConnectionInfo(var url : String)
-
-interface IBackAcceptingFragment {
-    fun onBackPressed()
-}
-
-interface IHasTitleFragment {
-    fun getTitle() : String
-}
-
-interface ISupportsBackButtonFragment {
-    fun isBackButtonEnabled() : Boolean
-}
-
-/**
- * convention for form initiated navigation (form requests navigation): Sender_ActionName
- * convention for non-form initiated navigation (top level request to navigate to some form): _Sender_ActionName
- */
-public sealed class NavigationRequest {
-    class _Activity_Back() : NavigationRequest()
-    class _Activity_GoToBrowser() : NavigationRequest()
-    class _Toolbar_GoToConnectionSettings() : NavigationRequest()
-    class ConnectionSettings_Back() : NavigationRequest()
-    class ConnectionSettings_Save(val connInfo:ConnectionInfo) : NavigationRequest()
-    class WebBrowser_RequestedScanQr(val req:ScanRequest) : NavigationRequest()
-    class ScanQr_Scanned() : NavigationRequest()
-    class ScanQr_Back() : NavigationRequest()
-    class _TitleChanged(val sender : IHasTitleFragment) : NavigationRequest()
-    class _BackButtonStateChanged(val sender : ISupportsBackButtonFragment) : NavigationRequest()
-}
 
 class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private val Dispatchers_UI = Dispatchers.Main
@@ -62,7 +25,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private val navigation = Channel<NavigationRequest>()
     private var currentMasterFragmentTag : String? = null
     private var currentPopupFragmentTag : String? = null
-    private var currentPopup:IBackAcceptingFragment? = null
+    private var currentPopup: IProcessesBackButtonEvents? = null
     private var currentMasterFragment:Fragment? = null
 
     fun launchCoroutine (block : suspend () -> Unit) {
@@ -97,7 +60,18 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         return super.onOptionsItemSelected(item)
     }
 
-    private fun setBackButtonState(enabled : Boolean) {
+    private fun setToolbarTitle(title : String) {
+        var tb = supportActionBar
+
+        if (tb == null) {
+            Timber.e("no toolbar - cannot change title")
+            return
+        }
+
+        supportActionBar?.title = title
+    }
+
+    private fun setToolbarBackButtonState(enabled : Boolean) {
         var tb = supportActionBar
 
         if (tb == null) {
@@ -119,7 +93,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         var toolBar = findViewById<Toolbar>(R.id.toolBar)
         setSupportActionBar(toolBar)
 
-        setBackButtonState(false) //webapp may support it but this seems to be the sane default
+        setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
+        setToolbarTitle("Untitled webapp")
 
         var app = application
 
@@ -162,16 +137,24 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment, fragmentTagName).commit()
         currentMasterFragmentTag = fragmentTagName
         currentMasterFragment = fragment
-        supportActionBar?.title = if (fragment is IHasTitleFragment) fragment.getTitle() else fragmentTagName
+        supportActionBar?.title = if (fragment is IHasTitle) fragment.getTitle() else fragmentTagName
 
         Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
     }
 
-    private fun replaceMasterWithWebBrowser(navigation : Channel<NavigationRequest>, connInfo:ConnectionInfo) =
-        replaceMasterFragment(WebViewFragment(navigation, connInfo), "webBrowser")
+    private fun replaceMasterWithWebBrowser(navigation : Channel<NavigationRequest>, connInfo: ConnectionInfo) =
+        replaceMasterFragment(
+            WebViewFragment(
+                navigation,
+                connInfo
+            ), "webBrowser")
 
-    private fun replaceMasterWithConnectionsSettings(navigation : Channel<NavigationRequest>, connInfo:ConnectionInfo) =
-        replaceMasterFragment(ConnectionsSettingsFragment(navigation, connInfo), "connSett")
+    private fun replaceMasterWithConnectionsSettings(navigation : Channel<NavigationRequest>, connInfo: ConnectionInfo) =
+        replaceMasterFragment(
+            ConnectionsSettingsFragment(
+                navigation,
+                connInfo
+            ), "connSett")
 
     private fun removePopupFragmentIfNeeded() {
         Timber.d("removePopupFragmentIfNeeded currentPopupFragmentTag=$currentPopupFragmentTag")
@@ -186,7 +169,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         currentPopup = null
     }
 
-    private fun <T> replacePopupFragment(fragment:T, fragmentTagName:String) where T : IBackAcceptingFragment, T: Fragment {
+    private fun <T> replacePopupFragment(fragment:T, fragmentTagName:String) where T : IProcessesBackButtonEvents, T: Fragment {
         removePopupFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.popup_fragment, fragment, fragmentTagName).commit()
         currentPopupFragmentTag = fragmentTagName
@@ -195,8 +178,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         currentPopup = fragment
     }
 
-    private fun replacePopupWithScanQr(navigation : Channel<NavigationRequest>, scanReq:ScanRequest) =
-        replacePopupFragment(ScanQrFragment(navigation, scanReq), "qrScanner")
+    private fun replacePopupWithScanQr(navigation : Channel<NavigationRequest>, scanReq: ScanRequest) =
+        replacePopupFragment(
+            ScanQrFragment(
+                navigation,
+                scanReq
+            ), "qrScanner")
 
     private suspend fun consumeNavigationRequest(app:App, request:NavigationRequest) {
         Timber.d("mainActivityNavigator() received navigationrequest=$request currentMaster=$currentMasterFragmentTag currentPopup=$currentPopup")
@@ -212,19 +199,18 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             is NavigationRequest.WebBrowser_RequestedScanQr -> replacePopupWithScanQr(navigation, request.req)
             is NavigationRequest.ScanQr_Scanned -> removePopupFragmentIfNeeded()
             is NavigationRequest.ScanQr_Back -> removePopupFragmentIfNeeded()
-            is NavigationRequest._BackButtonStateChanged ->
+            is NavigationRequest._ToolbarBackButtonStateChanged ->
                 if (request.sender == currentMasterFragment) {
-                    setBackButtonState(request.sender.isBackButtonEnabled())
+                    setToolbarBackButtonState(request.sender.isBackButtonEnabled())
                 } else {
                     Timber.d("ignored change back button state request from inactive master fragment")
                 }
-            is NavigationRequest._TitleChanged ->
+            is NavigationRequest._ToolbarTitleChanged ->
                 if (request.sender == currentMasterFragment) {
-                    supportActionBar?.title = request.sender.getTitle()
+                    setToolbarTitle(request.sender.getTitle())
                 } else {
                     Timber.d("ignored change name request from inactive master fragment")
                 }
-
             is NavigationRequest._Activity_Back -> {
                 var currentPopupCopy = currentPopup
                 var currentMasterCopy = currentMasterFragment
@@ -248,7 +234,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                     return
                 }
 
-                if (currentMasterCopy is IBackAcceptingFragment) {
+                if (currentMasterCopy is IProcessesBackButtonEvents) {
                     currentMasterCopy.onBackPressed()
                     return
                 }

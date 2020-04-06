@@ -1,4 +1,4 @@
-package pl.todoit.IndustrialWebViewWithQr
+package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import kotlinx.coroutines.channels.Channel
 import android.os.Bundle
@@ -12,19 +12,25 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import pl.todoit.IndustrialWebViewWithQr.App
+import pl.todoit.IndustrialWebViewWithQr.MainActivity
+import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
+import pl.todoit.IndustrialWebViewWithQr.R
+import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 
 val json = Json(JsonConfiguration.Stable)
 
-suspend fun postReply(host : WebViewFragment, reply : AndroidReply) {
+fun postReply(host : WebViewFragment, reply : AndroidReply) {
     var replyJson = json.stringify(AndroidReply.serializer(), reply)
-    var msg = "androidPostReplyToPromise(\"" +
-            replyJson.replace("\"", "\\\"") +
-            "\")"
+    var msg =
+        "androidPostReplyToPromise(\"" +
+        replyJson.replace("\"", "\\\"") +
+        "\")"
     host.getWebView()?.evaluateJavascript(msg, null)
 }
 
-class WebviewExposedMethods(var host:WebViewFragment) {
+class WebviewExposedMethods(var host: WebViewFragment) {
 
     @JavascriptInterface
     public fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
@@ -47,10 +53,15 @@ class WebviewExposedMethods(var host:WebViewFragment) {
 
         act.launchCoroutine(suspend {
             val req = ScanRequest(label, regexpOrNull)
-            host.navigation.send(NavigationRequest.WebBrowser_RequestedScanQr(req))
+            host.navigation.send(
+                NavigationRequest.WebBrowser_RequestedScanQr(req)
+            )
 
             var maybeQr = req.scanResult.receive()
-            postReply(host, AndroidReply(promiseId, maybeQr != null, maybeQr))
+            postReply(
+                host,
+                AndroidReply(promiseId,maybeQr != null, maybeQr)
+            )
         })
     }
 }
@@ -58,8 +69,7 @@ class WebviewExposedMethods(var host:WebViewFragment) {
 val trues = arrayOf("true")
 val nulls = arrayOf(null, "null")
 
-class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:ConnectionInfo)
-        : Fragment(),IHasTitleFragment,ISupportsBackButtonFragment {
+class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp: ConnectionInfo) : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
 
     private var _currentTitle : String = "Untitled WebApp"
     private var _backButtonEnabled = false
@@ -68,21 +78,16 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_web_view, container, false)
-
         var webView = result.findViewById<WebView>(R.id.webView)
 
-        var app = activity?.application
+        webView.settings.javaScriptEnabled = true
+        webView.settings.loadsImagesAutomatically = true
+        webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
+        webView.addJavascriptInterface(WebviewExposedMethods(this), "Android")
+        webView.clearCache(true)
 
-        if (webView != null && app is App) {
-            webView.settings.javaScriptEnabled = true
-            webView.settings.loadsImagesAutomatically = true
-            webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
-            webView.addJavascriptInterface(WebviewExposedMethods(this), "Android")
-            webView.clearCache(true)
-
-            Timber.d("navigating to ${inp.url}")
-            webView.loadUrl(inp.url)
-        }
+        Timber.d("navigating to ${inp.url}")
+        webView.loadUrl(inp.url)
 
         return result
     }
@@ -121,7 +126,9 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
             return
         }
 
-        act.launchCoroutine { navigation.send(NavigationRequest._BackButtonStateChanged(this)) }
+        act.launchCoroutine { navigation.send(
+            NavigationRequest._ToolbarBackButtonStateChanged(this)
+        ) }
     }
 
     override fun getTitle(): String = _currentTitle
@@ -136,6 +143,8 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
             return
         }
 
-        act.launchCoroutine { navigation.send(NavigationRequest._TitleChanged(this)) }
+        act.launchCoroutine { navigation.send(
+            NavigationRequest._ToolbarTitleChanged(this)
+        ) }
     }
 }
