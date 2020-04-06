@@ -92,6 +92,15 @@ Window.prototype.setTitle = function (title : string) {
     }
 }
 
+Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
+    if (this.Android !== undefined) {
+        this.Android.setToolbarBackButtonState(isEnabled);
+        return;
+    }
+
+    window.debugLogToBody("back button is now " + (isEnabled ? "enabled" : "disabled"));
+}
+
 interface HTMLElement {
     removeAllChildren() : void;
 }
@@ -114,27 +123,50 @@ window.addEventListener('load', (_) => {
     document.body.style.display = "flex";
     document.body.style.flexDirection = "column";
 
+    {
+        let container = document.createElement("div");
 
-    let backWrapper = document.createElement("div");
+        let checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "chbk1";
+        checkbox.checked = true;
+        container.appendChild(checkbox);
+        
+        let lbl = document.createElement("label");
+        lbl.htmlFor = checkbox.id;
+        lbl.textContent = "Consume backbutton event?"
+        container.appendChild( lbl);
+        
+        document.body.appendChild(container);
+        
+        Window.prototype.androidBackConsumed = function () {
+            window.debugLogToBody("got consume back button request");
+            return checkbox.checked;
+        };    
+    }
 
-    let chbConsumeBackButton = document.createElement("input");
-    chbConsumeBackButton.type = "checkbox";
-    chbConsumeBackButton.id = "chbk";
-    chbConsumeBackButton.checked = true;
-    backWrapper.appendChild(chbConsumeBackButton);
-    
-    let chbConsumeBackButtonLabel = document.createElement("label");
-    chbConsumeBackButtonLabel.htmlFor = chbConsumeBackButton.id;
-    chbConsumeBackButtonLabel.textContent = "Consume backbutton event?"
-    backWrapper.appendChild( chbConsumeBackButtonLabel);
-    
-    document.body.appendChild(backWrapper);
-    
-    Window.prototype.androidBackConsumed = function () {
-        window.debugLogToBody("got consume back button request");
-        return chbConsumeBackButton.checked;
-    };
-    
+
+    {
+        let container = document.createElement("div");
+
+        let checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "chbk2";
+        checkbox.checked = false;
+        container.appendChild(checkbox);
+        
+        let lbl = document.createElement("label");
+        lbl.htmlFor = checkbox.id;
+        lbl.textContent = "backbutton enabled?"
+        container.appendChild( lbl);
+        
+        document.body.appendChild(container);
+        
+        checkbox.addEventListener("change", ev => {
+            window.debugLogToBody("back button enabled="+checkbox.checked);
+            window.setToolbarBackButtonState(checkbox.checked);
+        });
+    }
 
     let btnRequestScanQr = document.createElement("input");
     btnRequestScanQr.type = "button";
@@ -169,5 +201,7 @@ window.addEventListener('load', (_) => {
 
     let lbl = document.createElement("div");
     lbl.innerText = new Date().toJSON() + "";
-    document.body.appendChild(lbl);    
+    document.body.appendChild(lbl);
+
+    window.setTitle("Showcase app");
 });

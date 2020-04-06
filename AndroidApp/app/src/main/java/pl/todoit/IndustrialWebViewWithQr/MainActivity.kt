@@ -35,6 +35,10 @@ interface IHasTitleFragment {
     fun getTitle() : String
 }
 
+interface ISupportsBackButtonFragment {
+    fun isBackButtonEnabled() : Boolean
+}
+
 /**
  * convention for form initiated navigation (form requests navigation): Sender_ActionName
  * convention for non-form initiated navigation (top level request to navigate to some form): _Sender_ActionName
@@ -49,6 +53,7 @@ public sealed class NavigationRequest {
     class ScanQr_Scanned() : NavigationRequest()
     class ScanQr_Back() : NavigationRequest()
     class _TitleChanged(val sender : IHasTitleFragment) : NavigationRequest()
+    class _BackButtonStateChanged(val sender : ISupportsBackButtonFragment) : NavigationRequest()
 }
 
 class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
@@ -60,7 +65,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private var currentPopup:IBackAcceptingFragment? = null
     private var currentMasterFragment:Fragment? = null
 
-    public fun launchCoroutine (block : suspend () -> Unit) {
+    fun launchCoroutine (block : suspend () -> Unit) {
         launch {
             withContext(Dispatchers_UI) {
                 block.invoke()
@@ -68,23 +73,43 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         }
     }
 
+    override fun onSupportNavigateUp(): Boolean = true
+
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.menuItemSettings) {
-            var app = application
+        if (item.itemId == android.R.id.home) {
+            Timber.d("onOptionsItemSelected() up-navigation")
+            launchCoroutine { navigation.send(NavigationRequest._Activity_Back()) }
 
-            if (app is App) {
-                launchCoroutine { navigation.send(NavigationRequest._Toolbar_GoToConnectionSettings()) }
-            }
+            return true
+        }
+
+        if (item.itemId == R.id.menuItemSettings) {
+            launchCoroutine { navigation.send(NavigationRequest._Toolbar_GoToConnectionSettings()) }
 
             return true
         }
 
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun setBackButtonState(enabled : Boolean) {
+        var tb = supportActionBar
+
+        if (tb == null) {
+            Timber.e("no toolbar - cannot change button state")
+            return
+        }
+
+        with(tb) {
+            setDisplayShowHomeEnabled(enabled)
+            setDisplayHomeAsUpEnabled(enabled)
+            setHomeButtonEnabled(enabled)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,6 +118,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
 
         var toolBar = findViewById<Toolbar>(R.id.toolBar)
         setSupportActionBar(toolBar)
+
+        setBackButtonState(false) //webapp may support it but this seems to be the sane default
 
         var app = application
 
@@ -136,6 +163,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         currentMasterFragmentTag = fragmentTagName
         currentMasterFragment = fragment
         supportActionBar?.title = if (fragment is IHasTitleFragment) fragment.getTitle() else fragmentTagName
+
         Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
     }
 
@@ -184,6 +212,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             is NavigationRequest.WebBrowser_RequestedScanQr -> replacePopupWithScanQr(navigation, request.req)
             is NavigationRequest.ScanQr_Scanned -> removePopupFragmentIfNeeded()
             is NavigationRequest.ScanQr_Back -> removePopupFragmentIfNeeded()
+            is NavigationRequest._BackButtonStateChanged ->
+                if (request.sender == currentMasterFragment) {
+                    setBackButtonState(request.sender.isBackButtonEnabled())
+                } else {
+                    Timber.d("ignored change back button state request from inactive master fragment")
+                }
             is NavigationRequest._TitleChanged ->
                 if (request.sender == currentMasterFragment) {
                     supportActionBar?.title = request.sender.getTitle()

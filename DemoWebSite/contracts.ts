@@ -9,6 +9,7 @@ interface IAndroid {
     requestScanQr(promiseId : string, label : string, regexpOrNull : string) : void;
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : String) : void;
+    setToolbarBackButtonState(isEnabled : boolean) : void;
 }
 
 interface Window {  
@@ -20,7 +21,8 @@ interface Window {
     scanQr(label : string, regexpOrNull : string) : Promise<string>;
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : String) : void;
-    
+    setToolbarBackButtonState(isEnabled : boolean) : void;
+
     //helpers to keep track of promises
     nextPromiseId : number;
     promiseResolvedCallBacks : Map<string, (result:string) => void>;

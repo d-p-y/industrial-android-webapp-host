@@ -27,6 +27,9 @@ suspend fun postReply(host : WebViewFragment, reply : AndroidReply) {
 class WebviewExposedMethods(var host:WebViewFragment) {
 
     @JavascriptInterface
+    public fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
+
+    @JavascriptInterface
     public fun setTitle(currentTitle: String) = host.onTitleChanged(currentTitle)
 
     @JavascriptInterface
@@ -55,7 +58,12 @@ class WebviewExposedMethods(var host:WebViewFragment) {
 val trues = arrayOf("true")
 val nulls = arrayOf(null, "null")
 
-class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:ConnectionInfo, var _currentTitle : String = "Untitled WebApp") : Fragment(),IHasTitleFragment {
+class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:ConnectionInfo)
+        : Fragment(),IHasTitleFragment,ISupportsBackButtonFragment {
+
+    private var _currentTitle : String = "Untitled WebApp"
+    private var _backButtonEnabled = false
+
     fun getWebView() : WebView? = view?.findViewById(R.id.webView)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -99,6 +107,21 @@ class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp:Connect
         })
 
         return result.receive()
+    }
+
+    override fun isBackButtonEnabled(): Boolean = _backButtonEnabled
+
+    fun onBackButtonStateChanged(enabled : Boolean) {
+        _backButtonEnabled = enabled
+
+        var act = activity
+
+        if (act !is MainActivity) {
+            Timber.e("not in MainActivity")
+            return
+        }
+
+        act.launchCoroutine { navigation.send(NavigationRequest._BackButtonStateChanged(this)) }
     }
 
     override fun getTitle(): String = _currentTitle
