@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
@@ -15,7 +15,7 @@ import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
 import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
 
-class ScanQrFragment(val navigation:Channel<NavigationRequest>, val req: ScanRequest) : Fragment(),IProcessesBackButtonEvents {
+class ScanQrFragment(val navigation:SendChannel<NavigationRequest>, val req: ScanRequest) : Fragment(),IProcessesBackButtonEvents {
     override fun onBackPressed() {
         var act = activity
 

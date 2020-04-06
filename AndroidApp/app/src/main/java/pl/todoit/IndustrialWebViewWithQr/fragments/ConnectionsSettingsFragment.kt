@@ -7,14 +7,14 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import androidx.fragment.app.Fragment
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
 
-class ConnectionsSettingsFragment(private val navigation : Channel<NavigationRequest>, private val connInfo : ConnectionInfo) : Fragment(),
+class ConnectionsSettingsFragment(private val navigation : SendChannel<NavigationRequest>, private val connInfo : ConnectionInfo) : Fragment(),
     IProcessesBackButtonEvents {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {

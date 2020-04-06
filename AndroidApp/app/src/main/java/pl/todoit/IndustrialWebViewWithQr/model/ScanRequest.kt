@@ -1,9 +1,9 @@
 package pl.todoit.IndustrialWebViewWithQr.model
 
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 
 class ScanRequest(
     var label : String,
     var regexp : String?,
-    val scanResult : Channel<String?> = Channel()
+    val scanResult : SendChannel<String?>
 ) {}

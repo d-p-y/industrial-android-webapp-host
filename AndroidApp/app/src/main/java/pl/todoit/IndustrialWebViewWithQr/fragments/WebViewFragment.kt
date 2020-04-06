@@ -10,9 +10,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
-import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
@@ -33,17 +33,17 @@ fun postReply(host : WebViewFragment, reply : AndroidReply) {
 class WebviewExposedMethods(var host: WebViewFragment) {
 
     @JavascriptInterface
-    public fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
+    fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
 
     @JavascriptInterface
-    public fun setTitle(currentTitle: String) = host.onTitleChanged(currentTitle)
+    fun setTitle(currentTitle: String) = host.onTitleChanged(currentTitle)
 
     @JavascriptInterface
-    public fun showToast(text : String, durationLong: Boolean) =
+    fun showToast(text : String, durationLong: Boolean) =
         Toast.makeText(host.activity, text, if (durationLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
 
     @JavascriptInterface
-    public fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
+    fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
         var act = host.activity
 
         if (act !is MainActivity) {
@@ -52,12 +52,13 @@ class WebviewExposedMethods(var host: WebViewFragment) {
         }
 
         act.launchCoroutine(suspend {
-            val req = ScanRequest(label, regexpOrNull)
+            val scanResult = Channel<String?>()
+            val req = ScanRequest(label, regexpOrNull, scanResult)
             host.navigation.send(
                 NavigationRequest.WebBrowser_RequestedScanQr(req)
             )
 
-            var maybeQr = req.scanResult.receive()
+            var maybeQr = scanResult.receive()
             postReply(
                 host,
                 AndroidReply(promiseId,maybeQr != null, maybeQr)
@@ -69,7 +70,7 @@ class WebviewExposedMethods(var host: WebViewFragment) {
 val trues = arrayOf("true")
 val nulls = arrayOf(null, "null")
 
-class WebViewFragment(val navigation:Channel<NavigationRequest>, val inp: ConnectionInfo) : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
+class WebViewFragment(val navigation:SendChannel<NavigationRequest>, val inp: ConnectionInfo) : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
 
     private var _currentTitle : String = "Untitled WebApp"
     private var _backButtonEnabled = false
