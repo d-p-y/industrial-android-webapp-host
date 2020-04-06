@@ -15,7 +15,10 @@ import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
 import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
 
-class ScanQrFragment(val navigation:SendChannel<NavigationRequest>, val req: ScanRequest) : Fragment(),IProcessesBackButtonEvents {
+class ScanQrFragment(
+        private val navigation:SendChannel<NavigationRequest>,
+        private val req: ScanRequest) : Fragment(),IProcessesBackButtonEvents {
+
     override fun onBackPressed() {
         var act = activity
 
@@ -25,10 +28,6 @@ class ScanQrFragment(val navigation:SendChannel<NavigationRequest>, val req: Sca
         }
 
         act.launchCoroutine(suspend { navigation.send(NavigationRequest.ScanQr_Back()) })
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,savedInstanceState: Bundle?): View? {

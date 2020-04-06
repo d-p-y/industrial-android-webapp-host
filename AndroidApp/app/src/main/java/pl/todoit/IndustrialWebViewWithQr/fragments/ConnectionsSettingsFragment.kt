@@ -14,8 +14,9 @@ import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
 
-class ConnectionsSettingsFragment(private val navigation : SendChannel<NavigationRequest>, private val connInfo : ConnectionInfo) : Fragment(),
-    IProcessesBackButtonEvents {
+class ConnectionsSettingsFragment(
+        private val navigation : SendChannel<NavigationRequest>,
+        private val connInfo : ConnectionInfo) : Fragment(),IProcessesBackButtonEvents {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_connections_settings, container, false)

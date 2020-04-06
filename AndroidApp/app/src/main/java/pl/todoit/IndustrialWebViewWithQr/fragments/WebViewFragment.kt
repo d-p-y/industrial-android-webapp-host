@@ -30,7 +30,9 @@ fun postReply(host : WebViewFragment, reply : AndroidReply) {
     host.getWebView()?.evaluateJavascript(msg, null)
 }
 
-class WebviewExposedMethods(var host: WebViewFragment) {
+class WebViewExposedMethods(
+        private var host: WebViewFragment,
+        private var navigation:SendChannel<NavigationRequest>) {
 
     @JavascriptInterface
     fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
@@ -54,7 +56,7 @@ class WebviewExposedMethods(var host: WebViewFragment) {
         act.launchCoroutine(suspend {
             val scanResult = Channel<String?>()
             val req = ScanRequest(label, regexpOrNull, scanResult)
-            host.navigation.send(
+            navigation.send(
                 NavigationRequest.WebBrowser_RequestedScanQr(req)
             )
 
@@ -70,7 +72,9 @@ class WebviewExposedMethods(var host: WebViewFragment) {
 val trues = arrayOf("true")
 val nulls = arrayOf(null, "null")
 
-class WebViewFragment(val navigation:SendChannel<NavigationRequest>, val inp: ConnectionInfo) : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
+class WebViewFragment(
+        private val navigation:SendChannel<NavigationRequest>,
+        private val inp: ConnectionInfo) : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
 
     private var _currentTitle : String = "Untitled WebApp"
     private var _backButtonEnabled = false
@@ -84,7 +88,7 @@ class WebViewFragment(val navigation:SendChannel<NavigationRequest>, val inp: Co
         webView.settings.javaScriptEnabled = true
         webView.settings.loadsImagesAutomatically = true
         webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
-        webView.addJavascriptInterface(WebviewExposedMethods(this), "Android")
+        webView.addJavascriptInterface(WebViewExposedMethods(this, navigation), "Android")
         webView.clearCache(true)
 
         Timber.d("navigating to ${inp.url}")
