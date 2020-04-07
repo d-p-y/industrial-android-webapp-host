@@ -1,5 +1,7 @@
 package pl.todoit.IndustrialWebViewWithQr
 
+import android.Manifest
+import android.content.pm.PackageManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import androidx.appcompat.app.AppCompatActivity
@@ -9,14 +11,13 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.ConnectionsSettingsFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
-import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
-import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
-import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
-import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
+import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 
 class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
@@ -27,6 +28,55 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     private var currentPopupFragmentTag : String? = null
     private var currentPopup: IProcessesBackButtonEvents? = null
     private var currentMasterFragment:Fragment? = null
+
+    private var permissionRequestCode = 0
+    private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        val maybeReply = permissionRequestToIsGrantedReplyChannel.get(requestCode)
+
+        if (maybeReply == null) {
+            Timber.e("onRequestPermissionsResult() called for unknown requestCode=$requestCode")
+            return
+        }
+
+        permissionRequestToIsGrantedReplyChannel.remove(requestCode) //clean up
+
+        if (permissions.size != 1 || grantResults.size != 1) {
+            Timber.e("onRequestPermissionsResult() arrays not of expected size=1")
+            return
+        }
+
+        var perm = permissions[0]
+        val result = grantResults[0] == PackageManager.PERMISSION_GRANTED
+
+        launchCoroutine {  maybeReply.send(Pair(perm, result)) }
+    }
+
+    suspend fun grantPermission(manifestPermissionItm : String) : Boolean {
+        manifestPermissionItm
+        val grant = ContextCompat.checkSelfPermission(this, manifestPermissionItm)
+        if (grant == PackageManager.PERMISSION_GRANTED) {
+            Timber.d("permission $manifestPermissionItm already granted")
+            return true
+        }
+
+        var requestCode = ++permissionRequestCode
+        val reply = Channel<Pair<String,Boolean>>()
+        permissionRequestToIsGrantedReplyChannel[requestCode] = reply
+        ActivityCompat.requestPermissions(this, arrayOf(manifestPermissionItm), requestCode)
+        val (permission, granted) = reply.receive()
+
+        if (manifestPermissionItm != permission) {
+            Timber.e("grantPermission() got reply to different permission=${permission} than asked=${manifestPermissionItm}")
+            return false
+        }
+
+        Timber.d("permission $manifestPermissionItm granted?=$granted")
+        return granted
+    }
 
     fun launchCoroutine (block : suspend () -> Unit) {
         launch {
@@ -169,7 +219,20 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         currentPopup = null
     }
 
-    private fun <T> replacePopupFragment(fragment:T, fragmentTagName:String) where T : IProcessesBackButtonEvents, T: Fragment {
+    private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String) where T : IProcessesBackButtonEvents, T: Fragment {
+        if (fragment is IRequiresPermissions) {
+            var failedToGetPermission =
+                fragment.getRequiredAndroidManifestPermissions()
+                    .map { Pair(it, grantPermission(it)) }
+                    .filter { !it.second }
+
+            if (failedToGetPermission.any()) {
+                Timber.e("failed to get required permissions (user rejected?)")
+                fragment.onRequiredPermissionRejected(failedToGetPermission[0].first)
+                return
+            }
+        }
+
         removePopupFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.popup_fragment, fragment, fragmentTagName).commit()
         currentPopupFragmentTag = fragmentTagName
@@ -178,7 +241,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         currentPopup = fragment
     }
 
-    private fun replacePopupWithScanQr(navigation : Channel<NavigationRequest>, scanReq: ScanRequest) =
+    private suspend fun replacePopupWithScanQr(navigation : Channel<NavigationRequest>, scanReq: ScanRequest) =
         replacePopupFragment(
             ScanQrFragment(
                 navigation,
