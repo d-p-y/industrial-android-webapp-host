@@ -20,10 +20,7 @@ import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 
-class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
-    private val Dispatchers_UI = Dispatchers.Main
-
-    private val navigation = Channel<NavigationRequest>()
+class MainActivity : AppCompatActivity() {
     private var currentMasterFragmentTag : String? = null
     private var currentPopupFragmentTag : String? = null
     private var currentPopup: IProcessesBackButtonEvents? = null
@@ -52,11 +49,10 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         var perm = permissions[0]
         val result = grantResults[0] == PackageManager.PERMISSION_GRANTED
 
-        launchCoroutine {  maybeReply.send(Pair(perm, result)) }
+        App.Instance.launchCoroutine {  maybeReply.send(Pair(perm, result)) }
     }
 
     suspend fun grantPermission(manifestPermissionItm : String) : Boolean {
-        manifestPermissionItm
         val grant = ContextCompat.checkSelfPermission(this, manifestPermissionItm)
         if (grant == PackageManager.PERMISSION_GRANTED) {
             Timber.d("permission $manifestPermissionItm already granted")
@@ -78,14 +74,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         return granted
     }
 
-    fun launchCoroutine (block : suspend () -> Unit) {
-        launch {
-            withContext(Dispatchers_UI) {
-                block.invoke()
-            }
-        }
-    }
-
     override fun onSupportNavigateUp(): Boolean = true
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -96,13 +84,13 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             Timber.d("onOptionsItemSelected() up-navigation")
-            launchCoroutine { navigation.send(NavigationRequest._Activity_Back()) }
+            App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest._Activity_Back()) }
 
             return true
         }
 
         if (item.itemId == R.id.menuItemSettings) {
-            launchCoroutine { navigation.send(NavigationRequest._Toolbar_GoToConnectionSettings()) }
+            App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest._Toolbar_GoToConnectionSettings()) }
 
             return true
         }
@@ -138,6 +126,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
 
         var toolBar = findViewById<Toolbar>(R.id.toolBar)
@@ -146,17 +135,10 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
         setToolbarTitle("Untitled webapp")
 
-        var app = application
-
-        if (app !is App) {
-            Timber.e("no application instance")
-            return
-        }
-
         Timber.i("starting mainActivityNavigator()")
 
-        launchCoroutine(suspend {
-            startMainNavigatorLoop(app, NavigationRequest._Activity_GoToBrowser())
+        App.Instance.launchCoroutine(suspend {
+            startMainNavigatorLoop(NavigationRequest._Activity_GoToBrowser())
         })
     }
 
@@ -192,19 +174,17 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
     }
 
-    private fun replaceMasterWithWebBrowser(navigation : Channel<NavigationRequest>, connInfo: ConnectionInfo) =
-        replaceMasterFragment(
-            WebViewFragment(
-                navigation,
-                connInfo
-            ), "webBrowser")
+    private fun replaceMasterWithWebBrowser(connInfo: ConnectionInfo) {
+        App.Instance.webViewFragmentParams.set(connInfo)
+        val fragment = WebViewFragment()
+        replaceMasterFragment(fragment, "webBrowser")
+    }
 
-    private fun replaceMasterWithConnectionsSettings(navigation : Channel<NavigationRequest>, connInfo: ConnectionInfo) =
-        replaceMasterFragment(
-            ConnectionsSettingsFragment(
-                navigation,
-                connInfo
-            ), "connSett")
+    private fun replaceMasterWithConnectionsSettings(connInfo: ConnectionInfo) {
+        App.Instance.connSettFragmentParams.set(connInfo)
+        var fragment = ConnectionsSettingsFragment()
+        replaceMasterFragment(fragment, "connSett")
+    }
 
     private fun removePopupFragmentIfNeeded() {
         Timber.d("removePopupFragmentIfNeeded currentPopupFragmentTag=$currentPopupFragmentTag")
@@ -219,7 +199,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         currentPopup = null
     }
 
-    private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String) where T : IProcessesBackButtonEvents, T: Fragment {
+    private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String)
+            where T : IProcessesBackButtonEvents, T: Fragment {
+
         if (fragment is IRequiresPermissions) {
             var failedToGetPermission =
                 fragment.getRequiredAndroidManifestPermissions()
@@ -241,25 +223,24 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         currentPopup = fragment
     }
 
-    private suspend fun replacePopupWithScanQr(navigation : Channel<NavigationRequest>, scanReq: ScanRequest) =
-        replacePopupFragment(
-            ScanQrFragment(
-                navigation,
-                scanReq
-            ), "qrScanner")
+    private suspend fun replacePopupWithScanQr(scanReq: ScanRequest) {
+        App.Instance.scanQrFragmentParams.set(scanReq)
+        var fragment = ScanQrFragment()
+        replacePopupFragment(fragment, "qrScanner")
+    }
 
-    private suspend fun consumeNavigationRequest(app:App, request:NavigationRequest) {
+    private suspend fun consumeNavigationRequest(request:NavigationRequest) {
         Timber.d("mainActivityNavigator() received navigationrequest=$request currentMaster=$currentMasterFragmentTag currentPopup=$currentPopup")
 
         when (request) {
-            is NavigationRequest._Activity_GoToBrowser -> replaceMasterWithWebBrowser(navigation, app.currentConnection)
-            is NavigationRequest._Toolbar_GoToConnectionSettings -> replaceMasterWithConnectionsSettings(navigation, app.currentConnection)
+            is NavigationRequest._Activity_GoToBrowser -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
+            is NavigationRequest._Toolbar_GoToConnectionSettings -> replaceMasterWithConnectionsSettings(App.Instance.currentConnection)
             is NavigationRequest.ConnectionSettings_Save -> {
-                app.currentConnection = request.connInfo
-                replaceMasterWithWebBrowser(navigation, app.currentConnection)
+                App.Instance.currentConnection = request.connInfo
+                replaceMasterWithWebBrowser(App.Instance.currentConnection)
             }
-            is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(navigation, app.currentConnection)
-            is NavigationRequest.WebBrowser_RequestedScanQr -> replacePopupWithScanQr(navigation, request.req)
+            is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
+            is NavigationRequest.WebBrowser_RequestedScanQr -> replacePopupWithScanQr(request.req)
             is NavigationRequest.ScanQr_Scanned -> removePopupFragmentIfNeeded()
             is NavigationRequest.ScanQr_Back -> removePopupFragmentIfNeeded()
             is NavigationRequest._ToolbarBackButtonStateChanged ->
@@ -307,24 +288,19 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         }
     }
 
-    private suspend fun startMainNavigatorLoop(app:App, initialRequest:NavigationRequest?) {
+    private suspend fun startMainNavigatorLoop(initialRequest:NavigationRequest?) {
         removePopupFragmentIfNeeded()
 
         if (initialRequest != null) {
-            consumeNavigationRequest(app, initialRequest)
+            consumeNavigationRequest(initialRequest)
         }
 
         while(true) {
-            consumeNavigationRequest(app, navigation.receive())
+            consumeNavigationRequest(App.Instance.navigation.receive())
         }
     }
 
     override fun onBackPressed() {
-        launchCoroutine { navigation.send(NavigationRequest._Activity_Back()) }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        cancel() //coroutines cancellation
+        App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest._Activity_Back()) }
     }
 }

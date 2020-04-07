@@ -8,26 +8,27 @@ import android.widget.Button
 import android.widget.EditText
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.SendChannel
+import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
+import timber.log.Timber
 
-class ConnectionsSettingsFragment(
-        private val navigation : SendChannel<NavigationRequest>,
-        private val connInfo : ConnectionInfo) : Fragment(),IProcessesBackButtonEvents {
+class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents {
+    private var _initialized = false
+    private fun connInfo() = App.Instance.connSettFragmentParams.get()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_connections_settings, container, false)
 
         result.findViewById<Button>(R.id.btnSave)?.setOnClickListener {
-            var act = activity
             var editor = view?.findViewById<EditText>(R.id.inpUrl)
 
-            if (act is MainActivity && editor != null) {
-                act.launchCoroutine(suspend {
-                    navigation.send(
+            if (editor != null) {
+                App.Instance.launchCoroutine(suspend {
+                    App.Instance.navigation.send(
                         NavigationRequest.ConnectionSettings_Save(
                             ConnectionInfo(
                                 editor.text.toString()
@@ -39,18 +40,14 @@ class ConnectionsSettingsFragment(
         }
 
         var editor = result.findViewById<EditText>(R.id.inpUrl)
-        editor.setText(connInfo.url)
+        editor.setText(connInfo()?.url)
 
         return result
     }
 
     override fun onBackPressed() {
-        var act = activity
-
-        if (act is MainActivity) {
-            act.launchCoroutine(suspend {
-                navigation.send(NavigationRequest.ConnectionSettings_Back())
-            })
-        }
+        App.Instance.launchCoroutine(suspend {
+            App.Instance.navigation.send(NavigationRequest.ConnectionSettings_Back())
+        })
     }
 }

@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
@@ -30,9 +31,7 @@ fun postReply(host : WebViewFragment, reply : AndroidReply) {
     host.getWebView()?.evaluateJavascript(msg, null)
 }
 
-class WebViewExposedMethods(
-        private var host: WebViewFragment,
-        private var navigation:SendChannel<NavigationRequest>) {
+class WebViewExposedMethods(private var host: WebViewFragment) {
 
     @JavascriptInterface
     fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
@@ -46,17 +45,10 @@ class WebViewExposedMethods(
 
     @JavascriptInterface
     fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
-        var act = host.activity
-
-        if (act !is MainActivity) {
-            Timber.e("no MainActivity")
-            return
-        }
-
-        act.launchCoroutine(suspend {
+        App.Instance.launchCoroutine(suspend {
             val scanResult = Channel<String?>()
             val req = ScanRequest(label, regexpOrNull, scanResult)
-            navigation.send(
+            App.Instance.navigation.send(
                 NavigationRequest.WebBrowser_RequestedScanQr(req)
             )
 
@@ -72,14 +64,14 @@ class WebViewExposedMethods(
 val trues = arrayOf("true")
 val nulls = arrayOf(null, "null")
 
-class WebViewFragment(
-        private val navigation:SendChannel<NavigationRequest>,
-        private val inp: ConnectionInfo) : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
+class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
+    private fun connInfo() = App.Instance.webViewFragmentParams.get()
 
     private var _currentTitle : String = "Untitled WebApp"
     private var _backButtonEnabled = false
 
     fun getWebView() : WebView? = view?.findViewById(R.id.webView)
+
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_web_view, container, false)
@@ -88,67 +80,52 @@ class WebViewFragment(
         webView.settings.javaScriptEnabled = true
         webView.settings.loadsImagesAutomatically = true
         webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
-        webView.addJavascriptInterface(WebViewExposedMethods(this, navigation), "Android")
+        webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
         webView.clearCache(true)
 
-        Timber.d("navigating to ${inp.url}")
-        webView.loadUrl(inp.url)
+        Timber.d("navigating to ${connInfo()?.url}")
+        webView.loadUrl(connInfo()?.url)
 
         return result
     }
 
     //true if consumed
     suspend fun onBackPressedConsumed() : Boolean? {
-        var act = activity
-
-        if (act !is MainActivity) {
-            Timber.e("not in MainActivity")
-            return null
-        }
-
         val result = Channel<Boolean?>()
-        getWebView()?.evaluateJavascript("(window.androidBackConsumed === undefined) ? null : window.androidBackConsumed()", {
-            act.launchCoroutine (suspend {
+
+        val callback =  { it : String? ->
+            App.Instance.launchCoroutine (suspend {
                 if (it in nulls) {
                     result.send(null)
                 } else {
                     result.send(it in trues)
                 } })
-        })
+            Unit
+        };
+
+        getWebView()?.evaluateJavascript(
+            "(window.androidBackConsumed === undefined) ? null : window.androidBackConsumed()",
+            callback)
 
         return result.receive()
     }
 
-    override fun isBackButtonEnabled(): Boolean = _backButtonEnabled
+    override fun isBackButtonEnabled() = _backButtonEnabled
 
     fun onBackButtonStateChanged(enabled : Boolean) {
         _backButtonEnabled = enabled
 
-        var act = activity
-
-        if (act !is MainActivity) {
-            Timber.e("not in MainActivity")
-            return
-        }
-
-        act.launchCoroutine { navigation.send(
+        App.Instance.launchCoroutine { App.Instance.navigation.send(
             NavigationRequest._ToolbarBackButtonStateChanged(this)
         ) }
     }
 
-    override fun getTitle(): String = _currentTitle
+    override fun getTitle() = _currentTitle
 
     fun onTitleChanged(currentTitle: String) {
         _currentTitle = currentTitle
 
-        var act = activity
-
-        if (act !is MainActivity) {
-            Timber.e("not in MainActivity")
-            return
-        }
-
-        act.launchCoroutine { navigation.send(
+        App.Instance.launchCoroutine { App.Instance.navigation.send(
             NavigationRequest._ToolbarTitleChanged(this)
         ) }
     }
