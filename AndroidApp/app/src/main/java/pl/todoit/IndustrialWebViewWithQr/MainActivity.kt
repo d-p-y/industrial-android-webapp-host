@@ -1,22 +1,36 @@
 package pl.todoit.IndustrialWebViewWithQr
 
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.fragments.ConnectionsSettingsFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
+
+enum class OkOrDismissed {
+    OK,
+    Dismissed
+}
+
+suspend fun <T> buildAndShowDialog(ctx: Context, bld:(AlertDialog.Builder, SendChannel<T>)->AlertDialog.Builder) : T {
+    var result = Channel<T>()
+    bld(AlertDialog.Builder(ctx), result).show()
+    return result.receive()
+}
 
 class MainActivity : AppCompatActivity() {
     private var currentMasterFragmentTag : String? = null
@@ -26,6 +40,9 @@ class MainActivity : AppCompatActivity() {
 
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
+
+    private suspend fun <T> buildAndShowDialog(bld:(AlertDialog.Builder, SendChannel<T>)->AlertDialog.Builder) : T =
+        buildAndShowDialog(this, bld)
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -197,6 +214,7 @@ class MainActivity : AppCompatActivity() {
         currentPopup = null
     }
 
+    @Suppress("MoveLambdaOutsideParentheses")
     private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String)
             where T : IProcessesBackButtonEvents, T: Fragment {
 
@@ -209,6 +227,27 @@ class MainActivity : AppCompatActivity() {
             if (failedToGetPermission.any()) {
                 Timber.e("failed to get required permissions (user rejected?)")
                 fragment.onRequiredPermissionRejected(failedToGetPermission[0].first)
+                return
+            }
+        }
+
+        if (fragment is IBeforeNavigationValidation) {
+            var maybeError = fragment.maybeGetBeforeNavigationError()
+
+            if (maybeError != null) {
+                var result = buildAndShowDialog<OkOrDismissed> { bld, result ->
+                    with(bld) {
+                        setTitle("Failed to scan")
+                        setMessage(maybeError)
+                        setPositiveButton(
+                            android.R.string.ok,
+                            { _, _ -> App.Instance.launchCoroutine {  result.send(OkOrDismissed.OK) } })
+                        setOnCancelListener{ App.Instance.launchCoroutine {result.send(OkOrDismissed.Dismissed)} }
+                    }
+                }
+
+                Timber.d("dialog result=$result")
+
                 return
             }
         }
