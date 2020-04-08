@@ -20,6 +20,7 @@ class App : Application(), CoroutineScope by MainScope() {
         public lateinit var Instance : App
     }
 
+    val isForcedDevelopmentMode = true
     public val navigation = Channel<NavigationRequest>()
 
     public val webViewFragmentParams = ParamContainer<ConnectionInfo>()
@@ -28,7 +29,12 @@ class App : Application(), CoroutineScope by MainScope() {
 
     //TODO use persistence
     var currentConnection =
-        ConnectionInfo("http://192.168.1.8:8888")
+        ConnectionInfo(
+            url = "http://192.168.1.8:8888",
+            forceReloadFromNet = isForcedDevelopmentMode,
+            remoteDebuggerEnabled = isForcedDevelopmentMode,
+            forwardConsoleLogToLogCat = isForcedDevelopmentMode
+        )
 
     override fun onCreate() {
         super.onCreate()

@@ -4,9 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.JavascriptInterface
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
@@ -82,6 +80,17 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
         webView.settings.loadsImagesAutomatically = true
         webView.webViewClient = WebViewClient() //otherwise default browser app is open on URL change
         webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
+
+        if (connInfo()?.forwardConsoleLogToLogCat == true) {
+            webView.webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(msg: ConsoleMessage?): Boolean {
+                    Timber.d("received console.log: ${msg?.sourceId()}:${msg?.lineNumber()} ${msg?.message()}")
+                    return true
+                }
+            }
+        }
+
+        WebView.setWebContentsDebuggingEnabled(connInfo()?.remoteDebuggerEnabled == true)
 
         if (connInfo()?.forceReloadFromNet == true) {
             webView.clearCache(true)
