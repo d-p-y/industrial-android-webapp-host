@@ -1,6 +1,5 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
-import kotlinx.coroutines.channels.Channel
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,14 +9,16 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import pl.todoit.IndustrialWebViewWithQr.App
-import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
-import pl.todoit.IndustrialWebViewWithQr.model.*
+import pl.todoit.IndustrialWebViewWithQr.model.AndroidReply
+import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
+import pl.todoit.IndustrialWebViewWithQr.model.ITogglesBackButtonVisibility
+import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
 
 val json = Json(JsonConfiguration.Stable)
@@ -79,9 +80,12 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
 
         webView.settings.javaScriptEnabled = true
         webView.settings.loadsImagesAutomatically = true
-        webView.setWebViewClient(WebViewClient()) //otherwise default browser app is open on URL change
+        webView.webViewClient = WebViewClient() //otherwise default browser app is open on URL change
         webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
-        webView.clearCache(true)
+
+        if (connInfo()?.forceReloadFromNet == true) {
+            webView.clearCache(true)
+        }
 
         Timber.d("navigating to ${connInfo()?.url}")
         webView.loadUrl(connInfo()?.url)

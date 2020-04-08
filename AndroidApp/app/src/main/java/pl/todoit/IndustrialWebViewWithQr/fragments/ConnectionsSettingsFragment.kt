@@ -7,14 +7,11 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import androidx.fragment.app.Fragment
-import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.App
-import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
-import timber.log.Timber
 
 class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents {
     private var _initialized = false

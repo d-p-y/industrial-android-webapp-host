@@ -8,14 +8,12 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
 import pl.todoit.IndustrialWebViewWithQr.model.IRequiresPermissions
 import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
-import timber.log.Timber
 
 class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions {
     private fun req() : ScanRequest? = App.Instance.scanQrFragmentParams.get()
