@@ -24,15 +24,11 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents {
             var editor = view?.findViewById<EditText>(R.id.inpUrl)
 
             if (editor != null) {
-                App.Instance.launchCoroutine(suspend {
+                App.Instance.launchCoroutine {
                     App.Instance.navigation.send(
-                        NavigationRequest.ConnectionSettings_Save(
-                            ConnectionInfo(
-                                editor.text.toString()
-                            )
-                        )
+                        NavigationRequest.ConnectionSettings_Save(ConnectionInfo(editor.text.toString()))
                     )
-                })
+                }
             }
         }
 
@@ -43,8 +39,8 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents {
     }
 
     override fun onBackPressed() {
-        App.Instance.launchCoroutine(suspend {
+        App.Instance.launchCoroutine {
             App.Instance.navigation.send(NavigationRequest.ConnectionSettings_Back())
-        })
+        }
     }
 }

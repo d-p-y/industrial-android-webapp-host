@@ -135,9 +135,9 @@ class MainActivity : AppCompatActivity() {
 
         Timber.i("starting mainActivityNavigator()")
 
-        App.Instance.launchCoroutine(suspend {
+        App.Instance.launchCoroutine {
             startMainNavigatorLoop(NavigationRequest._Activity_GoToBrowser())
-        })
+        }
     }
 
     private fun removeFragment(fragmentTagName : String) {

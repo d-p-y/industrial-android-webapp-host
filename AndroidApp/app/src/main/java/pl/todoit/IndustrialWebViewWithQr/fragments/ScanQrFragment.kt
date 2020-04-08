@@ -21,7 +21,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
     override fun getRequiredAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
 
     override fun onRequiredPermissionRejected(perm:String) {
-        App.Instance.launchCoroutine(suspend { navigationCancelScanning() })
+        App.Instance.launchCoroutine { navigationCancelScanning() }
     }
 
     private suspend fun navigationCancelScanning() {
@@ -30,7 +30,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
     }
 
     override fun onBackPressed() {
-        App.Instance.launchCoroutine(suspend {navigationCancelScanning()})
+        App.Instance.launchCoroutine { navigationCancelScanning() }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -45,11 +45,11 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             if (scannedQr != null) {
                 var qr = scannedQr.text.toString()
 
-                App.Instance.launchCoroutine(suspend {
+                App.Instance.launchCoroutine {
                     req()?.scanResult?.send(qr)
                     App.Instance.navigation.send(NavigationRequest.ScanQr_Scanned())
                     Unit
-                })
+                }
             }
         }
 
@@ -57,7 +57,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             var scannedQr = result.findViewById<TextView>(R.id.qrInput)
 
             if (scannedQr != null) {
-                App.Instance.launchCoroutine(suspend { navigationCancelScanning() })
+                App.Instance.launchCoroutine { navigationCancelScanning() }
             }
         }
 

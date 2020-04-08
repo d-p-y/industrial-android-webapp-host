@@ -44,19 +44,14 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
 
     @JavascriptInterface
     fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
-        App.Instance.launchCoroutine(suspend {
+        App.Instance.launchCoroutine {
             val scanResult = Channel<String?>()
             val req = ScanRequest(label, regexpOrNull, scanResult)
-            App.Instance.navigation.send(
-                NavigationRequest.WebBrowser_RequestedScanQr(req)
-            )
+            App.Instance.navigation.send(NavigationRequest.WebBrowser_RequestedScanQr(req))
 
             var maybeQr = scanResult.receive()
-            postReply(
-                host,
-                AndroidReply(promiseId,maybeQr != null, maybeQr)
-            )
-        })
+            postReply(host, AndroidReply(promiseId,maybeQr != null, maybeQr))
+        }
     }
 }
 
@@ -107,12 +102,9 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
         val result = Channel<Boolean?>()
 
         val callback =  { it : String? ->
-            App.Instance.launchCoroutine (suspend {
-                if (it in nulls) {
-                    result.send(null)
-                } else {
-                    result.send(it in trues)
-                } })
+            App.Instance.launchCoroutine {
+                result.send(if (it in nulls) null else (it in trues))
+            }
             Unit
         };
 
@@ -128,9 +120,9 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
     fun onBackButtonStateChanged(enabled : Boolean) {
         _backButtonEnabled = enabled
 
-        App.Instance.launchCoroutine { App.Instance.navigation.send(
-            NavigationRequest._ToolbarBackButtonStateChanged(this)
-        ) }
+        App.Instance.launchCoroutine {
+            App.Instance.navigation.send(NavigationRequest._ToolbarBackButtonStateChanged(this))
+        }
     }
 
     override fun getTitle() = _currentTitle
@@ -138,8 +130,8 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
     fun onTitleChanged(currentTitle: String) {
         _currentTitle = currentTitle
 
-        App.Instance.launchCoroutine { App.Instance.navigation.send(
-            NavigationRequest._ToolbarTitleChanged(this)
-        ) }
+        App.Instance.launchCoroutine {
+            App.Instance.navigation.send(NavigationRequest._ToolbarTitleChanged(this))
+        }
     }
 }
