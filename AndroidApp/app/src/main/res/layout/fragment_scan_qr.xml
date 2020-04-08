@@ -19,6 +19,11 @@
         android:layout_height="wrap_content"
         android:text="TextView" />
 
+    <SurfaceView
+        android:id="@+id/camSurfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="300dp" />
+
     <EditText
         android:id="@+id/qrInput"
         android:layout_width="match_parent"
