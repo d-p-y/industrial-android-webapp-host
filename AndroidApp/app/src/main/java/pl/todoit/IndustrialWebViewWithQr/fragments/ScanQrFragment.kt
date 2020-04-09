@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION") //due to Camera v1 API
+
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.Manifest
@@ -46,7 +48,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
     override fun getRequiredAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
 
-    override fun onRequiredPermissionRejected(perm:String) {
+    override fun onRequiredPermissionRejected(rejectedPerms:List<String>) {
         App.Instance.launchCoroutine { navigationCancelScanning() }
     }
 

@@ -226,7 +226,7 @@ class MainActivity : AppCompatActivity() {
 
             if (failedToGetPermission.any()) {
                 Timber.e("failed to get required permissions (user rejected?)")
-                fragment.onRequiredPermissionRejected(failedToGetPermission[0].first)
+                fragment.onRequiredPermissionRejected(failedToGetPermission.map { it.first })
                 return
             }
         }
