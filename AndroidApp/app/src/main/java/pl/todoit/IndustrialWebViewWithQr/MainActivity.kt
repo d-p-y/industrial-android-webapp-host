@@ -232,7 +232,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (fragment is IBeforeNavigationValidation) {
-            var maybeError = fragment.maybeGetBeforeNavigationError()
+            var maybeError = fragment.maybeGetBeforeNavigationError(this)
 
             if (maybeError != null) {
                 var result = buildAndShowDialog<OkOrDismissed> { bld, result ->
