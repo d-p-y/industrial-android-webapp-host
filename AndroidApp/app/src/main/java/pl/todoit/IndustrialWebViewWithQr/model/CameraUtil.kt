@@ -4,6 +4,7 @@ package pl.todoit.IndustrialWebViewWithQr.model
 
 import android.graphics.Matrix
 import android.hardware.Camera
+import android.util.TypedValue
 import android.view.Surface
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
@@ -24,30 +25,30 @@ enum class Orientation {
 }
 
 class WidthAndHeight(
-    val landscapeWidth : Int,
-    val landscapeHeight : Int) {
+    val width : Int,
+    val height : Int) {
 
-    fun biggerDim() = Math.max(landscapeWidth, landscapeHeight)
+    fun biggerDim() = Math.max(width, height)
 }
 
 class WidthAndHeightWithOrientation(
-    val landscapeWidth : Int,
-    val landscapeHeight : Int,
-    val o:Orientation) {
+    val widthWithoutRotation : Int,
+    val heightWithoutRotation : Int,
+    val o:RightAngleRotation) {
+
+    val widthAfterRotation = when(o) {
+        RightAngleRotation.RotateBy0, RightAngleRotation.RotateBy180 -> widthWithoutRotation
+        RightAngleRotation.RotateBy90, RightAngleRotation.RotateBy270 -> heightWithoutRotation
+    }
+
+    val heightAfterRotation = when(o) {
+        RightAngleRotation.RotateBy0, RightAngleRotation.RotateBy180 -> heightWithoutRotation
+        RightAngleRotation.RotateBy90, RightAngleRotation.RotateBy270 -> widthWithoutRotation
+    }
 
     val aspectRatio = when(o) {
-        Orientation.Landscape -> landscapeWidth.toDouble() / landscapeHeight
-        Orientation.Portrait -> landscapeHeight.toDouble() / landscapeWidth
-    }
-
-    val actualWidth = when(o) {
-        Orientation.Landscape -> landscapeWidth.toDouble() / landscapeHeight
-        Orientation.Portrait -> landscapeHeight.toDouble() / landscapeWidth
-    }
-
-    val actualHeight = when(o) {
-        Orientation.Landscape -> landscapeHeight.toDouble() / landscapeWidth
-        Orientation.Portrait -> landscapeWidth.toDouble() / landscapeHeight
+        RightAngleRotation.RotateBy0, RightAngleRotation.RotateBy180 -> widthWithoutRotation.toFloat() / heightWithoutRotation
+        RightAngleRotation.RotateBy90, RightAngleRotation.RotateBy270 -> heightWithoutRotation.toFloat() / widthWithoutRotation
     }
 }
 
@@ -58,7 +59,7 @@ fun findBiggestDimensions(prevs : List<Camera.Size>) : WidthAndHeight? {
         WidthAndHeight(0, 0),
         { acc, x -> if (Math.max(x.width, x.height) > acc.biggerDim()) WidthAndHeight(x.width, x.height) else acc})
 
-    return if (result.landscapeWidth <= 0 || result.landscapeHeight <= 0) null else result
+    return if (result.width <= 0 || result.height <= 0) null else result
 }
 
 class CameraData(
@@ -68,7 +69,8 @@ class CameraData(
     val camera : Camera,
     val cameraFocusModeAutoMode : Boolean,
     val displayToCameraAngle : Int,
-    val screenResolution : WidthAndHeightWithOrientation) {}
+    val screenResolution : WidthAndHeightWithOrientation,
+    val mmToPx:Float) {}
 
 fun initializeFirstMatchingCamera(act: AppCompatActivity, condition : (Camera.CameraInfo) -> Boolean) : Result<CameraData, String> {
     val cameras = sequence {
@@ -109,8 +111,8 @@ fun initializeFirstMatchingCamera(act: AppCompatActivity, condition : (Camera.Ca
         findBiggestDimensions(params.supportedPreviewSizes)
         ?: return Result.Error("Camera doesn't seem to have any sane preview size")
 
-    params.setPreviewSize(camPreviewSize.landscapeWidth, camPreviewSize.landscapeHeight)
-    params.setPictureSize(camPreviewSize.landscapeWidth, camPreviewSize.landscapeHeight)
+    params.setPreviewSize(camPreviewSize.width, camPreviewSize.height)
+    params.setPictureSize(camPreviewSize.width, camPreviewSize.height)
 
     camera.parameters = params //needed otherwise above parameters changes are ignored
 
@@ -118,26 +120,26 @@ fun initializeFirstMatchingCamera(act: AppCompatActivity, condition : (Camera.Ca
         act.windowManager?.defaultDisplay
         ?: return Result.Error("Cannot retrieve instance of android.view.Display")
 
-    val (naturalToDisplayAngle, screenOrientation) = when(display.rotation) {
-        Surface.ROTATION_0 -> Pair(0, Orientation.Portrait)
-        Surface.ROTATION_90 -> Pair(90, Orientation.Landscape)
-        Surface.ROTATION_180 -> Pair(180, Orientation.Portrait)
-        Surface.ROTATION_270 -> Pair(270, Orientation.Landscape)
+    val (naturalToDisplayAngle, screenAngle) = when(display.rotation) {
+        Surface.ROTATION_0 -> Pair(0, RightAngleRotation.RotateBy0)
+        Surface.ROTATION_90 -> Pair(90, RightAngleRotation.RotateBy90)
+        Surface.ROTATION_180 -> Pair(180, RightAngleRotation.RotateBy180)
+        Surface.ROTATION_270 -> Pair(270, RightAngleRotation.RotateBy270)
         else -> null
     } ?: return Result.Error("android.view.Display.rotation has unsupported value ${display.rotation}")
 
-    Timber.d("camera preview size (${camPreviewSize.landscapeWidth};${camPreviewSize.landscapeHeight})")
+    Timber.d("camera preview size (${camPreviewSize.width};${camPreviewSize.height})")
 
     val screenRes = WidthAndHeight(display.width, display.height - (act.supportActionBar?.height ?: 0))
 
-    Timber.d("screen size (${screenRes.landscapeWidth};${screenRes.landscapeHeight}) orientation=$screenOrientation")
+    Timber.d("screen size (${screenRes.width};${screenRes.height}) orientation=$screenAngle")
 
     val naturalToCameraAngle = cameraInfo.orientation
-    var cameraOrientation = when(cameraInfo.orientation) {
-        0 -> Orientation.Portrait
-        90 -> Orientation.Landscape
-        180 -> Orientation.Portrait
-        270 -> Orientation.Landscape
+    var cameraAngle = when(cameraInfo.orientation) {
+        0 -> RightAngleRotation.RotateBy0
+        90 -> RightAngleRotation.RotateBy90
+        180 -> RightAngleRotation.RotateBy180
+        270 -> RightAngleRotation.RotateBy270
         else -> null
     } ?: return Result.Error("android.view.Display.rotation has unsupported value ${display.rotation}")
 
@@ -148,13 +150,18 @@ fun initializeFirstMatchingCamera(act: AppCompatActivity, condition : (Camera.Ca
     camera.setDisplayOrientation(displayToCameraAngle)
 
     return Result.Ok(CameraData(
-        WidthAndHeightWithOrientation(camPreviewSize.landscapeWidth, camPreviewSize.landscapeHeight, cameraOrientation),
+        WidthAndHeightWithOrientation(camPreviewSize.width, camPreviewSize.height, cameraAngle),
         cameraIndex,
         cameraInfo,
         camera,
         cameraFocusModeAutoMode,
         displayToCameraAngle,
-        WidthAndHeightWithOrientation(screenRes.landscapeWidth, screenRes.landscapeHeight, screenOrientation)
+        WidthAndHeightWithOrientation(screenRes.width, screenRes.height, screenAngle),
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_MM,
+            1.0f,
+            act.resources.displayMetrics
+        )
     ))
 }
 
@@ -177,13 +184,18 @@ sealed class LayoutDimension {
     }
 }
 
-class LayoutStrategy {
-    val simpleFitOnScreen : Boolean = true
+data class LayoutStrategy(
+    val strategySimpleFillScreen:Boolean,
+    val strategyMatchParentWidthWithFixedHeight:Boolean,
+
+    val paddingTopMm:Int,
+    val heightMm:Int) {
 }
 
 data class LayoutProperties(
     val matrix: Matrix,
-    val dimensions : Pair<LayoutDimension,LayoutDimension>?) {}
+    val dimensions : Pair<LayoutDimension,LayoutDimension>?,
+    val marginURBL : Array<Int>?) {}
 
 fun computeParamsForTextureView(cam : CameraData, strategy : LayoutStrategy) : LayoutProperties {
     val m = Matrix()
@@ -191,27 +203,70 @@ fun computeParamsForTextureView(cam : CameraData, strategy : LayoutStrategy) : L
     val camAspRatio = cam.camPreviewSize.aspectRatio
     val scrAspRatio = cam.screenResolution.aspectRatio
 
-    if (strategy.simpleFitOnScreen) {
-        val toScreenSizeByWidthFactor = cam.screenResolution.actualWidth / cam.camPreviewSize.actualWidth
-        val toScreenSizeByHeightFactor = cam.screenResolution.actualHeight / cam.camPreviewSize.actualHeight
+    if (strategy.strategySimpleFillScreen) {
+        val toScreenSizeByWidthFactor = cam.screenResolution.widthAfterRotation.toFloat() / cam.camPreviewSize.widthAfterRotation
+        val toScreenSizeByHeightFactor = cam.screenResolution.heightAfterRotation.toFloat() / cam.camPreviewSize.heightAfterRotation
         val toScreenSizeFactor = Math.min(toScreenSizeByWidthFactor, toScreenSizeByHeightFactor)
 
         Timber.d("camAspectRatio=($camAspRatio) screenAspectRatio=$scrAspRatio toScreenSizeFactorWidth=$toScreenSizeByWidthFactor toScreenSizeByHeightFactor=$toScreenSizeByHeightFactor")
 
-        var w = cam.screenResolution.landscapeWidth * toScreenSizeFactor
-        var h = cam.screenResolution.landscapeHeight * toScreenSizeFactor
+        var w = cam.camPreviewSize.widthAfterRotation * toScreenSizeFactor
+        var h = cam.camPreviewSize.heightAfterRotation * toScreenSizeFactor
 
         Timber.d("requesting preview size=(${w};${h})")
 
-        val rotation = App.Instance.forcedCameraPreviewRotation
-        if (rotation != null) {
-            //android emulator bug workaround
-            m.postRotate(rotation.angle.toFloat(), w.toFloat()/2, h.toFloat()/2)
-        }
+        cam.camera.parameters.setPreviewSize(w.toInt(), h.toInt())
+        cam.camera.parameters = cam.camera.parameters
+
+        var horizontalSpaceLeft = cam.screenResolution.widthAfterRotation - w
+        var verticalSpaceLeft = cam.screenResolution.heightAfterRotation - h
 
         return LayoutProperties(
             m,
-            Pair(LayoutDimension.ValuePx(w.toInt()), LayoutDimension.ValuePx(h.toInt()))
+            Pair(LayoutDimension.ValuePx(w.toInt()), LayoutDimension.ValuePx(h.toInt())),
+            arrayOf(
+                (verticalSpaceLeft/2.0f).toInt(),
+                (horizontalSpaceLeft/2.0f).toInt(),
+                (verticalSpaceLeft/2.0f).toInt(),
+                (horizontalSpaceLeft/2.0f).toInt()
+            )
+        )
+    }
+
+    if (strategy.strategyMatchParentWidthWithFixedHeight) {
+        val expectedHeightPx = (strategy.heightMm * cam.mmToPx).toInt()
+
+        val toScreenSizeByWidthFactor = cam.screenResolution.widthAfterRotation.toFloat() / cam.camPreviewSize.widthAfterRotation
+        val toScreenSizeByHeightFactor = expectedHeightPx.toFloat() / cam.camPreviewSize.heightAfterRotation
+        val toScreenSizeFactor = Math.max(toScreenSizeByWidthFactor, toScreenSizeByHeightFactor)
+
+        val onScreenAspectRatio = cam.screenResolution.widthAfterRotation.toFloat() / expectedHeightPx
+        var correctAspectBy = onScreenAspectRatio / cam.camPreviewSize.aspectRatio
+
+        Timber.d("expectedPreviewSize=(${cam.screenResolution.widthAfterRotation};${expectedHeightPx}) onScreenAspectRatio=${onScreenAspectRatio} correctAspectBy=${correctAspectBy} toScreenSizeFactor=(${toScreenSizeByWidthFactor};${toScreenSizeByHeightFactor}) toScreenSizeFactor=$toScreenSizeFactor")
+
+        val translX = (cam.camPreviewSize.widthAfterRotation - (cam.camPreviewSize.widthAfterRotation / toScreenSizeFactor))
+        val translY = (cam.camPreviewSize.heightAfterRotation - (cam.camPreviewSize.heightAfterRotation / (toScreenSizeFactor*correctAspectBy)))
+
+        m.preTranslate(translX, translY)
+
+        m.setScale(
+            toScreenSizeFactor, toScreenSizeFactor * correctAspectBy,
+            cam.camPreviewSize.widthAfterRotation/2.0f,
+            (cam.camPreviewSize.heightAfterRotation-translY)/2.0f
+        )
+
+        Timber.d("transl=(${translX};${translY})")
+
+        return LayoutProperties(
+            m,
+            Pair(
+                LayoutDimension.MatchParent(),
+                LayoutDimension.ValuePx(expectedHeightPx)
+            ),
+            arrayOf(
+                (strategy.paddingTopMm * cam.mmToPx).toInt(),
+                0,0,0)
         )
     }
 

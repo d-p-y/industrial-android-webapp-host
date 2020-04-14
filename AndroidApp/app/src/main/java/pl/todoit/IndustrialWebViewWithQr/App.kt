@@ -19,12 +19,11 @@ val Dispatchers_UI = Dispatchers.Main
 
 class App : Application(), CoroutineScope by MainScope() {
     companion object {
-        public lateinit var Instance : App
+        lateinit var Instance : App
     }
 
     val isForcedDevelopmentMode = true
     val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
-    val forcedCameraPreviewRotation = if (isRunningInEmulator) RightAngleRotation.RotateBy270 else null
     val permitNoContinousFocusInCamera = isRunningInEmulator
 
     public val navigation = Channel<NavigationRequest>()

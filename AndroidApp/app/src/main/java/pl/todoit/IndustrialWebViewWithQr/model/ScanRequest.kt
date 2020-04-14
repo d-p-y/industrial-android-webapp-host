@@ -6,5 +6,10 @@ class ScanRequest(
     var label : String,
     var regexp : String?,
     val scanResult : SendChannel<String?>,
-    val layoutDimensions : LayoutStrategy = LayoutStrategy() //TODO to be implemented properly
+    val layoutDimensions : LayoutStrategy = LayoutStrategy(
+        strategySimpleFillScreen = false,
+        strategyMatchParentWidthWithFixedHeight = true,
+        paddingTopMm = 30,
+        heightMm = 20
+    )
 ) {}

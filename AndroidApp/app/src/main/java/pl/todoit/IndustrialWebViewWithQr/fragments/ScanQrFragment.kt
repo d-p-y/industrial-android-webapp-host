@@ -97,9 +97,16 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         val layoutProp = computeParamsForTextureView(_camera, req.layoutDimensions)
 
         if (layoutProp.dimensions != null) {
+            if (layoutProp.marginURBL != null) {
+                container?.setPadding(layoutProp.marginURBL[3], layoutProp.marginURBL[0], layoutProp.marginURBL[1], layoutProp.marginURBL[2])
+            } else {
+                container?.setPadding(0, 0, 0, 0) //to reset former request (if any)
+            }
+
             camSurfaceView.layoutParams = LinearLayout.LayoutParams(
                 layoutProp.dimensions.first.toAndroid(),
-                layoutProp.dimensions.second.toAndroid())
+                layoutProp.dimensions.second.toAndroid()
+            )
         }
 
         camSurfaceView.setTransform(layoutProp.matrix)

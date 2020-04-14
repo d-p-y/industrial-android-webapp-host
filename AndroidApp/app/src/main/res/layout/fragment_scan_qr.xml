@@ -3,47 +3,48 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_centerHorizontal="false"
     android:background="#FFFFFF"
     android:orientation="vertical"
     tools:context=".fragments.ScanQrFragment">
 
     <TextView
         android:id="@+id/qrLabel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:text="qrLabel" />
 
     <TextView
         android:id="@+id/qrRegexp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:text="TextView" />
 
     <TextureView
         android:id="@+id/camSurfaceView"
-        android:layout_width="match_parent"
-        android:layout_height="300dp" />
+        android:layout_width="100dp"
+        android:layout_height="100dp" />
 
     <EditText
         android:id="@+id/qrInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:ems="10"
         android:hint="QR"
         android:inputType="textPersonName" />
 
     <Button
         android:id="@+id/btnSimulateScan"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:layout_gravity="center_horizontal"
         android:gravity="center_horizontal"
         android:text="Suppose that I've scanned value above " />
 
     <Button
         android:id="@+id/btnSimulateCancel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:text="@android:string/cancel" />
 
 </LinearLayout>

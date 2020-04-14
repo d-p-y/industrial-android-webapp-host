@@ -120,6 +120,7 @@ window.addEventListener('load', (_) => {
 
 window.addEventListener('load', (_) => {
     document.body.removeAllChildren();
+    document.body.style.backgroundColor = "#e6ffff";
     document.body.style.display = "flex";
     document.body.style.flexDirection = "column";
 
