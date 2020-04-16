@@ -89,12 +89,12 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             return result
         }
 
-        result.findViewById<TextView>(R.id.qrLabel).text = req.label
-        result.findViewById<TextView>(R.id.qrRegexp).text = req.regexp
+        result.findViewById<TextView>(R.id.qrLabel).text = ""
+        result.findViewById<TextView>(R.id.qrRegexp).text = ""
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
 
-        val layoutProp = computeParamsForTextureView(_camera, req.layoutDimensions)
+        val layoutProp = computeParamsForTextureView(_camera, req.layoutStrategy)
 
         if (layoutProp.dimensions != null) {
             if (layoutProp.marginURBL != null) {

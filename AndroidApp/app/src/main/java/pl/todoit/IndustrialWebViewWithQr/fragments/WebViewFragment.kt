@@ -1,5 +1,6 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,21 +9,14 @@ import android.webkit.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
-import pl.todoit.IndustrialWebViewWithQr.model.AndroidReply
-import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
-import pl.todoit.IndustrialWebViewWithQr.model.ITogglesBackButtonVisibility
-import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
+import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 
-val json = Json(JsonConfiguration.Stable)
-
 fun postReply(host : WebViewFragment, reply : AndroidReply) {
-    var replyJson = json.stringify(AndroidReply.serializer(), reply)
+    var replyJson = jsonStrict.stringify(AndroidReply.serializer(), reply)
     var msg =
         "androidPostReplyToPromise(\"" +
         replyJson.replace("\"", "\\\"") +
@@ -43,10 +37,12 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
         Toast.makeText(host.activity, text, if (durationLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
 
     @JavascriptInterface
-    fun requestScanQr(promiseId : String, label : String, regexpOrNull : String) {
+    fun requestScanQr(promiseId : String, layoutStrategyAsJson : String) {
         App.Instance.launchCoroutine {
             val scanResult = Channel<String?>()
-            val req = ScanRequest(label, regexpOrNull, scanResult)
+            val req = ScanRequest(
+                scanResult,
+                deserializeLayoutStrategy(layoutStrategyAsJson))
             App.Instance.navigation.send(NavigationRequest.WebBrowser_RequestedScanQr(req))
 
             var maybeQr = scanResult.receive()
@@ -67,6 +63,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
     fun getWebView() : WebView? = view?.findViewById(R.id.webView)
 
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_web_view, container, false)
         var webView = result.findViewById<WebView>(R.id.webView)
@@ -97,7 +94,9 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
         return result
     }
 
-    //true if consumed
+    /**
+     * @return true if consumed
+     */
     suspend fun onBackPressedConsumed() : Boolean? {
         val result = Channel<Boolean?>()
 

@@ -43,22 +43,20 @@ Window.prototype.debugLogToBody = function (msg : string) {
     document.body.appendChild(logItm);
 };
 
-Window.prototype.scanQr = function(label : string, regexpOrNull : string) : Promise<string> {
+Window.prototype.scanQr = function(layoutData : LayoutStrategy) : Promise<string> {
     let self = this;
 
     return new Promise(function (resolve,reject) {        
         if (self.Android === undefined) {
             //dev friendly polyfill
             while (true) {
-                let result = window.prompt(label);
+                let result = window.prompt("scan QR:");
     
                 if (result == null) {
                     return reject("user cancelled window.prompt()");
                 }
     
-                if (regexpOrNull == null || RegExp(regexpOrNull).test(result)) {
-                    return resolve(result);
-                }
+                return resolve(result);
             }
         }
 
@@ -70,7 +68,7 @@ Window.prototype.scanQr = function(label : string, regexpOrNull : string) : Prom
         
         window.debugLogToBody("calling self.Android.requestScanQr");
 
-        self.Android.requestScanQr(promiseId, label, regexpOrNull);
+        self.Android.requestScanQr(promiseId, JSON.stringify(layoutData));
     });    
 }
 
@@ -169,19 +167,41 @@ window.addEventListener('load', (_) => {
         });
     }
 
-    let btnRequestScanQr = document.createElement("input");
-    btnRequestScanQr.type = "button";
-    btnRequestScanQr.value = "Request scan QR";
-    btnRequestScanQr.onclick = async _ => {
-        try {            
-            let res = await window.scanQr("give me some integer QR", "^[0-9]{1,10}$");
-            window.debugLogToBody("scanned: "+res);
-        } catch (error) {
-            window.debugLogToBody("scanner rejected: "+error);
-        }
-    };
-    document.body.appendChild(btnRequestScanQr);
-    
+    {
+        let btn = document.createElement("input");
+        btn.type = "button";
+        btn.value = "Scan QR with fixed height";
+        btn.onclick = async _ => {
+            try {            
+                let strat = new MatchWidthWithFixedHeightLayoutStrategy();
+                strat.paddingTopMm = 10;
+                strat.heightMm = 50;
+                let res = await window.scanQr(strat);
+                window.debugLogToBody("scanned: "+res);
+            } catch (error) {
+                window.debugLogToBody("scanner rejected: "+error);
+            }
+        };
+        document.body.appendChild(btn);
+    }
+
+    {
+        let btn = document.createElement("input");
+        btn.type = "button";
+        btn.value = "Scan QR with fit screen";
+        btn.onclick = async _ => {
+            try {            
+                let strat = new FitScreenLayoutStrategy();                
+                let res = await window.scanQr(strat);
+                window.debugLogToBody("scanned: "+res);
+            } catch (error) {
+                window.debugLogToBody("scanner rejected: "+error);
+            }
+        };
+        document.body.appendChild(btn);
+    }
+
+
     let btnShowToastShort = document.createElement("input");
     btnShowToastShort.type = "button";
     btnShowToastShort.value = "Short toast";

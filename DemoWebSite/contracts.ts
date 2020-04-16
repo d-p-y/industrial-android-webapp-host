@@ -1,3 +1,25 @@
+class LayoutStrategy {
+    public typeName : string;
+
+    protected constructor(typeName : string) {
+        this.typeName = typeName;
+    }
+}
+
+class FitScreenLayoutStrategy extends LayoutStrategy {
+    public constructor() {
+        super("FitScreenLayoutStrategy");
+    }
+}
+
+class MatchWidthWithFixedHeightLayoutStrategy extends LayoutStrategy {
+    public paddingTopMm:number = 0; //Int
+    public heightMm:number = 0; //Int
+
+    public constructor() {
+        super("MatchWidthWithFixedHeightLayoutStrategy");
+    }
+}
 
 interface AndroidReply {
     PromiseId : string;
@@ -6,7 +28,7 @@ interface AndroidReply {
 }
 
 interface IAndroid {
-    requestScanQr(promiseId : string, label : string, regexpOrNull : string) : void;
+    requestScanQr(promiseId : string, LayoutStrategyAsJson : String) : void;
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : String) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;
@@ -18,7 +40,7 @@ interface Window {
     androidPostReplyToPromise(replyJson : string) : void;
     androidBackConsumed() : boolean;
     
-    scanQr(label : string, regexpOrNull : string) : Promise<string>;
+    scanQr(layoutData : LayoutStrategy) : Promise<string>;
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : String) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;
