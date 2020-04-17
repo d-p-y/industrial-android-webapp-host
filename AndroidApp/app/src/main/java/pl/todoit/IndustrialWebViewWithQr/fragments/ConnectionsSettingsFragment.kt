@@ -11,10 +11,10 @@ import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
+import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
 import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
 
-class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents {
-    private var _initialized = false
+class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHasTitle {
     private fun connInfo() = App.Instance.connSettFragmentParams.get()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -43,4 +43,6 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents {
             App.Instance.navigation.send(NavigationRequest.ConnectionSettings_Back())
         }
     }
+
+    override fun getTitle(): String = "Connection settings"
 }

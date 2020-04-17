@@ -191,7 +191,8 @@ window.addEventListener('load', (_) => {
         btn.value = "Scan QR with fit screen";
         btn.onclick = async _ => {
             try {            
-                let strat = new FitScreenLayoutStrategy();                
+                let strat = new FitScreenLayoutStrategy();  
+                strat.screenTitle = "Need QR code";              
                 let res = await window.scanQr(strat);
                 window.debugLogToBody("scanned: "+res);
             } catch (error) {

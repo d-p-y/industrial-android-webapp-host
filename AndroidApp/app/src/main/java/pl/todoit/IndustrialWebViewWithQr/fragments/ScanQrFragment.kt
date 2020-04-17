@@ -52,14 +52,22 @@ class CamSurfaceHolderCallbacks(
     }
 }
 
-class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions, IBeforeNavigationValidation {
+class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions,
+                       IBeforeNavigationValidation, IMaybeHasTitle {
     private lateinit var _camera: CameraData
 
     private fun req() : ScanRequest? = App.Instance.scanQrFragmentParams.get()
 
     override fun getRequiredAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
-
     override fun onRequiredPermissionRejected(rejectedPerms:List<String>) = App.Instance.launchCoroutine { navigationCancelScanning() }
+    override fun getTitleMaybe() =
+        when(val x = req()?.layoutStrategy) {
+            is FitScreenLayoutStrategy ->x.screenTitle ?: "Scan QR code"
+            is MatchWidthWithFixedHeightLayoutStrategy -> null
+            else -> {
+                Timber.e("unsupported layoutstartegy - cannot determine screen name")
+                null}
+        }
 
     override suspend fun maybeGetBeforeNavigationError(act: AppCompatActivity) : String? {
         val result = initializeFirstBackFacingCamera(act)

@@ -8,7 +8,8 @@ import timber.log.Timber
 open class LayoutStrategy(var typeName:String) {}
 
 @Serializable
-class FitScreenLayoutStrategy() : LayoutStrategy(FitScreenLayoutStrategy::class.simpleName!!) {}
+class FitScreenLayoutStrategy(
+    val screenTitle:String?=null) : LayoutStrategy(FitScreenLayoutStrategy::class.simpleName!!) {}
 
 @Serializable
 class MatchWidthWithFixedHeightLayoutStrategy (

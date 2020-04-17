@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(toolBar)
 
         setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
-        setToolbarTitle("Untitled webapp")
+        setToolbarTitle("Loading...")
 
         Timber.i("starting mainActivityNavigator()")
 
@@ -179,12 +179,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun replaceMasterFragment(fragment:Fragment, fragmentTagName:String) {
+    private fun <T> replaceMasterFragment(fragment:T, fragmentTagName:String) where T:Fragment, T:IHasTitle {
         removeMasterFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment, fragmentTagName).commit()
         currentMasterFragmentTag = fragmentTagName
         currentMasterFragment = fragment
-        supportActionBar?.title = if (fragment is IHasTitle) fragment.getTitle() else fragmentTagName
+        setToolbarTitle(fragment.getTitle())
 
         Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
     }
@@ -212,11 +212,16 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<ViewGroup>(R.id.popup_fragment)?.visibility = View.GONE
         currentPopup = null
+
+        val x = currentMasterFragment
+        if (x is IHasTitle) {
+            setToolbarTitle(x.getTitle())
+        }
     }
 
     @Suppress("MoveLambdaOutsideParentheses")
     private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String)
-            where T : IProcessesBackButtonEvents, T: Fragment {
+            where T : IProcessesBackButtonEvents, T: Fragment, T:IMaybeHasTitle {
 
         if (fragment is IRequiresPermissions) {
             var failedToGetPermission =
@@ -256,6 +261,12 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction().add(R.id.popup_fragment, fragment, fragmentTagName).commit()
         currentPopupFragmentTag = fragmentTagName
         findViewById<ViewGroup>(R.id.popup_fragment)?.visibility = View.VISIBLE
+
+        var maybeTitle = fragment.getTitleMaybe()
+        if (maybeTitle != null) {
+            setToolbarTitle(maybeTitle)
+        }
+
         Timber.d("replacePopupFragment currentPopupFragmentTag=$currentPopupFragmentTag")
         currentPopup = fragment
     }
