@@ -38,10 +38,11 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHas
         return result
     }
 
-    override fun onBackPressed() {
+    override suspend fun onBackPressedConsumed() : Boolean {
         App.Instance.launchCoroutine {
             App.Instance.navigation.send(NavigationRequest.ConnectionSettings_Back())
         }
+        return true
     }
 
     override fun getTitle(): String = "Connection settings"

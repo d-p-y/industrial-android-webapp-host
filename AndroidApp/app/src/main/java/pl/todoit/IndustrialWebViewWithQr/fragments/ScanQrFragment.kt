@@ -30,7 +30,7 @@ class CamSurfaceHolderCallbacks(
     }
 
     override fun onSurfaceTextureUpdated(surface: SurfaceTexture?) {
-        Timber.d("onSurfaceTextureUpdated() hasValue?=${surface != null}")
+        //Timber.d("onSurfaceTextureUpdated() hasValue?=${surface != null}")
 
     }
 
@@ -102,12 +102,13 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         App.Instance.navigation.send(NavigationRequest.ScanQr_Back())
     }
 
-    override fun onBackPressed() {
+    override suspend fun onBackPressedConsumed() : Boolean {
         val backbuttonSupported = backButtonCausesCancellation()
         Timber.d("does current layoutstrategy determines that backbutton should cause cancellation?=$backbuttonSupported")
         if (backbuttonSupported) {
             App.Instance.launchCoroutine { navigationCancelScanning() }
         }
+        return backbuttonSupported
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {

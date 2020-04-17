@@ -60,9 +60,8 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
 }
 
 val trues = arrayOf("true")
-val nulls = arrayOf(null, "null")
 
-class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
+class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IProcessesBackButtonEvents {
     private fun connInfo() = App.Instance.webViewFragmentParams.get()
 
     private var _currentTitle : String = "Untitled WebApp"
@@ -102,21 +101,16 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility {
         return result
     }
 
-    /**
-     * @return true if consumed
-     */
-    suspend fun onBackPressedConsumed() : Boolean? {
-        val result = Channel<Boolean?>()
+    override suspend fun onBackPressedConsumed() : Boolean {
+        val result = Channel<Boolean>()
 
         val callback =  { it : String? ->
-            App.Instance.launchCoroutine {
-                result.send(if (it in nulls) null else (it in trues))
-            }
+            App.Instance.launchCoroutine { result.send(it in trues) }
             Unit
         };
 
         getWebView()?.evaluateJavascript(
-            "(window.androidBackConsumed === undefined) ? null : window.androidBackConsumed()",
+            "(window.androidBackConsumed === undefined) ? false : window.androidBackConsumed()",
             callback)
 
         return result.receive()

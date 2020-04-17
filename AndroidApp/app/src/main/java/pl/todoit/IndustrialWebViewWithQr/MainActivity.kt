@@ -35,7 +35,7 @@ suspend fun <T> buildAndShowDialog(ctx: Context, bld:(AlertDialog.Builder, SendC
 class MainActivity : AppCompatActivity() {
     private var currentMasterFragmentTag : String? = null
     private var currentPopupFragmentTag : String? = null
-    private var currentPopup: IProcessesBackButtonEvents? = null
+    private var currentPopup: Fragment? = null
     private var currentMasterFragment:Fragment? = null
 
     private var permissionRequestCode = 0
@@ -316,27 +316,25 @@ class MainActivity : AppCompatActivity() {
                 var currentPopupCopy = currentPopup
                 var currentMasterCopy = currentMasterFragment
 
-                if (currentPopupCopy != null) {
+                if (currentPopupCopy is IProcessesBackButtonEvents) {
                     Timber.d("delegating back button to popup fragment")
-                    currentPopupCopy.onBackPressed()
-                    return
-                }
-
-                if (currentMasterCopy is WebViewFragment) {
-                    //delegate question to webapp
-                    Timber.d("trying to delegate back button to webView fragment")
-                    var backConsumed = currentMasterCopy.onBackPressedConsumed()
-
-                    Timber.d("webView backButton consume=$backConsumed")
-                    if (backConsumed == false) {
-                        finish()
+                    var backConsumed = currentPopupCopy.onBackPressedConsumed()
+                    Timber.d("popup consumed backbutton event?=$backConsumed")
+                    if (backConsumed) {
+                        return
                     }
-
-                    return
                 }
 
                 if (currentMasterCopy is IProcessesBackButtonEvents) {
-                    currentMasterCopy.onBackPressed()
+                    //delegate question to master fragment (likely webapp)
+                    Timber.d("trying to delegate back button to master fragment")
+                    var backConsumed = currentMasterCopy.onBackPressedConsumed()
+
+                    Timber.d("master fragment backButton consumed?=$backConsumed")
+                    if (!backConsumed) {
+                        finish()
+                    }
+
                     return
                 }
 
