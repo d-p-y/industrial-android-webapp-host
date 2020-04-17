@@ -41,12 +41,20 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
         App.Instance.launchCoroutine {
             val scanResult = Channel<String?>()
             val req = ScanRequest(
+                promiseId,
                 scanResult,
                 deserializeLayoutStrategy(layoutStrategyAsJson))
             App.Instance.navigation.send(NavigationRequest.WebBrowser_RequestedScanQr(req))
 
             var maybeQr = scanResult.receive()
-            postReply(host, AndroidReply(promiseId,maybeQr != null, maybeQr))
+            postReply(host, AndroidReply(promiseId, maybeQr != null, maybeQr))
+        }
+    }
+
+    @JavascriptInterface
+    fun cancelScanQr(promiseId : String) {
+        App.Instance.launchCoroutine {
+            App.Instance.navigation.send(NavigationRequest.WebBrowser_CancelScanQr(promiseId))
         }
     }
 }

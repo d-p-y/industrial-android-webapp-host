@@ -289,6 +289,15 @@ class MainActivity : AppCompatActivity() {
             }
             is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
             is NavigationRequest.WebBrowser_RequestedScanQr -> replacePopupWithScanQr(request.req)
+            is NavigationRequest.WebBrowser_CancelScanQr -> {
+                var currentPopupCopy = currentPopup
+                if (currentPopupCopy is ScanQrFragment) {
+                    Timber.d("requesting cancellation of scanning because scanner is still active")
+                    currentPopupCopy.onReceivedScanningCancellationRequest(request.jsPromiseId)
+                } else {
+                    Timber.d("cancellation request ignored because scanner is not active anymore")
+                }
+            }
             is NavigationRequest.ScanQr_Scanned -> removePopupFragmentIfNeeded()
             is NavigationRequest.ScanQr_Back -> removePopupFragmentIfNeeded()
             is NavigationRequest._ToolbarBackButtonStateChanged ->

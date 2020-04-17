@@ -7,7 +7,7 @@ class LayoutStrategy {
 }
 
 class FitScreenLayoutStrategy extends LayoutStrategy {
-    public screenTitle:String = ""; //optional
+    public screenTitle:string = ""; //optional
     public constructor() {
         super("FitScreenLayoutStrategy");
     }
@@ -29,9 +29,10 @@ interface AndroidReply {
 }
 
 interface IAndroid {
-    requestScanQr(promiseId : string, LayoutStrategyAsJson : String) : void;
+    requestScanQr(promiseId : string, LayoutStrategyAsJson : string) : void;
+    cancelScanQr(promiseId : string) : void;
     showToast(label : string, longDuration : boolean) : void;
-    setTitle(title : String) : void;
+    setTitle(title : string) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;
 }
 
@@ -42,8 +43,9 @@ interface Window {
     androidBackConsumed() : boolean;
     
     scanQr(layoutData : LayoutStrategy) : Promise<string>;
+    scanQrCancellable(layoutData : LayoutStrategy) : [Promise<string>,() => void];
     showToast(label : string, longDuration : boolean) : void;
-    setTitle(title : String) : void;
+    setTitle(title : string) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;
 
     //helpers to keep track of promises

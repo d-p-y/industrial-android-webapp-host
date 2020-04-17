@@ -49,15 +49,13 @@ Window.prototype.scanQr = function(layoutData : LayoutStrategy) : Promise<string
     return new Promise(function (resolve,reject) {        
         if (self.Android === undefined) {
             //dev friendly polyfill
-            while (true) {
-                let result = window.prompt("scan QR:");
-    
-                if (result == null) {
-                    return reject("user cancelled window.prompt()");
-                }
-    
-                return resolve(result);
+            let result = window.prompt("[blocking] scan QR:");
+
+            if (result == null) {
+                return reject("user cancelled window.prompt()");
             }
+
+            return resolve(result);            
         }
 
         //calls android host
@@ -70,6 +68,46 @@ Window.prototype.scanQr = function(layoutData : LayoutStrategy) : Promise<string
 
         self.Android.requestScanQr(promiseId, JSON.stringify(layoutData));
     });    
+}
+
+Window.prototype.scanQrCancellable = function(layoutData : LayoutStrategy) : [Promise<string>, () => void] {    
+    if (this.Android === undefined) {
+        //dev friendly polyfill
+
+        let canceller = function() {
+            window.debugLogToBody("dully noting attempt to cancel scan QR request");
+        };
+        
+        return [
+            new Promise(function (resolve,reject) {
+                let result = window.prompt("[cancellable] scan QR:");
+
+                if (result == null) {
+                    return reject("user cancelled window.prompt()");
+                }
+
+                return resolve(result);
+            }),
+            canceller];        
+    }
+
+    let promiseId = (this.nextPromiseId++).toString();
+    let self = this;
+
+    return [
+        new Promise(function (resolve,reject) {
+            //calls android host    
+            self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
+            self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
+            
+            window.debugLogToBody("calling self.Android.requestScanQr");
+
+            self.Android.requestScanQr(promiseId, JSON.stringify(layoutData));
+        }),
+        () => {
+            window.debugLogToBody("requesting scanQr cancellation");
+            self.Android.cancelScanQr(promiseId)
+        }];
 }
 
 Window.prototype.showToast = function(label : string, longDuration : boolean) : void {
@@ -168,21 +206,40 @@ window.addEventListener('load', (_) => {
     }
 
     {
-        let btn = document.createElement("input");
-        btn.type = "button";
-        btn.value = "Scan QR with fixed height";
-        btn.onclick = async _ => {
-            try {            
+        let btnReqScan = document.createElement("input");
+        btnReqScan.type = "button";
+        btnReqScan.value = "Scan QR with fixed height";        
+        document.body.appendChild(btnReqScan);
+        let btnCancel =  document.createElement("input")
+        btnCancel.type = "button";
+        btnCancel.value = "Cancel scan";
+
+        btnCancel.style.position = "absolute";
+        btnCancel.style.bottom = "0";
+        btnCancel.style.right = "0";
+        btnCancel.style.display = "none";
+        document.body.appendChild(btnCancel);
+
+        btnReqScan.onclick = async _ => {
+            try {
+                btnCancel.style.display = "initial";
                 let strat = new MatchWidthWithFixedHeightLayoutStrategy();
                 strat.paddingTopMm = 10;
                 strat.heightMm = 50;
-                let res = await window.scanQr(strat);
-                window.debugLogToBody("scanned: "+res);
+                let [resultPromise, cancellator] = window.scanQrCancellable(strat);
+
+                btnCancel.onclick = async _ => {
+                    window.debugLogToBody("btnCancel clicked");
+                    cancellator();
+                };
+
+                let res = await resultPromise;
+                window.debugLogToBody("scanned: "+res);                
             } catch (error) {
                 window.debugLogToBody("scanner rejected: "+error);
             }
-        };
-        document.body.appendChild(btn);
+            btnCancel.style.display = "none";
+        };        
     }
 
     {

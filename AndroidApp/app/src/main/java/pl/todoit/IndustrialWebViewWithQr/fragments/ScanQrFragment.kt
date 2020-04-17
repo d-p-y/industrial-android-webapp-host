@@ -69,6 +69,15 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                 null}
         }
 
+    private fun backButtonCausesCancellation() : Boolean =
+        when(req()?.layoutStrategy) {
+            is FitScreenLayoutStrategy -> true
+            is MatchWidthWithFixedHeightLayoutStrategy -> false
+            else -> {
+                Timber.e("unsupported layoutstartegy - cannot determine if backbutton should be supported")
+                false}
+        }
+
     override suspend fun maybeGetBeforeNavigationError(act: AppCompatActivity) : String? {
         val result = initializeFirstBackFacingCamera(act)
 
@@ -80,12 +89,26 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
     }
 
+    fun onReceivedScanningCancellationRequest(promiseId:String) {
+        val matchingJsPromiseId = req()?.jsPromiseId == promiseId
+        Timber.d("will cancel scanning request if jsPromiseId matches result=$matchingJsPromiseId")
+        if (matchingJsPromiseId) {
+            App.Instance.launchCoroutine { navigationCancelScanning() }
+        }
+    }
+
     private suspend fun navigationCancelScanning() {
         req()?.scanResult?.send(null)
         App.Instance.navigation.send(NavigationRequest.ScanQr_Back())
     }
 
-    override fun onBackPressed() = App.Instance.launchCoroutine { navigationCancelScanning() }
+    override fun onBackPressed() {
+        val backbuttonSupported = backButtonCausesCancellation()
+        Timber.d("does current layoutstrategy determines that backbutton should cause cancellation?=$backbuttonSupported")
+        if (backbuttonSupported) {
+            App.Instance.launchCoroutine { navigationCancelScanning() }
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_scan_qr, container, false)

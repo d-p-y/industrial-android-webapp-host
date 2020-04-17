@@ -17,6 +17,7 @@ class MatchWidthWithFixedHeightLayoutStrategy (
     val heightMm:Int) : LayoutStrategy(MatchWidthWithFixedHeightLayoutStrategy::class.simpleName!!) {}
 
 class ScanRequest(
+    val jsPromiseId : String,
     val scanResult : SendChannel<String?>,
     val layoutStrategy : LayoutStrategy) {}
 
