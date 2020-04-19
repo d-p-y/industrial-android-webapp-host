@@ -199,7 +199,7 @@ window.addEventListener('load', (_) => {
         
         document.body.appendChild(container);
         
-        checkbox.addEventListener("change", ev => {
+        checkbox.addEventListener("change", _ => {
             window.debugLogToBody("back button enabled="+checkbox.checked);
             window.setToolbarBackButtonState(checkbox.checked);
         });

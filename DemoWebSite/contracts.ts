@@ -7,7 +7,7 @@ class LayoutStrategy {
 }
 
 class FitScreenLayoutStrategy extends LayoutStrategy {
-    public screenTitle:string = ""; //optional
+    public screenTitle?:string; //optional
     public constructor() {
         super("FitScreenLayoutStrategy");
     }
