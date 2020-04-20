@@ -92,7 +92,6 @@ fun initializeFirstMatchingCamera(act: AppCompatActivity, condition : (Camera.Ca
     Timber.d("will use camera index=$cameraIndex")
 
     val camera = Camera.open(cameraIndex)
-
     val params = camera.parameters
     val maybeContinuousFocusMode =
         params.supportedFocusModes.filter { continuousFocusModes.contains(it) }.firstOrNull()

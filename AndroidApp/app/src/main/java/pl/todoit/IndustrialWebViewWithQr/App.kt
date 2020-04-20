@@ -4,16 +4,10 @@ import android.app.Application
 import android.os.Build
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.SendChannel
-import pl.todoit.IndustrialWebViewWithQr.fragments.ConnectionsSettingsFragment
-import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
-import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.ParamContainer
-import pl.todoit.IndustrialWebViewWithQr.model.RightAngleRotation
 import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
-import java.lang.Exception
 
 val Dispatchers_UI = Dispatchers.Main
 
@@ -27,7 +21,6 @@ class App : Application(), CoroutineScope by MainScope() {
     val permitNoContinousFocusInCamera = isRunningInEmulator
 
     public val navigation = Channel<NavigationRequest>()
-
     public val webViewFragmentParams = ParamContainer<ConnectionInfo>()
     public val connSettFragmentParams = ParamContainer<ConnectionInfo>()
     public val scanQrFragmentParams = ParamContainer<ScanRequest>()
@@ -40,14 +33,17 @@ class App : Application(), CoroutineScope by MainScope() {
             remoteDebuggerEnabled = isForcedDevelopmentMode,
             forwardConsoleLogToLogCat = isForcedDevelopmentMode
         )
+    val imagesToDecodeQueueSize = 10 // ~~60MB
+    val barcodeReplyQueueSize = 2 //bigger than one so that it is not suspended
+    val sufficientStatsSize =5
+    val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
 
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
+        Timber.i("logging initialized")
 
         Instance = this
-
-        Timber.i("logging initialized")
     }
 
     fun launchCoroutine (block : suspend () -> Unit) {

@@ -3,9 +3,6 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.Manifest
-import android.graphics.Matrix
-import android.graphics.SurfaceTexture
-import android.hardware.Camera
 import android.os.Bundle
 import android.view.*
 import android.widget.Button
@@ -13,44 +10,15 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_scan_qr.view.*
+import com.google.zxing.*
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
+import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeDecoderSurfaceTextureListener
+import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeDecoderCameraPreviewCallback
 import pl.todoit.IndustrialWebViewWithQr.model.*
+import pl.todoit.IndustrialWebViewWithQr.model.Result
 import timber.log.Timber
-
-class CamSurfaceHolderCallbacks(
-        private val _camera : CameraData,
-        private val textureView: TextureView) : TextureView.SurfaceTextureListener {
-
-    override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture?, width: Int, height: Int) {
-        Timber.d("onSurfaceTextureSizeChanged() hasValue?=${surface != null}")
-
-    }
-
-    override fun onSurfaceTextureUpdated(surface: SurfaceTexture?) {
-        //Timber.d("onSurfaceTextureUpdated() hasValue?=${surface != null}")
-
-    }
-
-    override fun onSurfaceTextureDestroyed(surface: SurfaceTexture?): Boolean {
-        Timber.d("onSurfaceTextureDestroyed()")
-        _camera.camera.stopPreview()
-        return true
-    }
-
-    override fun onSurfaceTextureAvailable(surface: SurfaceTexture?, width: Int, height: Int) {
-        Timber.d("onSurfaceTextureAvailable() holder hasValue?=${surface != null}")
-
-        if (surface == null) {
-            return
-        }
-
-        _camera.camera.setPreviewTexture(surface)
-        _camera.camera.startPreview()
-    }
-}
 
 class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions,
                        IBeforeNavigationValidation, IMaybeHasTitle {
@@ -142,7 +110,16 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
         camSurfaceView.setTransform(layoutProp.matrix)
-        camSurfaceView.surfaceTextureListener = CamSurfaceHolderCallbacks(_camera, camSurfaceView)
+        val camPrev =
+            BarcodeDecoderCameraPreviewCallback(
+                arrayOf(BarcodeFormat.QR_CODE),
+                _camera,
+                {
+                    req.scanResult.send(it)
+                    App.Instance.navigation.send(NavigationRequest.ScanQr_Scanned())
+                })
+        camSurfaceView.surfaceTextureListener =
+            BarcodeDecoderSurfaceTextureListener(_camera, camPrev)
 
         result.findViewById<Button>(R.id.btnSimulateScan).setOnClickListener {
             var scannedQr = result.findViewById<TextView>(R.id.qrInput)
