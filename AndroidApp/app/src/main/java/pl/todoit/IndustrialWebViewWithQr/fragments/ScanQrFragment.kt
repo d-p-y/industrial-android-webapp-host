@@ -115,11 +115,16 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                 arrayOf(BarcodeFormat.QR_CODE),
                 _camera,
                 {
+                    if (App.Instance.currentConnection.hapticFeedbackOnBarcodeRecognized) {
+                        activity?.window?.decorView?.performHapticFeedback(
+                            HapticFeedbackConstants.VIRTUAL_KEY,
+                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                    }
+
                     req.scanResult.send(it)
                     App.Instance.navigation.send(NavigationRequest.ScanQr_Scanned())
                 })
-        camSurfaceView.surfaceTextureListener =
-            BarcodeDecoderSurfaceTextureListener(_camera, camPrev)
+        camSurfaceView.surfaceTextureListener = BarcodeDecoderSurfaceTextureListener(_camera, camPrev)
 
         result.findViewById<Button>(R.id.btnSimulateScan).setOnClickListener {
             var scannedQr = result.findViewById<TextView>(R.id.qrInput)
