@@ -1,12 +1,10 @@
 package pl.todoit.IndustrialWebViewWithQr
 
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -32,11 +30,16 @@ suspend fun <T> buildAndShowDialog(ctx: Context, bld:(AlertDialog.Builder, SendC
     return result.receive()
 }
 
+fun Activity.performHapticFeedback() =
+    window?.decorView?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+
 class MainActivity : AppCompatActivity() {
     private var currentMasterFragmentTag : String? = null
     private var currentPopupFragmentTag : String? = null
     private var currentPopup: Fragment? = null
     private var currentMasterFragment:Fragment? = null
+
+    private var _scanPromiseId : String? = null
 
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
@@ -219,8 +222,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Suppress("MoveLambdaOutsideParentheses")
-    private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String)
+    private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String) : Boolean
             where T : IProcessesBackButtonEvents, T: Fragment, T:IMaybeHasTitle {
 
         if (fragment is IRequiresPermissions) {
@@ -232,7 +234,7 @@ class MainActivity : AppCompatActivity() {
             if (failedToGetPermission.any()) {
                 Timber.e("failed to get required permissions (user rejected?)")
                 fragment.onRequiredPermissionRejected(failedToGetPermission.map { it.first })
-                return
+                return false
             }
         }
 
@@ -253,7 +255,7 @@ class MainActivity : AppCompatActivity() {
 
                 Timber.d("dialog result=$result")
 
-                return
+                return false
             }
         }
 
@@ -269,12 +271,17 @@ class MainActivity : AppCompatActivity() {
 
         Timber.d("replacePopupFragment currentPopupFragmentTag=$currentPopupFragmentTag")
         currentPopup = fragment
+        return true
     }
 
-    private suspend fun replacePopupWithScanQr(scanReq: ScanRequest) {
+    /**
+     * @return true if actually shown. false if request was rejected
+     */
+
+    private suspend fun replacePopupWithScanQr(scanReq: ScanRequest) : Boolean {
         App.Instance.scanQrFragmentParams.set(scanReq)
         var fragment = ScanQrFragment()
-        replacePopupFragment(fragment, "qrScanner")
+        return replacePopupFragment(fragment, "qrScanner")
     }
 
     private suspend fun consumeNavigationRequest(request:NavigationRequest) {
@@ -288,18 +295,37 @@ class MainActivity : AppCompatActivity() {
                 replaceMasterWithWebBrowser(App.Instance.currentConnection)
             }
             is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
-            is NavigationRequest.WebBrowser_RequestedScanQr -> replacePopupWithScanQr(request.req)
-            is NavigationRequest.WebBrowser_CancelScanQr -> {
-                var currentPopupCopy = currentPopup
-                if (currentPopupCopy is ScanQrFragment) {
-                    Timber.d("requesting cancellation of scanning because scanner is still active")
-                    currentPopupCopy.onReceivedScanningCancellationRequest(request.jsPromiseId)
-                } else {
-                    Timber.d("cancellation request ignored because scanner is not active anymore")
+            is NavigationRequest.WebBrowser_RequestedScanQr -> {
+                if (replacePopupWithScanQr(request.req)) {
+                    _scanPromiseId = request.req.jsPromiseId
                 }
             }
-            is NavigationRequest.ScanQr_Scanned -> removePopupFragmentIfNeeded()
-            is NavigationRequest.ScanQr_Back -> removePopupFragmentIfNeeded()
+            is NavigationRequest.WebBrowser_ResumeScanQr ->  {
+                var currentPopupCopy = currentPopup
+                if (currentPopupCopy is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
+                    Timber.d("requesting resuming scanning because scanner is still active AND jsPromiseId matches")
+                    currentPopupCopy.onReceivedScanningResumeRequest()
+                } else {
+                    Timber.e("resuming request ignored because scanner is not active anymore OR jsPromiseId not matches")
+                }
+            }
+            is NavigationRequest.WebBrowser_CancelScanQr -> {
+                var currentPopupCopy = currentPopup
+                if (currentPopupCopy is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
+                    Timber.d("requesting cancellation of scanning because scanner is still active AND jsPromiseId matches")
+                    currentPopupCopy.onReceivedScanningCancellationRequest()
+                } else {
+                    Timber.e("cancellation request ignored because scanner is not active anymore OR jsPromiseId not matches")
+                }
+            }
+            is NavigationRequest.ScanQr_Scanned -> {
+                removePopupFragmentIfNeeded()
+                _scanPromiseId = null
+            }
+            is NavigationRequest.ScanQr_Back -> {
+                removePopupFragmentIfNeeded()
+                _scanPromiseId = null
+            }
             is NavigationRequest._ToolbarBackButtonStateChanged ->
                 if (request.sender == currentMasterFragment) {
                     setToolbarBackButtonState(request.sender.isBackButtonEnabled())

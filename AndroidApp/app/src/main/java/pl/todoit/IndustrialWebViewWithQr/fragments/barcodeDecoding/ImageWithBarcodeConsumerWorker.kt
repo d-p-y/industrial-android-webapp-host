@@ -51,8 +51,8 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
         )
     private var _lastProducerDate : Date? = null
 
-    fun inputChannel() : SendChannel<ImageWithBarcode> = _input
-    fun outputChannel() : ReceiveChannel<BarcodeReply> = _output
+    fun toDecode() : SendChannel<ImageWithBarcode> = _input
+    fun decoded() : ReceiveChannel<BarcodeReply> = _output
 
     private fun decode(mfr: MultiFormatReader, toDecode: ImageWithBarcode) : Result<String, Exception> {
         try {

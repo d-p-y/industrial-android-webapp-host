@@ -5,6 +5,7 @@ import java.util.*
 
 class ImageWithBarcode(
     val hasFocus : Boolean,
+    val resetStats : Boolean,
     val imageDim: WidthAndHeight,
     var imageData:ByteArray
 ) {

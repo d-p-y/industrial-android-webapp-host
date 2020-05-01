@@ -24,6 +24,8 @@ fun postReply(host : WebViewFragment, reply : AndroidReply) {
     host.getWebView()?.evaluateJavascript(msg, null)
 }
 
+typealias ScannedOrCancelled = Choice2<String,Unit>
+
 class WebViewExposedMethods(private var host: WebViewFragment) {
 
     @JavascriptInterface
@@ -37,17 +39,42 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
         Toast.makeText(host.activity, text, if (durationLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
 
     @JavascriptInterface
-    fun requestScanQr(promiseId : String, layoutStrategyAsJson : String) {
+    fun requestScanQr(promiseId : String, asksJsForValidation:Boolean, layoutStrategyAsJson : String) {
         App.Instance.launchCoroutine {
-            val scanResult = Channel<String?>()
+            val decoderReplyChannel = Channel<ScannedOrCancelled>()
             val req = ScanRequest(
                 promiseId,
-                scanResult,
+                if (!asksJsForValidation) PauseOrFinish.Finish else PauseOrFinish.Pause,
+                decoderReplyChannel,
                 deserializeLayoutStrategy(layoutStrategyAsJson))
+
             App.Instance.navigation.send(NavigationRequest.WebBrowser_RequestedScanQr(req))
 
-            var maybeQr = scanResult.receive()
-            postReply(host, AndroidReply(promiseId, maybeQr != null, maybeQr))
+            for (rawReply in decoderReplyChannel) {
+                val reply =
+                    when(rawReply) {
+                        is Choice2.Choice1Of2 ->
+                            AndroidReply(
+                                PromiseId = promiseId,
+                                IsCancellation = false,
+                                Barcode = rawReply.value)
+
+                        is Choice2.Choice2Of2 ->
+                            AndroidReply(
+                                PromiseId = promiseId,
+                                IsCancellation = true,
+                                Barcode = null)
+                    }
+                postReply(host, reply)
+            }
+            Timber.d("requestScanQr($promiseId) finished as reply channel is closed")
+        }
+    }
+
+    @JavascriptInterface
+    fun resumeScanQr(promiseId : String) {
+        App.Instance.launchCoroutine {
+            App.Instance.navigation.send(NavigationRequest.WebBrowser_ResumeScanQr(promiseId))
         }
     }
 

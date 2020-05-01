@@ -18,6 +18,7 @@ sealed class NavigationRequest {
     class ConnectionSettings_Back() : NavigationRequest()
     class ConnectionSettings_Save(val connInfo: ConnectionInfo) : NavigationRequest()
     class WebBrowser_RequestedScanQr(val req: ScanRequest) : NavigationRequest()
+    class WebBrowser_ResumeScanQr(val jsPromiseId: String) : NavigationRequest()
     class WebBrowser_CancelScanQr(val jsPromiseId: String) : NavigationRequest()
     class ScanQr_Scanned() : NavigationRequest()
     class ScanQr_Back() : NavigationRequest()

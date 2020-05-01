@@ -10,7 +10,7 @@ import timber.log.Timber
 
 class BarcodeDecoderSurfaceTextureListener(
     private val _camera : CameraData,
-    private val _camPrev : BarcodeDecoderCameraPreviewCallback
+    private val _camPrev : BarcodeDecoderForCameraPreview
 ) : TextureView.SurfaceTextureListener {
 
     override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture?, width: Int, height: Int) {
@@ -26,9 +26,10 @@ class BarcodeDecoderSurfaceTextureListener(
     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture?): Boolean {
         Timber.d("onSurfaceTextureDestroyed()")
         _camera.camera.stopPreview()
-        _camPrev.cancelPreviewing()
+        _camPrev.cancelDecoder()
         _camera.camera.release()
-        return true
+
+        return true //meaning: complies with request - no need to manually release
     }
 
     private fun onAutoFocusMoving(startMoving: Boolean, irr: Camera?) {
@@ -45,7 +46,7 @@ class BarcodeDecoderSurfaceTextureListener(
 
         _camera.camera.setPreviewTexture(surface)
         _camera.camera.startPreview()
-        _camera.camera.setOneShotPreviewCallback(_camPrev)
+        _camPrev.requestCameraFrameCapture()
 
         _camera.camera.setAutoFocusMoveCallback{ start, camera -> onAutoFocusMoving(start, camera) }
     }

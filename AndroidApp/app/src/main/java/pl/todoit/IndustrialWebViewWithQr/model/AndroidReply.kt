@@ -5,6 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AndroidReply (
     var PromiseId : String,
-    var IsSuccess : Boolean,
-    var Reply : String?
+    var IsCancellation : Boolean,
+    var Barcode : String?
 )

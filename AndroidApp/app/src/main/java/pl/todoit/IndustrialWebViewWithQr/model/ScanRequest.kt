@@ -2,6 +2,7 @@ package pl.todoit.IndustrialWebViewWithQr.model
 
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.Serializable
+import pl.todoit.IndustrialWebViewWithQr.fragments.ScannedOrCancelled
 import timber.log.Timber
 
 @Serializable
@@ -18,8 +19,9 @@ class MatchWidthWithFixedHeightLayoutStrategy (
 
 class ScanRequest(
     val jsPromiseId : String,
-    val scanResult : SendChannel<String?>,
-    val layoutStrategy : LayoutStrategy) {}
+    val postSuccess : PauseOrFinish,
+    val scanResult : SendChannel<ScannedOrCancelled>,
+    val layoutStrategy : LayoutStrategy)
 
 fun deserializeLayoutStrategy(layoutStrategyAsJson:String) : LayoutStrategy {
     val baseType = jsonForgiving.parse(LayoutStrategy.serializer(), layoutStrategyAsJson)
