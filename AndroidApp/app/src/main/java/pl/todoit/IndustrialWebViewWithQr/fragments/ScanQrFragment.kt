@@ -118,7 +118,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
                             req.scanResult.send(Choice2.Choice1Of2(it.decodedBarcode))
                             if (!it.expectMoreMessages) {
-                                req.scanResult.close()
+                                //no need to close scanResult as Cancelling will be invoked
                                 App.Instance.navigation.send(NavigationRequest.ScanQr_Scanned())
                             }
                         }
