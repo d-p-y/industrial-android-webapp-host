@@ -1,27 +1,27 @@
 
 Window.prototype.androidPostReplyToPromise = function (replyToJson : string) {
-    window.debugLogToBody("androidPostReplyToPromise("+replyToJson+")");
+    console?.log("androidPostReplyToPromise("+replyToJson+")");
 
     let decoded : AndroidReply = JSON.parse(replyToJson);
-    window.debugLogToBody("androidPostReplyToPromise decoded="+decoded);
+    console?.log("androidPostReplyToPromise decoded="+decoded);
 
     let noAutoClean = window.promiseNoAutoClean.has(decoded.PromiseId);
 
     let resolved = window.promiseResolvedCallBacks.get(decoded.PromiseId);
     
     if (resolved === undefined) {
-        window.debugLogToBody("androidPostReplyToPromise resolved is undefined");
+        console?.log("androidPostReplyToPromise resolved is undefined");
         return;
     }
 
     let rejected = window.promiseRejectedCallBacks.get(decoded.PromiseId);
    
     if (rejected === undefined) {
-        window.debugLogToBody("androidPostReplyToPromise rejected is undefined");
+        console?.log("androidPostReplyToPromise rejected is undefined");
         return;
     }
     
-    window.debugLogToBody("androidPostReplyToPromise IsCanc="+decoded.IsCancellation+" noAutoClean="+noAutoClean + " barcode="+decoded.Barcode);
+    console?.log("androidPostReplyToPromise IsCanc="+decoded.IsCancellation+" noAutoClean="+noAutoClean + " barcode="+decoded.Barcode);
     
     if (!noAutoClean) {
         window.promiseResolvedCallBacks.delete(decoded.PromiseId);
@@ -29,18 +29,18 @@ Window.prototype.androidPostReplyToPromise = function (replyToJson : string) {
     }
 
     if (decoded.IsCancellation === false) {
-        window.debugLogToBody("androidPostReplyToPromise not cancel");
+        console?.log("androidPostReplyToPromise not cancel");
         resolved(decoded.Barcode);
         return;
     }
 
     if (decoded.IsCancellation === true) {
-        window.debugLogToBody("androidPostReplyToPromise cancel");
+        console?.log("androidPostReplyToPromise cancel");
         rejected(decoded.Barcode);
         return;
     }
 
-    window.debugLogToBody("androidPostReplyToPromise unknown");
+    console?.log("androidPostReplyToPromise unknown");
 };
 
 Window.prototype.promiseDisableAutoClean = function (promiseId : string) {
@@ -52,13 +52,6 @@ Window.prototype.promiseClean = function (promiseId : string) {
     window.promiseResolvedCallBacks.delete(promiseId);
     window.promiseRejectedCallBacks.delete(promiseId);
 }
-
-Window.prototype.debugLogToBody = function (msg : string) {
-    let logItm = document.createElement("div");
-    logItm.innerText = msg;
-
-    document.body.appendChild(logItm);
-};
 
 Window.prototype.scanQr = function(layoutData : LayoutStrategy) : Promise<string> {
     let self = this;
@@ -81,7 +74,7 @@ Window.prototype.scanQr = function(layoutData : LayoutStrategy) : Promise<string
         self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
         self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
         
-        window.debugLogToBody("calling self.Android.requestScanQr");
+        console?.log("calling self.Android.requestScanQr");
 
         self.Android.requestScanQr(promiseId, false, JSON.stringify(layoutData));
     });    
@@ -92,7 +85,7 @@ Window.prototype.scanQrCancellable = function(layoutData : LayoutStrategy) : [Pr
         //dev friendly polyfill
 
         let canceller = function() {
-            window.debugLogToBody("dully noting attempt to cancel scan QR request");
+            console?.log("dully noting attempt to cancel scan QR request");
         };
         
         return [
@@ -117,12 +110,12 @@ Window.prototype.scanQrCancellable = function(layoutData : LayoutStrategy) : [Pr
             self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
             self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
             
-            window.debugLogToBody("calling self.Android.requestScanQr");
+            console?.log("calling self.Android.requestScanQr");
 
             self.Android.requestScanQr(promiseId, false, JSON.stringify(layoutData));
         }),
         () => {
-            window.debugLogToBody("requesting scanQr cancellation");
+            console?.log("requesting scanQr cancellation");
             self.Android.cancelScanQr(promiseId)
         }];
 }
@@ -134,7 +127,7 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : Layout
         let ended = false;
         
         let canceller = function() {
-            window.debugLogToBody("dully noting attempt to cancel scan QR request");
+            console?.log("dully noting attempt to cancel scan QR request");
             ended = true;
         };
 
@@ -144,11 +137,11 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : Layout
                     let result = window.prompt("[cancellable] scan QR:");
 
                     if (result == null) {
-                        window.debugLogToBody("user cancelled window.prompt()");                        
+                        console?.log("user cancelled window.prompt()");                        
                     }
         
                     let accepted = await validate(result);
-                    window.debugLogToBody("validator accepted?="+accepted);
+                    console?.log("validator accepted?="+accepted);
 
                     if (accepted) {
                         canceller();
@@ -166,20 +159,20 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : Layout
     let self = this;
 
     let onGotBarcode = async (isCancellation:boolean, barcode:string|null) => {
-        window.debugLogToBody("onGotBarcode(isCancellation="+isCancellation+" barcode="+barcode+")");
+        console?.log("onGotBarcode(isCancellation="+isCancellation+" barcode="+barcode+")");
         
         if (isCancellation) {
             window.promiseClean(promiseId);
         } else {
             let accepted = await validate(barcode);
 
-            window.debugLogToBody("onGotBarcode accepted?="+accepted);
+            console?.log("onGotBarcode accepted?="+accepted);
 
             if (accepted) {
-                window.debugLogToBody("onGotBarcode cancellation");        
+                console?.log("onGotBarcode cancellation");        
                 self.Android.cancelScanQr(promiseId)
             } else {
-                window.debugLogToBody("onGotBarcode resumption");
+                console?.log("onGotBarcode resumption");
                 self.Android.resumeScanQr(promiseId)
             }
         }
@@ -189,12 +182,12 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : Layout
     self.promiseResolvedCallBacks.set(promiseId, (x:string) => onGotBarcode(false, x));
     self.promiseRejectedCallBacks.set(promiseId, (x:string) => onGotBarcode(true, x));
 
-    window.debugLogToBody("calling self.Android.requestScanQr");
+    console?.log("calling self.Android.requestScanQr");
 
     self.Android.requestScanQr(promiseId, true, JSON.stringify(layoutData));
 
     return () => {
-        window.debugLogToBody("requesting scanQr cancellation");        
+        console?.log("requesting scanQr cancellation");        
         self.Android.cancelScanQr(promiseId)
     };
 }
@@ -223,7 +216,7 @@ Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
         return;
     }
 
-    window.debugLogToBody("back button is now " + (isEnabled ? "enabled" : "disabled"));
+    console?.log("back button is now " + (isEnabled ? "enabled" : "disabled"));
 }
 
 interface HTMLElement {
@@ -267,7 +260,7 @@ window.addEventListener('load', (_) => {
         document.body.appendChild(container);
         
         Window.prototype.androidBackConsumed = function () {
-            window.debugLogToBody("got consume back button request");
+            console?.log("got consume back button request");
             return checkbox.checked;
         };    
     }
@@ -290,7 +283,7 @@ window.addEventListener('load', (_) => {
         document.body.appendChild(container);
         
         checkbox.addEventListener("change", _ => {
-            window.debugLogToBody("back button enabled="+checkbox.checked);
+            console?.log("back button enabled="+checkbox.checked);
             window.setToolbarBackButtonState(checkbox.checked);
         });
     }
@@ -344,27 +337,28 @@ window.addEventListener('load', (_) => {
 
 
         btnReqScan.onclick = _ => {
+            divCode.textContent = "";
             divCode.style.display = "initial";
             btnAccept.style.display = "initial";
             btnReject.style.display = "initial";
             btnCancel.style.display = "initial";
 
             let strat = new MatchWidthWithFixedHeightLayoutStrategy();
-            strat.paddingTopMm = 10;
-            strat.heightMm = 50;
+            strat.paddingTopMm = 20;
+            strat.heightMm = 30;
             
             let onAccept = (_:boolean) => {};
             
             let cancellator = window.scanQrValidatableAndCancellable(
                 strat, 
                 async (barcode) => new Promise<boolean>(function (resolve,_) {
-                    window.debugLogToBody("validation promise invoked barcode="+barcode);
+                    console?.log("validation promise invoked barcode="+barcode);
                     divCode.textContent = barcode;
                     onAccept = resolve;
                 }));    
         
             btnAccept.onclick = _ => {
-                window.debugLogToBody("btnAccept clicked (finish)");
+                console?.log("btnAccept clicked (finish)");
                 onAccept(true);
 
                 divCode.style.display = "none";            
@@ -374,12 +368,12 @@ window.addEventListener('load', (_) => {
             };
 
             btnReject.onclick = _ => {
-                window.debugLogToBody("btnReject clicked (resume)");
+                console?.log("btnReject clicked (resume)");
                 onAccept(false);
             };
     
             btnCancel.onclick = _ => {
-                window.debugLogToBody("btnCancel clicked");
+                console?.log("btnCancel clicked");
                 cancellator();
 
                 divCode.style.display = "none";            
@@ -414,14 +408,14 @@ window.addEventListener('load', (_) => {
                 let [resultPromise, cancellator] = window.scanQrCancellable(strat);
 
                 btnCancel.onclick = _ => {
-                    window.debugLogToBody("btnCancel clicked");
+                    console?.log("btnCancel clicked");
                     cancellator();
                 };
 
                 let res = await resultPromise;
-                window.debugLogToBody("scanned: "+res);                
+                console?.log("scanned: "+res);                
             } catch (error) {
-                window.debugLogToBody("scanner rejected: "+error);
+                console?.log("scanner rejected: "+error);
             }
             btnCancel.style.display = "none";
         };        
@@ -436,9 +430,9 @@ window.addEventListener('load', (_) => {
                 let strat = new FitScreenLayoutStrategy();  
                 strat.screenTitle = "Need QR code";              
                 let res = await window.scanQr(strat);
-                window.debugLogToBody("scanned: "+res);
+                console?.log("scanned: "+res);
             } catch (error) {
-                window.debugLogToBody("scanner rejected: "+error);
+                console?.log("scanner rejected: "+error);
             }
         };
         document.body.appendChild(btn);

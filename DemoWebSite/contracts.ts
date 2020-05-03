@@ -68,7 +68,5 @@ interface Window {
     promiseResolvedCallBacks : Map<string, (result:string) => void>;
     promiseRejectedCallBacks : Map<string, (error:string) => void>;
     promiseDisableAutoClean(promiseId : string) : void;
-    promiseClean(promiseId : string) : void;
-
-    debugLogToBody(msg : string) : void; //helper logger
+    promiseClean(promiseId : string) : void;    
 }
