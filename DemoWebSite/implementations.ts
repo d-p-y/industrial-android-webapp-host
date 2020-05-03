@@ -341,10 +341,7 @@ window.addEventListener('load', (_) => {
 
 
         btnReqScan.onclick = _ => {
-            divCode.textContent = "";
-            divCode.style.display = "initial";
-            btnAccept.style.display = "initial";
-            btnReject.style.display = "initial";
+            divCode.textContent = "";            
             btnCancel.style.display = "initial";
 
             let strat = new MatchWidthWithFixedHeightLayoutStrategy();
@@ -358,6 +355,9 @@ window.addEventListener('load', (_) => {
                 async (barcode) => new Promise<boolean>(function (resolve,_) {
                     console?.log("validation promise invoked barcode="+barcode);
                     divCode.textContent = barcode;
+                    divCode.style.display = "initial";
+                    btnAccept.style.display = "initial";
+                    btnReject.style.display = "initial";
                     onAccept = resolve;
                 }));    
         
@@ -375,6 +375,9 @@ window.addEventListener('load', (_) => {
             btnReject.onclick = _ => {
                 console?.log("btnReject clicked (resume)");
                 onAccept(false);
+                divCode.style.display = "none";            
+                btnAccept.style.display = "none";
+                btnReject.style.display = "none";
             };
     
             btnCancel.onclick = _ => {
