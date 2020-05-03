@@ -40,6 +40,7 @@ class WorkerEstimator {
 
             if (_consumingTimesMs.size >= _sufficientStatsSize) {
                 _consumingTimeMsAvg = result
+                //TODO add persistence (ms per format(s) array)
             }
 
             return result
@@ -58,6 +59,7 @@ class WorkerEstimator {
 
             if (_producingTimesMs.size >= _sufficientStatsSize) {
                 _producingTimeMsAvg = result
+                //TODO add persistence
             }
 
             return result

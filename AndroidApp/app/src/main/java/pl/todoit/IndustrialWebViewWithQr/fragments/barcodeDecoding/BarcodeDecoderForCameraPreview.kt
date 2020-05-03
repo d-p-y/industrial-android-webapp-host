@@ -75,6 +75,8 @@ class BarcodeDecoderForCameraPreview(
     }
 
     private suspend fun onCommand(value: CancelPauseResume) {
+        _barcodeDecoder.clearToDecode() //ease GC and don't use old images in new requests
+
         when(value) {
             CancelPauseResume.Cancel -> {
                 Timber.d("canceling decoding")
@@ -128,8 +130,6 @@ class BarcodeDecoderForCameraPreview(
     }
 
     private fun cameraFrameCaptured(data: ByteArray?) {
-        //Timber.d("onPreviewFrame() hasData?=${data != null}")
-
         if (data == null) {
             return
         }
@@ -152,7 +152,9 @@ class BarcodeDecoderForCameraPreview(
             )
 
         var sent =
-            if (_barcodeDecoder.toDecode().offer(itm)) {
+            if (!_sendToDecoder) {
+                false
+            } else if (_barcodeDecoder.toDecode().offer(itm)) {
                 _sent++
                 true
             } else {

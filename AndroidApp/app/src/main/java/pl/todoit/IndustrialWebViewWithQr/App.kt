@@ -33,9 +33,8 @@ class App : Application(), CoroutineScope by MainScope() {
             remoteDebuggerEnabled = isForcedDevelopmentMode,
             forwardConsoleLogToLogCat = isForcedDevelopmentMode
         )
-    val imagesToDecodeQueueSize = 10 // ~~60MB
-    val barcodeReplyQueueSize = 2 //bigger than one so that it is not suspended
-    val sufficientStatsSize =5
+    val imagesToDecodeQueueSize = 10 // each raw FullHD photo consumes ~6MB
+    val sufficientStatsSize = 5
     val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
 
     override fun onCreate() {

@@ -41,18 +41,14 @@ fun createMultiFormatReaderFor(formats : Array<BarcodeFormat>) : MultiFormatRead
 }
 
 class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
-    private val _input =
-        Channel<ImageWithBarcode>(
-            App.Instance.imagesToDecodeQueueSize
-        )
-    private val _output =
-        Channel<BarcodeReply>(
-            App.Instance.barcodeReplyQueueSize
-        )
+    private val _input = Channel<ImageWithBarcode>(App.Instance.imagesToDecodeQueueSize)
+    private val _output = Channel<BarcodeReply>()
     private var _lastProducerDate : Date? = null
 
     fun toDecode() : SendChannel<ImageWithBarcode> = _input
     fun decoded() : ReceiveChannel<BarcodeReply> = _output
+
+    fun clearToDecode() = App.Instance.launchCoroutine { _input.receiveAllPending().clear() }
 
     private fun decode(mfr: MultiFormatReader, toDecode: ImageWithBarcode) : Result<String, Exception> {
         try {
@@ -99,12 +95,8 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
         Timber.i("barcodeDecoderWorker started")
 
         val startedAt = Date()
-        val stats =
-            WorkerEstimator()
-        val mfr =
-            createMultiFormatReaderFor(
-                formats
-            )
+        val stats = WorkerEstimator()
+        val mfr = createMultiFormatReaderFor(formats)
 
         while(true) {
             var toDecodes = _input.receiveAllPending().sortedByDescending { it.hasFocus }.toMutableList()
@@ -140,17 +132,16 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
                 val resultBarcode = decodeOne(mfr, stats, toDecode)
 
                 if (resultBarcode != null) {
+                    //no need to decode the rest + help with GC
+                    stats.skipItemsFollowingSuccess(toDecodes.size)
+                    toDecodes.clear() //no need to decode the rest
+
                     _output.send(
                         BarcodeReply(
                             resultBarcode,
                             stats.createSummary(startedAt)
                         )
                     )
-
-                    //before producer gets out reply it is likely that he will still send some items
-                    //but still try to help GC
-                    stats.skipItemsFollowingSuccess(toDecodes.size)
-                    _input.receiveAllPending().clear()
                 }
             }
 
