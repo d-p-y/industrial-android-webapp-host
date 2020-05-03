@@ -20,10 +20,10 @@ class App : Application(), CoroutineScope by MainScope() {
     val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
     val permitNoContinousFocusInCamera = isRunningInEmulator
 
-    public val navigation = Channel<NavigationRequest>()
-    public val webViewFragmentParams = ParamContainer<ConnectionInfo>()
-    public val connSettFragmentParams = ParamContainer<ConnectionInfo>()
-    public val scanQrFragmentParams = ParamContainer<Pair<ScanRequest,OverlayImage?>>()
+    val navigation = Channel<NavigationRequest>()
+    val webViewFragmentParams = ParamContainer<ConnectionInfo>()
+    val connSettFragmentParams = ParamContainer<ConnectionInfo>()
+    val scanQrFragmentParams = ParamContainer<Pair<ScanRequest,OverlayImage?>>()
 
     //TODO use persistence
     var currentConnection =

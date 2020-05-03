@@ -3,6 +3,8 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.Manifest
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.*
@@ -86,13 +88,18 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         val scannerOverlay = result.findViewById<ImageView>(R.id.scannerOverlay)
 
         val overlayImg = req.second
-        if (overlayImg != null && scannerOverlay != null) {
+        val screenDensityDpi = activity?.resources?.displayMetrics?.densityDpi
+
+        if (overlayImg != null && scannerOverlay != null && screenDensityDpi != null) {
             val img = ByteArrayInputStream(overlayImg.content)
-            scannerOverlay.setImageDrawable(Drawable.createFromStream(img, overlayImg.fileName))
-            scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active
+            val bmp = BitmapFactory.decodeStream(img).apply { density = screenDensityDpi }
+
+            scannerOverlay.setImageDrawable(BitmapDrawable(activity?.resources, bmp))
 
             App.Instance.launchCoroutine {
                 Timber.d("show/hide overview image listener - starting")
+                scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active
+
                 val stateUpdate = req.first.scanResult.openSubscription()
                 for (item in stateUpdate) {
                     val maybeVis =
@@ -132,7 +139,9 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
         scannerOverlay.translationY =
             when(val x = layoutProp.dimensions?.second) {
-                is LayoutDimension.ValuePx -> - x.px/2f - (scannerOverlay.drawable?.intrinsicHeight ?: 0)/2f
+                is LayoutDimension.ValuePx ->
+                    //TODO dimensions are 3 times too small
+                    - x.px/2f - (scannerOverlay.drawable?.intrinsicHeight ?: 0)/2f
                 else -> 0f
             }
 

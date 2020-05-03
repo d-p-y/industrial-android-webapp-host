@@ -33,7 +33,7 @@ suspend fun <T> buildAndShowDialog(ctx: Context, bld:(AlertDialog.Builder, SendC
 fun Activity.performHapticFeedback() =
     window?.decorView?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
 
-class OverlayImage(val fileName : String, val content:ByteArray)
+class OverlayImage(val content:ByteArray)
 
 class MainActivity : AppCompatActivity() {
     private var _scanPromiseId : String? = null
@@ -289,7 +289,7 @@ class MainActivity : AppCompatActivity() {
             is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
                 Timber.d("setting scan overlay image")
-                _overlayImageOnPause = OverlayImage(request.fileName, request.content)
+                _overlayImageOnPause = OverlayImage(request.content)
             }
             is NavigationRequest.WebBrowser_RequestedScanQr -> {
                 if (_scanPromiseId != null) {

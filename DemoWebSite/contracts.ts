@@ -49,11 +49,10 @@ interface IAndroid {
     
     /**
      * set image drawn on top of camera scanner preview when scanning is paused
-     * @param fileName name containing extension so that Drawable.createFromStream knows what is the image format
      * @param fileContent comma separated ints that are valid unsigned bytes
      */
 
-    setPausedScanOverlayImage(fileName : string, fileContent : string) : void;
+    setPausedScanOverlayImage(fileContent : string) : void;
 
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : string) : void;
@@ -69,7 +68,7 @@ interface Window {
     scanQr(layoutData : LayoutStrategy) : Promise<string>;
     scanQrCancellable(layoutData : LayoutStrategy) : [Promise<string>,() => void];
     scanQrValidatableAndCancellable(layoutData : LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>) ) : (() => void);
-    setPausedScanOverlayImage(fromUrl:string, fileName:string) : void;
+    setPausedScanOverlayImage(fromUrl:string) : void;
 
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : string) : void;

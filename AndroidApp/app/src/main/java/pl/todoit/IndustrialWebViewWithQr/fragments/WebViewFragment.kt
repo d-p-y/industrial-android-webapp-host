@@ -34,10 +34,9 @@ sealed class ScannerStateChange {
 class WebViewExposedMethods(private var host: WebViewFragment) {
 
     @JavascriptInterface
-    fun setPausedScanOverlayImage(fileName : String, fileContent : String) {
+    fun setPausedScanOverlayImage(fileContent : String) {
         App.Instance.launchCoroutine { App.Instance.navigation.send(
             NavigationRequest.WebBrowser_SetScanOverlayImage(
-                fileName,
                 fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray())) }
     }
 

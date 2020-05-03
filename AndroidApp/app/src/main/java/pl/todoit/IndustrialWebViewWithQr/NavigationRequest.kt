@@ -17,7 +17,7 @@ sealed class NavigationRequest {
     class _ToolbarBackButtonStateChanged(val sender : ITogglesBackButtonVisibility) : NavigationRequest()
     class ConnectionSettings_Back() : NavigationRequest()
     class ConnectionSettings_Save(val connInfo: ConnectionInfo) : NavigationRequest()
-    class WebBrowser_SetScanOverlayImage(val fileName: String, val content: ByteArray) : NavigationRequest()
+    class WebBrowser_SetScanOverlayImage(val content: ByteArray) : NavigationRequest()
     class WebBrowser_RequestedScanQr(val req: ScanRequest) : NavigationRequest()
     class WebBrowser_ResumeScanQr(val jsPromiseId: String) : NavigationRequest()
     class WebBrowser_CancelScanQr(val jsPromiseId: String) : NavigationRequest()
