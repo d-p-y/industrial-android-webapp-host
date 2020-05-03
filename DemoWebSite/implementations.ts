@@ -238,6 +238,10 @@ window.addEventListener('load', (_) => {
 });
 
 window.addEventListener('load', (_) => {
+    let lblLog = document.createElement("div");
+    lblLog.style.whiteSpace = "pre";
+    lblLog.textContent = new Date().toJSON() + "\n";
+
     document.body.removeAllChildren();
     document.body.style.backgroundColor = "#e6ffff";
     document.body.style.display = "flex";
@@ -255,7 +259,7 @@ window.addEventListener('load', (_) => {
         let lbl = document.createElement("label");
         lbl.htmlFor = checkbox.id;
         lbl.textContent = "Consume backbutton event?"
-        container.appendChild( lbl);
+        container.appendChild(lbl);
         
         document.body.appendChild(container);
         
@@ -278,7 +282,7 @@ window.addEventListener('load', (_) => {
         let lbl = document.createElement("label");
         lbl.htmlFor = checkbox.id;
         lbl.textContent = "backbutton enabled?"
-        container.appendChild( lbl);
+        container.appendChild(lbl);
         
         document.body.appendChild(container);
         
@@ -365,6 +369,7 @@ window.addEventListener('load', (_) => {
                 btnAccept.style.display = "none";
                 btnReject.style.display = "none";
                 btnCancel.style.display = "none";
+                lblLog.textContent += "scanned: " + divCode.textContent + "\n";
             };
 
             btnReject.onclick = _ => {
@@ -380,6 +385,7 @@ window.addEventListener('load', (_) => {
                 btnAccept.style.display = "none";
                 btnReject.style.display = "none";
                 btnCancel.style.display = "none";
+                lblLog.textContent += "not scanned\n";
             };
         };        
     }
@@ -413,9 +419,11 @@ window.addEventListener('load', (_) => {
                 };
 
                 let res = await resultPromise;
-                console?.log("scanned: "+res);                
+                console?.log("scanned: "+res);
+                lblLog.textContent += "scanned " + res  +"\n";
             } catch (error) {
                 console?.log("scanner rejected: "+error);
+                lblLog.textContent += "not scanned\n";
             }
             btnCancel.style.display = "none";
         };        
@@ -431,8 +439,10 @@ window.addEventListener('load', (_) => {
                 strat.screenTitle = "Need QR code";              
                 let res = await window.scanQr(strat);
                 console?.log("scanned: "+res);
+                lblLog.textContent += "scanned " + res  +"\n";
             } catch (error) {
                 console?.log("scanner rejected: "+error);
+                lblLog.textContent += "not scanned\n";
             }
         };
         document.body.appendChild(btn);
@@ -456,10 +466,8 @@ window.addEventListener('load', (_) => {
     btnChangeTitle.value = "Change title";
     btnChangeTitle.onclick = () => window.setTitle("some title #" + new Date().getMilliseconds());
     document.body.appendChild(btnChangeTitle);
-
-    let lbl = document.createElement("div");
-    lbl.innerText = new Date().toJSON() + "";
-    document.body.appendChild(lbl);
+    
+    document.body.appendChild(lblLog);
 
     window.setTitle("Showcase app");
 });
