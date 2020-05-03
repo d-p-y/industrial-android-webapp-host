@@ -3,39 +3,39 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.Manifest
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.*
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.zxing.*
-import pl.todoit.IndustrialWebViewWithQr.App
-import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
-import pl.todoit.IndustrialWebViewWithQr.R
+import pl.todoit.IndustrialWebViewWithQr.*
 import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeDecoderSurfaceTextureListener
 import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeDecoderForCameraPreview
 import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeDecoderNotification
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import pl.todoit.IndustrialWebViewWithQr.model.Result
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
-import pl.todoit.IndustrialWebViewWithQr.performHapticFeedback
 import timber.log.Timber
+import java.io.ByteArrayInputStream
 
 class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions,
                        IBeforeNavigationValidation, IMaybeHasTitle {
     private lateinit var _camera: CameraData
     private lateinit var _decoder : BarcodeDecoderForCameraPreview
 
-    private fun req() : ScanRequest? = App.Instance.scanQrFragmentParams.get()
+    private fun req() : Pair<ScanRequest,OverlayImage?>? = App.Instance.scanQrFragmentParams.get()
 
     override fun getRequiredAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
     override fun onRequiredPermissionRejected(rejectedPerms:List<String>) =
         App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest.ScanQr_Back()) }
 
     override fun getTitleMaybe() =
-        when(val x = req()?.layoutStrategy) {
+        when(val x = req()?.first?.layoutStrategy) {
             is FitScreenLayoutStrategy ->x.screenTitle ?: "Scan QR code"
             is MatchWidthWithFixedHeightLayoutStrategy -> null
             else -> {
@@ -44,7 +44,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
     private fun backButtonCausesCancellation() : Boolean =
-        when(req()?.layoutStrategy) {
+        when(req()?.first?.layoutStrategy) {
             is FitScreenLayoutStrategy -> true
             is MatchWidthWithFixedHeightLayoutStrategy -> false
             else -> {
@@ -82,12 +82,37 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             return result
         }
 
-        result.findViewById<TextView>(R.id.qrLabel).text = ""
-        result.findViewById<TextView>(R.id.qrRegexp).text = ""
-
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
+        val scannerOverlay = result.findViewById<ImageView>(R.id.scannerOverlay)
 
-        val layoutProp = computeParamsForTextureView(_camera, req.layoutStrategy)
+        val overlayImg = req.second
+        if (overlayImg != null && scannerOverlay != null) {
+            val img = ByteArrayInputStream(overlayImg.content)
+            scannerOverlay.setImageDrawable(Drawable.createFromStream(img, overlayImg.fileName))
+            scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active
+
+            App.Instance.launchCoroutine {
+                Timber.d("show/hide overview image listener - starting")
+                val stateUpdate = req.first.scanResult.openSubscription()
+                for (item in stateUpdate) {
+                    val maybeVis =
+                        when(item) {
+                            is ScannerStateChange.Paused -> View.VISIBLE
+                            is ScannerStateChange.Resumed -> View.GONE
+                            is ScannerStateChange.Cancelled -> View.GONE
+                            else -> null
+                        }
+
+                    if (maybeVis != null) {
+                        Timber.d("show/hide overview image listener - changing due to info=$item")
+                        scannerOverlay.visibility = maybeVis
+                    }
+                }
+                Timber.d("show/hide overview image listener - ended")
+            }
+        }
+
+        val layoutProp = computeParamsForTextureView(_camera, req.first.layoutStrategy)
 
         if (layoutProp.dimensions != null) {
             if (layoutProp.marginURBL != null) {
@@ -104,10 +129,17 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
         camSurfaceView.setTransform(layoutProp.matrix)
+
+        scannerOverlay.translationY =
+            when(val x = layoutProp.dimensions?.second) {
+                is LayoutDimension.ValuePx -> - x.px/2f - (scannerOverlay.drawable?.intrinsicHeight ?: 0)/2f
+                else -> 0f
+            }
+
         _decoder =
             BarcodeDecoderForCameraPreview(
                 arrayOf(BarcodeFormat.QR_CODE),
-                req.postSuccess,
+                req.first.postSuccess,
                 _camera,
                 {
                     when(it) {
@@ -116,16 +148,19 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                                 activity?.performHapticFeedback()
                             }
 
-                            req.scanResult.send(Choice2.Choice1Of2(it.decodedBarcode))
+                            req.first.scanResult.send(ScannerStateChange.Scanned(it.decodedBarcode))
                             if (!it.expectMoreMessages) {
-                                //no need to close scanResult as Cancelling will be invoked
                                 App.Instance.navigation.send(NavigationRequest.ScanQr_Scanned())
                             }
                         }
                         is BarcodeDecoderNotification.Cancelling -> {
-                            req.scanResult.sendAndClose(Choice2.Choice2Of2(Unit))
+                            req.first.scanResult.sendAndClose(ScannerStateChange.Cancelled())
                             App.Instance.navigation.send(NavigationRequest.ScanQr_Back())
                         }
+                        is BarcodeDecoderNotification.Pausing  ->
+                            req.first.scanResult.send(ScannerStateChange.Paused())
+                        is BarcodeDecoderNotification.Resuming  ->
+                            req.first.scanResult.send(ScannerStateChange.Resumed())
                     }
                 })
 

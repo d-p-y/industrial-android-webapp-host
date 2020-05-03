@@ -23,7 +23,7 @@ class App : Application(), CoroutineScope by MainScope() {
     public val navigation = Channel<NavigationRequest>()
     public val webViewFragmentParams = ParamContainer<ConnectionInfo>()
     public val connSettFragmentParams = ParamContainer<ConnectionInfo>()
-    public val scanQrFragmentParams = ParamContainer<ScanRequest>()
+    public val scanQrFragmentParams = ParamContainer<Pair<ScanRequest,OverlayImage?>>()
 
     //TODO use persistence
     var currentConnection =

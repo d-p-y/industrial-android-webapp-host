@@ -24,9 +24,22 @@ fun postReply(host : WebViewFragment, reply : AndroidReply) {
     host.getWebView()?.evaluateJavascript(msg, null)
 }
 
-typealias ScannedOrCancelled = Choice2<String,Unit>
+sealed class ScannerStateChange {
+    class Scanned(val barcode : String) : ScannerStateChange()
+    class Paused() : ScannerStateChange()
+    class Resumed() : ScannerStateChange()
+    class Cancelled() : ScannerStateChange()
+}
 
 class WebViewExposedMethods(private var host: WebViewFragment) {
+
+    @JavascriptInterface
+    fun setPausedScanOverlayImage(fileName : String, fileContent : String) {
+        App.Instance.launchCoroutine { App.Instance.navigation.send(
+            NavigationRequest.WebBrowser_SetScanOverlayImage(
+                fileName,
+                fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray())) }
+    }
 
     @JavascriptInterface
     fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
@@ -41,33 +54,47 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
     @JavascriptInterface
     fun requestScanQr(promiseId : String, asksJsForValidation:Boolean, layoutStrategyAsJson : String) {
         App.Instance.launchCoroutine {
-            val decoderReplyChannel = Channel<ScannedOrCancelled>()
             val req = ScanRequest(
                 promiseId,
                 if (!asksJsForValidation) PauseOrFinish.Finish else PauseOrFinish.Pause,
-                decoderReplyChannel,
                 deserializeLayoutStrategy(layoutStrategyAsJson))
+
+            val decoderReplyChannel = req.scanResult.openSubscription()
 
             App.Instance.navigation.send(NavigationRequest.WebBrowser_RequestedScanQr(req))
 
             for (rawReply in decoderReplyChannel) {
-                val reply =
+                val maybeReply =
                     when(rawReply) {
-                        is Choice2.Choice1Of2 ->
+                        is ScannerStateChange.Scanned -> {
+                            Timber.d("decoderReplyChannel got: scanned")
                             AndroidReply(
                                 PromiseId = promiseId,
                                 IsCancellation = false,
-                                Barcode = rawReply.value)
-
-                        is Choice2.Choice2Of2 ->
+                                Barcode = rawReply.barcode)
+                        }
+                        is ScannerStateChange.Cancelled -> {
+                            Timber.d("decoderReplyChannel got: cancelled")
                             AndroidReply(
                                 PromiseId = promiseId,
                                 IsCancellation = true,
                                 Barcode = null)
+                        }
+                        is ScannerStateChange.Paused -> {
+                            Timber.d("decoderReplyChannel got: paused")
+                            null
+                        }
+                        is ScannerStateChange.Resumed -> {
+                            Timber.d("decoderReplyChannel got: resumed")
+                            null
+                        }
                     }
-                postReply(host, reply)
+
+                if (maybeReply != null) {
+                    postReply(host, maybeReply)
+                }
             }
-            Timber.d("requestScanQr($promiseId) finished as reply channel is closed")
+            Timber.d("decoderReplyChannel finished with requestScanQr($promiseId) due to channel closure")
         }
     }
 

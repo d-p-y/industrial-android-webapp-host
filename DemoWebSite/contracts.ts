@@ -37,15 +37,27 @@ interface IAndroid {
     requestScanQr(promiseId : string, askJsForValidation : boolean, LayoutStrategyAsJson : string) : void;
 
     /**
-     * cancels requested scan OR paused scan
+     * cancels requested scan OR paused scan. Causes requestScanQr to be invoked with IsCancellation=true when ready
      * @param promiseId 
      */
     cancelScanQr(promiseId : string) : void;
+
+    /**
+     * resumes paused validable request. Validable is the one requested using requestScanQr(askJsForValidation=true)
+     */
     resumeScanQr(promiseId : string) : void;
+    
+    /**
+     * set image drawn on top of camera scanner preview when scanning is paused
+     * @param fileName name containing extension so that Drawable.createFromStream knows what is the image format
+     * @param fileContent comma separated ints that are valid unsigned bytes
+     */
+
+    setPausedScanOverlayImage(fileName : string, fileContent : string) : void;
 
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : string) : void;
-    setToolbarBackButtonState(isEnabled : boolean) : void;
+    setToolbarBackButtonState(isEnabled : boolean) : void;    
 }
 
 interface Window {  
@@ -57,6 +69,8 @@ interface Window {
     scanQr(layoutData : LayoutStrategy) : Promise<string>;
     scanQrCancellable(layoutData : LayoutStrategy) : [Promise<string>,() => void];
     scanQrValidatableAndCancellable(layoutData : LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>) ) : (() => void);
+    setPausedScanOverlayImage(fromUrl:string, fileName:string) : void;
+
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : string) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;

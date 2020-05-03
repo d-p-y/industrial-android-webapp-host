@@ -21,6 +21,8 @@ suspend fun <T,U> receiveFromAny(fst: ReceiveChannel<T>, snd : ReceiveChannel<U>
 sealed class BarcodeDecoderNotification {
     class GotBarcode(val decodedBarcode:String, val expectMoreMessages:Boolean) : BarcodeDecoderNotification()
     class Cancelling() : BarcodeDecoderNotification()
+    class Pausing() : BarcodeDecoderNotification()
+    class Resuming() : BarcodeDecoderNotification()
 }
 
 class BarcodeDecoderForCameraPreview(
@@ -87,9 +89,11 @@ class BarcodeDecoderForCameraPreview(
             CancelPauseResume.Pause -> {
                 Timber.d("pausing decoding")
                 _sendToDecoder = false
+                notify(BarcodeDecoderNotification.Pausing())
             }
             CancelPauseResume.Resume -> {
                 Timber.d("resuming decoding")
+                notify(BarcodeDecoderNotification.Resuming())
                 _sendToDecoder = true
 
                 //reset stats

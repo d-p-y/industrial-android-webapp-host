@@ -237,7 +237,28 @@ window.addEventListener('load', (_) => {
     window.promiseRejectedCallBacks = new Map<string, (result:string) => void >();
 });
 
+window.setPausedScanOverlayImage = function (pausedScanOverlayImageUrl, pausedScanOverlayImageFileName) {
+    let isValidatingImageReq = new XMLHttpRequest();       
+    isValidatingImageReq.open("GET", pausedScanOverlayImageUrl, true);
+    isValidatingImageReq.responseType = "arraybuffer";
+
+    isValidatingImageReq.onload = (_) => {
+        let arrayBuffer : ArrayBuffer|null = isValidatingImageReq.response;
+
+        if (arrayBuffer == null) {
+            console?.log("got empty arrayBuffer");
+            return;
+        }
+
+        let fileContent = new Uint8Array(arrayBuffer).toString();
+        window.Android.setPausedScanOverlayImage(pausedScanOverlayImageFileName, fileContent);
+    };
+    isValidatingImageReq.send(null);
+}
+
 window.addEventListener('load', (_) => {
+    window.setPausedScanOverlayImage("/test.png", "test.png");
+
     let lblLog = document.createElement("div");
     lblLog.style.whiteSpace = "pre";
     lblLog.textContent = new Date().toJSON() + "\n";

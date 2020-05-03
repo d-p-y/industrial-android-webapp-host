@@ -33,9 +33,12 @@ suspend fun <T> buildAndShowDialog(ctx: Context, bld:(AlertDialog.Builder, SendC
 fun Activity.performHapticFeedback() =
     window?.decorView?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
 
+class OverlayImage(val fileName : String, val content:ByteArray)
+
 class MainActivity : AppCompatActivity() {
     private var _scanPromiseId : String? = null
 
+    private var _overlayImageOnPause : OverlayImage? = null
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
 
@@ -267,8 +270,8 @@ class MainActivity : AppCompatActivity() {
     /**
      * @return true if actually shown. false if request was rejected
      */
-    private suspend fun replacePopupWithScanQr(scanReq: ScanRequest) : Boolean {
-        App.Instance.scanQrFragmentParams.set(scanReq)
+    private suspend fun replacePopupWithScanQr(scanReq: ScanRequest, overlayImage: OverlayImage?) : Boolean {
+        App.Instance.scanQrFragmentParams.set(Pair(scanReq, overlayImage))
         val fragment = ScanQrFragment()
         return replacePopupFragment(fragment)
     }
@@ -284,8 +287,17 @@ class MainActivity : AppCompatActivity() {
                 replaceMasterWithWebBrowser(App.Instance.currentConnection)
             }
             is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
+            is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
+                Timber.d("setting scan overlay image")
+                _overlayImageOnPause = OverlayImage(request.fileName, request.content)
+            }
             is NavigationRequest.WebBrowser_RequestedScanQr -> {
-                if (replacePopupWithScanQr(request.req)) {
+                if (_scanPromiseId != null) {
+                    Timber.d("rejected request to start scanner as former scan request is still active")
+                    return
+                }
+
+                if (replacePopupWithScanQr(request.req, _overlayImageOnPause)) {
                     _scanPromiseId = request.req.jsPromiseId
                 }
             }
