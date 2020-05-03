@@ -25,7 +25,7 @@ enum class OkOrDismissed {
 }
 
 suspend fun <T> buildAndShowDialog(ctx: Context, bld:(AlertDialog.Builder, SendChannel<T>)->AlertDialog.Builder) : T {
-    var result = Channel<T>()
+    val result = Channel<T>()
     bld(AlertDialog.Builder(ctx), result).show()
     return result.receive()
 }
@@ -34,15 +34,22 @@ fun Activity.performHapticFeedback() =
     window?.decorView?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
 
 class MainActivity : AppCompatActivity() {
-    private var currentMasterFragmentTag : String? = null
-    private var currentPopupFragmentTag : String? = null
-    private var currentPopup: Fragment? = null
-    private var currentMasterFragment:Fragment? = null
-
     private var _scanPromiseId : String? = null
 
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
+
+    private fun getCurrentMasterFragment() : Fragment? {
+        val result = supportFragmentManager.findFragmentById(R.id.base_fragment)
+        Timber.d("curr master fragment=$result")
+        return result
+    }
+
+    private fun getCurrentPopupFragment() : Fragment? {
+        val result = supportFragmentManager.findFragmentById(R.id.popup_fragment)
+        Timber.d("curr popup fragment=$result")
+        return result
+    }
 
     private suspend fun <T> buildAndShowDialog(bld:(AlertDialog.Builder, SendChannel<T>)->AlertDialog.Builder) : T =
         buildAndShowDialog(this, bld)
@@ -64,7 +71,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        var perm = permissions[0]
+        val perm = permissions[0]
         val result = grantResults[0] == PackageManager.PERMISSION_GRANTED
 
         App.Instance.launchCoroutine {  maybeReply.send(Pair(perm, result)) }
@@ -77,7 +84,7 @@ class MainActivity : AppCompatActivity() {
             return true
         }
 
-        var requestCode = ++permissionRequestCode
+        val requestCode = ++permissionRequestCode
         val reply = Channel<Pair<String,Boolean>>()
         permissionRequestToIsGrantedReplyChannel[requestCode] = reply
         ActivityCompat.requestPermissions(this, arrayOf(manifestPermissionItm), requestCode)
@@ -117,7 +124,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setToolbarTitle(title : String) {
-        var tb = supportActionBar
+        val tb = supportActionBar
 
         if (tb == null) {
             Timber.e("no toolbar - cannot change title")
@@ -128,7 +135,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setToolbarBackButtonState(enabled : Boolean) {
-        var tb = supportActionBar
+        val tb = supportActionBar
 
         if (tb == null) {
             Timber.e("no toolbar - cannot change button state")
@@ -147,7 +154,7 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
-        var toolBar = findViewById<Toolbar>(R.id.toolBar)
+        val toolBar = findViewById<Toolbar>(R.id.toolBar)
         setSupportActionBar(toolBar)
 
         setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
@@ -160,73 +167,56 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun removeFragment(fragmentTagName : String) {
-        val frag = supportFragmentManager.findFragmentByTag(fragmentTagName)
-
-        if (frag == null) {
-            Timber.e("cannot unset fragment $fragmentTagName")
-            return
-        }
-
-        supportFragmentManager.beginTransaction().remove(frag).commit()
-    }
-
     private fun removeMasterFragmentIfNeeded() {
-        Timber.d("removeMasterFragmentIfNeeded currentPopupFragmentTag=$currentMasterFragmentTag")
-
-        var old = currentMasterFragmentTag
+        val old = getCurrentMasterFragment()
+        Timber.d("removeMasterFragmentIfNeeded currentMasterFragment=$old")
 
         if (old != null) {
-            removeFragment(old)
-            currentMasterFragmentTag = null
+            supportFragmentManager.beginTransaction().remove(old).commit()
         }
     }
 
-    private fun <T> replaceMasterFragment(fragment:T, fragmentTagName:String) where T:Fragment, T:IHasTitle {
+    private fun <T> replaceMasterFragment(fragment:T) where T:Fragment, T:IHasTitle {
         removeMasterFragmentIfNeeded()
-        supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment, fragmentTagName).commit()
-        currentMasterFragmentTag = fragmentTagName
-        currentMasterFragment = fragment
+        supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment).commit()
+
         setToolbarTitle(fragment.getTitle())
 
-        Timber.d("replaceMasterFragment currentPopupFragmentTag=$currentMasterFragmentTag")
+        Timber.d("replaceMasterFragment currentMasterFragment=$fragment")
     }
 
     private fun replaceMasterWithWebBrowser(connInfo: ConnectionInfo) {
         App.Instance.webViewFragmentParams.set(connInfo)
         val fragment = WebViewFragment()
-        replaceMasterFragment(fragment, "webBrowser")
+        replaceMasterFragment(fragment)
     }
 
     private fun replaceMasterWithConnectionsSettings(connInfo: ConnectionInfo) {
         App.Instance.connSettFragmentParams.set(connInfo)
-        var fragment = ConnectionsSettingsFragment()
-        replaceMasterFragment(fragment, "connSett")
+        val fragment = ConnectionsSettingsFragment()
+        replaceMasterFragment(fragment)
     }
 
     private fun removePopupFragmentIfNeeded() {
-        Timber.d("removePopupFragmentIfNeeded currentPopupFragmentTag=$currentPopupFragmentTag")
-
-        var old = currentPopupFragmentTag
+        val old = getCurrentPopupFragment()
+        Timber.d("removePopupFragmentIfNeeded currentPopupFragment=$old")
 
         if (old != null) {
-            removeFragment(old)
-            currentPopupFragmentTag = null
+            supportFragmentManager.beginTransaction().remove(old).commit()
         }
         findViewById<ViewGroup>(R.id.popup_fragment)?.visibility = View.GONE
-        currentPopup = null
 
-        val x = currentMasterFragment
-        if (x is IHasTitle) {
-            setToolbarTitle(x.getTitle())
+        val currentMasterFragment = getCurrentMasterFragment()
+        if (currentMasterFragment is IHasTitle) {
+            setToolbarTitle(currentMasterFragment.getTitle())
         }
     }
 
-    private suspend fun <T> replacePopupFragment(fragment:T, fragmentTagName:String) : Boolean
+    private suspend fun <T> replacePopupFragment(fragment:T) : Boolean
             where T : IProcessesBackButtonEvents, T: Fragment, T:IMaybeHasTitle {
 
         if (fragment is IRequiresPermissions) {
-            var failedToGetPermission =
+            val failedToGetPermission =
                 fragment.getRequiredAndroidManifestPermissions()
                     .map { Pair(it, grantPermission(it)) }
                     .filter { !it.second }
@@ -239,10 +229,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (fragment is IBeforeNavigationValidation) {
-            var maybeError = fragment.maybeGetBeforeNavigationError(this)
+            val maybeError = fragment.maybeGetBeforeNavigationError(this)
 
             if (maybeError != null) {
-                var result = buildAndShowDialog<OkOrDismissed> { bld, result ->
+                val result = buildAndShowDialog<OkOrDismissed> { bld, result ->
                     with(bld) {
                         setTitle("Failed to scan")
                         setMessage(maybeError)
@@ -260,32 +250,31 @@ class MainActivity : AppCompatActivity() {
         }
 
         removePopupFragmentIfNeeded()
-        supportFragmentManager.beginTransaction().add(R.id.popup_fragment, fragment, fragmentTagName).commit()
-        currentPopupFragmentTag = fragmentTagName
+        supportFragmentManager.beginTransaction().add(R.id.popup_fragment, fragment).commit()
+
         findViewById<ViewGroup>(R.id.popup_fragment)?.visibility = View.VISIBLE
 
-        var maybeTitle = fragment.getTitleMaybe()
+        val maybeTitle = fragment.getTitleMaybe()
         if (maybeTitle != null) {
             setToolbarTitle(maybeTitle)
         }
 
-        Timber.d("replacePopupFragment currentPopupFragmentTag=$currentPopupFragmentTag")
-        currentPopup = fragment
+        Timber.d("replacePopupFragment currentPopupFragmentTag=${getCurrentPopupFragment()}")
+
         return true
     }
 
     /**
      * @return true if actually shown. false if request was rejected
      */
-
     private suspend fun replacePopupWithScanQr(scanReq: ScanRequest) : Boolean {
         App.Instance.scanQrFragmentParams.set(scanReq)
-        var fragment = ScanQrFragment()
-        return replacePopupFragment(fragment, "qrScanner")
+        val fragment = ScanQrFragment()
+        return replacePopupFragment(fragment)
     }
 
     private suspend fun consumeNavigationRequest(request:NavigationRequest) {
-        Timber.d("mainActivityNavigator() received navigationrequest=$request currentMaster=$currentMasterFragmentTag currentPopup=$currentPopup")
+        Timber.d("mainActivityNavigator() received navigationrequest=$request currentMaster=${getCurrentMasterFragment()} currentPopup=${getCurrentPopupFragment()}")
 
         when (request) {
             is NavigationRequest._Activity_GoToBrowser -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
@@ -301,19 +290,19 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             is NavigationRequest.WebBrowser_ResumeScanQr ->  {
-                var currentPopupCopy = currentPopup
-                if (currentPopupCopy is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
+                val currentPopup = getCurrentPopupFragment()
+                if (currentPopup is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
                     Timber.d("requesting resuming scanning because scanner is still active AND jsPromiseId matches")
-                    currentPopupCopy.onReceivedScanningResumeRequest()
+                    currentPopup.onReceivedScanningResumeRequest()
                 } else {
                     Timber.e("resuming request ignored because scanner is not active anymore OR jsPromiseId not matches")
                 }
             }
             is NavigationRequest.WebBrowser_CancelScanQr -> {
-                var currentPopupCopy = currentPopup
-                if (currentPopupCopy is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
+                val currentPopup = getCurrentPopupFragment()
+                if (currentPopup is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
                     Timber.d("requesting cancellation of scanning because scanner is still active AND jsPromiseId matches")
-                    currentPopupCopy.onReceivedScanningCancellationRequest()
+                    currentPopup.onReceivedScanningCancellationRequest()
                 } else {
                     Timber.e("cancellation request ignored because scanner is not active anymore OR jsPromiseId not matches")
                 }
@@ -327,34 +316,34 @@ class MainActivity : AppCompatActivity() {
                 _scanPromiseId = null
             }
             is NavigationRequest._ToolbarBackButtonStateChanged ->
-                if (request.sender == currentMasterFragment) {
+                if (request.sender == getCurrentMasterFragment()) {
                     setToolbarBackButtonState(request.sender.isBackButtonEnabled())
                 } else {
                     Timber.d("ignored change back button state request from inactive master fragment")
                 }
             is NavigationRequest._ToolbarTitleChanged ->
-                if (request.sender == currentMasterFragment) {
+                if (request.sender == getCurrentMasterFragment()) {
                     setToolbarTitle(request.sender.getTitle())
                 } else {
                     Timber.d("ignored change name request from inactive master fragment")
                 }
             is NavigationRequest._Activity_Back -> {
-                var currentPopupCopy = currentPopup
-                var currentMasterCopy = currentMasterFragment
+                val currentPopup = getCurrentPopupFragment()
+                val currentMaster = getCurrentMasterFragment()
 
-                if (currentPopupCopy is IProcessesBackButtonEvents) {
+                if (currentPopup is IProcessesBackButtonEvents) {
                     Timber.d("delegating back button to popup fragment")
-                    var backConsumed = currentPopupCopy.onBackPressedConsumed()
+                    val backConsumed = currentPopup.onBackPressedConsumed()
                     Timber.d("popup consumed backbutton event?=$backConsumed")
                     if (backConsumed) {
                         return
                     }
                 }
 
-                if (currentMasterCopy is IProcessesBackButtonEvents) {
+                if (currentMaster is IProcessesBackButtonEvents) {
                     //delegate question to master fragment (likely webapp)
                     Timber.d("trying to delegate back button to master fragment")
-                    var backConsumed = currentMasterCopy.onBackPressedConsumed()
+                    val backConsumed = currentMaster.onBackPressedConsumed()
 
                     Timber.d("master fragment backButton consumed?=$backConsumed")
                     if (!backConsumed) {
