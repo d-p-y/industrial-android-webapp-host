@@ -32,9 +32,9 @@ class BarcodeDecoderSurfaceTextureListener(
         return true //meaning: complies with request - no need to manually release
     }
 
-    private fun onAutoFocusMoving(startMoving: Boolean, irr: Camera?) {
+    private fun onAutoFocusMoving(startMoving: Boolean) {
         _camPrev.setHasFocus(!startMoving)
-        _camera.camera.setAutoFocusMoveCallback { start, camera -> onAutoFocusMoving(start, camera) }
+        _camera.camera.setAutoFocusMoveCallback { start, _ -> onAutoFocusMoving(start) }
     }
 
     override fun onSurfaceTextureAvailable(surface: SurfaceTexture?, width: Int, height: Int) {
@@ -48,6 +48,6 @@ class BarcodeDecoderSurfaceTextureListener(
         _camera.camera.startPreview()
         _camPrev.requestCameraFrameCapture()
 
-        _camera.camera.setAutoFocusMoveCallback{ start, camera -> onAutoFocusMoving(start, camera) }
+        _camera.camera.setAutoFocusMoveCallback{ start, _ -> onAutoFocusMoving(start) }
     }
 }
