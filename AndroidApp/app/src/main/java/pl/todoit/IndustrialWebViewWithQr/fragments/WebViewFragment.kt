@@ -130,7 +130,16 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
         webView.settings.javaScriptEnabled = true
         webView.settings.loadsImagesAutomatically = true
-        webView.webViewClient = WebViewClient() //otherwise default browser app is open on URL change
+        webView.settings.allowUniversalAccessFromFileURLs = true //otherwise XMLHttpRequest to assets don't work due to CORS problem
+        webView.webViewClient = object : WebViewClient() {
+            override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                Timber.d("onReceivedError errorCode=$errorCode description=$description failingUrl=$failingUrl")
+                super.onReceivedError(view, errorCode, description, failingUrl)
+            }
+
+            //don't start regular browser
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?) = false
+        }
         webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
 
         if (connInfo()?.forwardConsoleLogToLogCat == true) {

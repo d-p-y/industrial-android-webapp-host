@@ -1,1 +1,1 @@
-python -m http.server --bind 0.0.0.0 8888
+python -m http.server --directory ..\AndroidApp\app\src\main\assets\DemoWebSite --bind 0.0.0.0 8888

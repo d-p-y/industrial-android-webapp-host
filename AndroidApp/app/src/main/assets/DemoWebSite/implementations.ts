@@ -257,7 +257,7 @@ window.setPausedScanOverlayImage = function (pausedScanOverlayImageUrl) {
 }
 
 window.addEventListener('load', (_) => {
-    window.setPausedScanOverlayImage("/test.png");
+    window.setPausedScanOverlayImage("test.png");
 
     let lblLog = document.createElement("div");
     lblLog.style.whiteSpace = "pre";

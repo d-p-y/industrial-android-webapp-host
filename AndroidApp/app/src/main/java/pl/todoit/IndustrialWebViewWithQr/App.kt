@@ -28,7 +28,7 @@ class App : Application(), CoroutineScope by MainScope() {
     //TODO use persistence
     var currentConnection =
         ConnectionInfo(
-            url = "http://192.168.1.8:8888",
+            url = "file:///android_asset/DemoWebSite/index.html",
             forceReloadFromNet = isForcedDevelopmentMode,
             remoteDebuggerEnabled = isForcedDevelopmentMode,
             forwardConsoleLogToLogCat = isForcedDevelopmentMode
