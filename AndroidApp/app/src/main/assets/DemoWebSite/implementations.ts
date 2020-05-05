@@ -120,7 +120,7 @@ Window.prototype.scanQrCancellable = function(layoutData : LayoutStrategy) : [Pr
         }];
 }
 
-Window.prototype.scanQrValidatableAndCancellable = function (layoutData : LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>) ) : (() => void) {
+Window.prototype.scanQrValidatableAndCancellable = function (layoutData : LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>), onCancellation : () => void) : (() => void) {
     if (this.Android === undefined) {
         //dev friendly polyfill
 
@@ -128,6 +128,7 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : Layout
         
         let canceller = function() {
             console?.log("dully noting attempt to cancel scan QR request");
+            onCancellation();
             ended = true;
         };
 
@@ -163,6 +164,7 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : Layout
         
         if (isCancellation) {
             window.promiseClean(promiseId);
+            onCancellation();
         } else {
             let accepted = await validate(barcode);
 
@@ -319,51 +321,51 @@ window.addEventListener('load', (_) => {
         btnReqScan.value = "Scan QR fixed height+validate+cancel";
         document.body.appendChild(btnReqScan);
         
-        let divCode =  document.createElement("div")
-        divCode.textContent = "<barcode>";
-
-        divCode.style.position = "absolute";
-        divCode.style.bottom = "50px";
-        divCode.style.left = "50%";
-        divCode.style.display = "none";
-        document.body.appendChild(divCode);
-
-        let btnAccept =  document.createElement("input")
-        btnAccept.type = "button";
-        btnAccept.value = "Accept";
-
-        btnAccept.style.position = "absolute";
-        btnAccept.style.bottom = "0";
-        btnAccept.style.left = "0";
-        btnAccept.style.display = "none";
-        document.body.appendChild(btnAccept);
-        
-
-        let btnReject =  document.createElement("input")
-        btnReject.type = "button";
-        btnReject.value = "Reject";
-
-        btnReject.style.position = "absolute";
-        btnReject.style.bottom = "0";
-        btnReject.style.left = "50%";
-        btnReject.style.display = "none";
-        document.body.appendChild(btnReject);
-        
-
-        let btnCancel =  document.createElement("input")
-        btnCancel.type = "button";
-        btnCancel.value = "Cancel scan";
-
-        btnCancel.style.position = "absolute";
-        btnCancel.style.bottom = "0";
-        btnCancel.style.right = "0";
-        btnCancel.style.display = "none";
-        document.body.appendChild(btnCancel);
-
-
         btnReqScan.onclick = _ => {
-            divCode.textContent = "";            
-            btnCancel.style.display = "initial";
+            let cntrlsContainer = document.createElement("div")
+            cntrlsContainer.style.display = "grid";
+            cntrlsContainer.style.width = "100vw";
+            cntrlsContainer.style.position = "absolute";
+            cntrlsContainer.style.bottom = "0";
+            cntrlsContainer.style.left = "0";
+            cntrlsContainer.style.backgroundColor = "white"; //to fully cover on multiple scans
+            cntrlsContainer.style.setProperty("grid-template-columns", "1fr 1fr 1fr");
+            
+            let divCode =  document.createElement("div");
+            divCode.textContent = "<barcode>";
+            divCode.style.setProperty("grid-column", "1/4");
+            divCode.style.setProperty("grid-row", "1");
+            divCode.style.setProperty("justify-self", "center");
+            divCode.style.visibility = "hidden";
+            cntrlsContainer.appendChild(divCode);
+            
+            let btnAccept =  document.createElement("input")
+            btnAccept.type = "button";
+            btnAccept.value = "Accept";
+            btnAccept.style.setProperty("grid-column", "1");
+            btnAccept.style.setProperty("grid-row", "2");
+            btnAccept.style.setProperty("margin-right", "auto"); //thanks Rachel for "The New CSS Layout"
+            btnAccept.style.visibility = "hidden";
+            cntrlsContainer.appendChild(btnAccept);
+            
+            let btnReject =  document.createElement("input")
+            btnReject.type = "button";
+            btnReject.value = "Reject";
+            btnReject.style.setProperty("grid-column", "2");
+            btnReject.style.setProperty("grid-row", "2");
+            btnReject.style.setProperty("margin", "0 auto 0 auto");
+            btnReject.style.visibility = "hidden";
+            cntrlsContainer.appendChild(btnReject);
+            
+            let btnCancel =  document.createElement("input")
+            btnCancel.type = "button";
+            btnCancel.value = "Cancel scan";
+            btnCancel.style.setProperty("grid-column", "3");
+            btnCancel.style.setProperty("grid-row", "2");
+            btnCancel.style.setProperty("margin-left", "auto");
+            cntrlsContainer.appendChild(btnCancel);
+
+            document.body.appendChild(cntrlsContainer);
 
             let strat = new MatchWidthWithFixedHeightLayoutStrategy();
             strat.paddingTopMm = 20;
@@ -375,41 +377,36 @@ window.addEventListener('load', (_) => {
                 strat, 
                 async (barcode) => new Promise<boolean>(function (resolve,_) {
                     console?.log("validation promise invoked barcode="+barcode);
-                    divCode.textContent = barcode;
-                    divCode.style.display = "initial";
-                    btnAccept.style.display = "initial";
-                    btnReject.style.display = "initial";
+                    divCode.textContent = barcode;                    
                     onAccept = resolve;
-                }));    
+                    btnAccept.style.visibility = "initial";
+                    btnReject.style.visibility = "initial";
+                    divCode.style.visibility = "initial";
+                }),
+                () => {
+                    //android confirmed cancellation
+                    document.body.removeChild(cntrlsContainer);
+                    lblLog.textContent += "not scanned\n";
+                });    
         
             btnAccept.onclick = _ => {
                 console?.log("btnAccept clicked (finish)");
                 onAccept(true);
-
-                divCode.style.display = "none";            
-                btnAccept.style.display = "none";
-                btnReject.style.display = "none";
-                btnCancel.style.display = "none";
+                document.body.removeChild(cntrlsContainer);
                 lblLog.textContent += "scanned: " + divCode.textContent + "\n";
             };
 
             btnReject.onclick = _ => {
                 console?.log("btnReject clicked (resume)");
-                onAccept(false);
-                divCode.style.display = "none";            
-                btnAccept.style.display = "none";
-                btnReject.style.display = "none";
+                onAccept(false);                
+                btnAccept.style.visibility = "hidden";
+                btnReject.style.visibility = "hidden";
+                divCode.style.visibility = "hidden";
             };
     
             btnCancel.onclick = _ => {
                 console?.log("btnCancel clicked");
-                cancellator();
-
-                divCode.style.display = "none";            
-                btnAccept.style.display = "none";
-                btnReject.style.display = "none";
-                btnCancel.style.display = "none";
-                lblLog.textContent += "not scanned\n";
+                cancellator();                
             };
         };        
     }
@@ -419,17 +416,16 @@ window.addEventListener('load', (_) => {
         btnReqScan.type = "button";
         btnReqScan.value = "Scan QR fixed height+cancel";
         document.body.appendChild(btnReqScan);
-        let btnCancel =  document.createElement("input")
-        btnCancel.type = "button";
-        btnCancel.value = "Cancel scan";
-
-        btnCancel.style.position = "absolute";
-        btnCancel.style.bottom = "0";
-        btnCancel.style.right = "0";
-        btnCancel.style.display = "none";
-        document.body.appendChild(btnCancel);
-
+        
         btnReqScan.onclick = async _ => {
+            let btnCancel =  document.createElement("input")
+            btnCancel.type = "button";
+            btnCancel.value = "Cancel scan";
+            btnCancel.style.position = "absolute";
+            btnCancel.style.bottom = "0";
+            btnCancel.style.right = "0";        
+            document.body.appendChild(btnCancel);
+            
             try {
                 btnCancel.style.display = "initial";
                 let strat = new MatchWidthWithFixedHeightLayoutStrategy();
@@ -449,7 +445,7 @@ window.addEventListener('load', (_) => {
                 console?.log("scanner rejected: "+error);
                 lblLog.textContent += "not scanned\n";
             }
-            btnCancel.style.display = "none";
+            document.body.removeChild(btnCancel);
         };        
     }
 

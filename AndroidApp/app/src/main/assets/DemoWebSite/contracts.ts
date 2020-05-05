@@ -67,7 +67,12 @@ interface Window {
     
     scanQr(layoutData : LayoutStrategy) : Promise<string>;
     scanQrCancellable(layoutData : LayoutStrategy) : [Promise<string>,() => void];
-    scanQrValidatableAndCancellable(layoutData : LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>) ) : (() => void);
+
+    /**          
+     * @param onCancellation callback invoked when android actually performs cancellation
+     * @returns function requesting android to cancel scanning
+     */
+    scanQrValidatableAndCancellable(layoutData : LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>), onCancellation : () => void ) : (() => void);
     setPausedScanOverlayImage(fromUrl:string) : void;
 
     showToast(label : string, longDuration : boolean) : void;
