@@ -84,6 +84,8 @@ class BarcodeDecoderForCameraPreview(
                 Timber.d("canceling decoding")
                 _finish = true
                 _sendToDecoder = false
+
+                _barcodeDecoder.toDecode().close()
                 notify(BarcodeDecoderNotification.Cancelling())
             }
             CancelPauseResume.Pause -> {

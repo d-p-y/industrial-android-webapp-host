@@ -36,6 +36,7 @@ class App : Application(), CoroutineScope by MainScope() {
     val imagesToDecodeQueueSize = 10 // each raw FullHD photo consumes ~6MB
     val sufficientStatsSize = 5
     val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
+    val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for: E/Camera-JNI: Couldn't allocate byte array for JPEG data
 
     override fun onCreate() {
         super.onCreate()

@@ -8,6 +8,7 @@ import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.diffInMilisecTo
 import pl.todoit.IndustrialWebViewWithQr.model.Result
+import kotlinx.coroutines.channels.receiveOrNull
 import timber.log.Timber
 import java.util.*
 
@@ -20,13 +21,25 @@ fun <T : Enum<T>> Array<T>.toEnumSet(clazz:Class<T>) : EnumSet<T> {
 /**
  * @return suspends and returns at least one element
  */
-suspend fun <T> Channel<T>.receiveAllPending() : MutableList<T> {
+suspend fun <T> ReceiveChannel<T>.receiveAllPending() : MutableList<T> {
     val result = mutableListOf<T>()
 
-    result.add(this.receive())
+    val value = this.receiveOrNull()
 
-    while (!this.isEmpty) {
-        result.add(this.receive())
+    if (value == null) {
+        return result
+    }
+
+    result.add(value)
+
+    while (!this.isEmpty && !this.isClosedForReceive) {
+        val value = this.receiveOrNull()
+
+        if (value == null) {
+            break
+        }
+
+        result.add(value)
     }
 
     return result
@@ -98,7 +111,7 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
         val stats = WorkerEstimator()
         val mfr = createMultiFormatReaderFor(formats)
 
-        while(true) {
+        while(!_input.isClosedForReceive) {
             var toDecodes = _input.receiveAllPending().sortedByDescending { it.hasFocus }.toMutableList()
             Timber.i("barcodeDecoderWorker received ${toDecodes.size} items of which focused ${toDecodes.filter { it.hasFocus }
                 .count()}")
@@ -147,5 +160,7 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
 
             Timber.i("barcodeDecoderWorker finished with current batch")
         }
+        Timber.i("barcodeDecoderWorker ending")
+        _output.close()
     }
 }
