@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
         return granted
     }
 
-    override fun onSupportNavigateUp(): Boolean = true
+    override fun onSupportNavigateUp() = true
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
