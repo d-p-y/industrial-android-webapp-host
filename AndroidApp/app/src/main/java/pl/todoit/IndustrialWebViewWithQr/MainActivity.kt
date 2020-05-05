@@ -15,8 +15,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.fragments.ConnectionsSettingsFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
+import pl.todoit.IndustrialWebViewWithQr.fragments.ScannerStateChange
 import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.*
+import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
 
 enum class OkOrDismissed {
@@ -295,6 +297,7 @@ class MainActivity : AppCompatActivity() {
             is NavigationRequest.WebBrowser_RequestedScanQr -> {
                 if (_scanPromiseId != null) {
                     Timber.d("rejected request to start scanner as former scan request is still active")
+                    request.req.scanResult.sendAndClose(ScannerStateChange.Cancelled())
                     return
                 }
 
