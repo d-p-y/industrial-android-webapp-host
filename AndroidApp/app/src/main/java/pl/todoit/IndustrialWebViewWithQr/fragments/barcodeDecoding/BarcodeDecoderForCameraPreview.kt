@@ -6,8 +6,12 @@ import com.google.zxing.BarcodeFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.sendBlocking
+import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
@@ -132,7 +136,32 @@ class BarcodeDecoderForCameraPreview(
 
     fun requestCameraFrameCapture() {
         _onPreviewFrameRequested = true
-        _camera.camera.setOneShotPreviewCallback({ data, _ -> cameraFrameCaptured(data) })
+
+        val captured = Channel<ByteArray>(1) //nonblocking for sender
+
+        App.Instance.launchCoroutine {
+            while(true) {
+                if (!_sendToDecoder) {
+                    Timber.d("not requesting setOneShotPreviewCallback as decoder is not active")
+                    break
+                }
+                _camera.camera.setOneShotPreviewCallback({ data, _ -> captured.sendBlocking(data) })
+
+                val data =
+                    withTimeoutOrNull(App.Instance.expectPictureTakenAtLeastAfterMs) {
+                        captured.receive()
+                    }
+
+                if (data != null) {
+                    Timber.d("got requested camera frame in time")
+                    cameraFrameCaptured(data)
+                    break
+                }
+
+                Timber.e("didn't received requested camera frame in foreseen time - re-requesting") //E/Camera-JNI: Couldn't allocate byte array for JPEG data
+            }
+            captured.close()
+        }
     }
 
     private fun cameraFrameCaptured(data: ByteArray?) {
