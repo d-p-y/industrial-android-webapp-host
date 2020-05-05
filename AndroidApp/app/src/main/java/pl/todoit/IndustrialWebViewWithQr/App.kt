@@ -38,6 +38,8 @@ class App : Application(), CoroutineScope by MainScope() {
     val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
     val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for: E/Camera-JNI: Couldn't allocate byte array for JPEG data
 
+    var overlayImageOnPause : OverlayImage? = null
+
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())

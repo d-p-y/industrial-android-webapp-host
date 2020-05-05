@@ -38,7 +38,6 @@ class OverlayImage(val content:ByteArray)
 class MainActivity : AppCompatActivity() {
     private var _scanPromiseId : String? = null
 
-    private var _overlayImageOnPause : OverlayImage? = null
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
 
@@ -281,7 +280,9 @@ class MainActivity : AppCompatActivity() {
 
         when (request) {
             is NavigationRequest._Activity_GoToBrowser -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
-            is NavigationRequest._Toolbar_GoToConnectionSettings -> replaceMasterWithConnectionsSettings(App.Instance.currentConnection)
+            is NavigationRequest._Toolbar_GoToConnectionSettings -> replaceMasterWithConnectionsSettings(
+                App.Instance.currentConnection
+            )
             is NavigationRequest.ConnectionSettings_Save -> {
                 App.Instance.currentConnection = request.connInfo
                 replaceMasterWithWebBrowser(App.Instance.currentConnection)
@@ -289,7 +290,7 @@ class MainActivity : AppCompatActivity() {
             is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
                 Timber.d("setting scan overlay image")
-                _overlayImageOnPause = OverlayImage(request.content)
+                App.Instance.overlayImageOnPause = OverlayImage(request.content)
             }
             is NavigationRequest.WebBrowser_RequestedScanQr -> {
                 if (_scanPromiseId != null) {
@@ -297,27 +298,29 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
 
-                if (replacePopupWithScanQr(request.req, _overlayImageOnPause)) {
+                if (replacePopupWithScanQr(request.req, App.Instance.overlayImageOnPause)) {
                     _scanPromiseId = request.req.jsPromiseId
                 }
             }
-            is NavigationRequest.WebBrowser_ResumeScanQr ->  {
+            is NavigationRequest.WebBrowser_ResumeScanQr -> {
                 val currentPopup = getCurrentPopupFragment()
-                if (currentPopup is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
-                    Timber.d("requesting resuming scanning because scanner is still active AND jsPromiseId matches")
-                    currentPopup.onReceivedScanningResumeRequest()
-                } else {
+                if (currentPopup !is ScanQrFragment || _scanPromiseId != request.jsPromiseId) {
                     Timber.e("resuming request ignored because scanner is not active anymore OR jsPromiseId not matches")
+                    return
                 }
+
+                Timber.d("requesting resuming scanning because scanner is still active AND jsPromiseId matches")
+                currentPopup.onReceivedScanningResumeRequest()
             }
             is NavigationRequest.WebBrowser_CancelScanQr -> {
                 val currentPopup = getCurrentPopupFragment()
-                if (currentPopup is ScanQrFragment && _scanPromiseId == request.jsPromiseId) {
-                    Timber.d("requesting cancellation of scanning because scanner is still active AND jsPromiseId matches")
-                    currentPopup.onReceivedScanningCancellationRequest()
-                } else {
+                if (currentPopup !is ScanQrFragment || _scanPromiseId != request.jsPromiseId) {
                     Timber.e("cancellation request ignored because scanner is not active anymore OR jsPromiseId not matches")
+                    return
                 }
+
+                Timber.d("requesting cancellation of scanning because scanner is still active AND jsPromiseId matches")
+                currentPopup.onReceivedScanningCancellationRequest()
             }
             is NavigationRequest.ScanQr_Scanned -> {
                 removePopupFragmentIfNeeded()
@@ -327,18 +330,22 @@ class MainActivity : AppCompatActivity() {
                 removePopupFragmentIfNeeded()
                 _scanPromiseId = null
             }
-            is NavigationRequest._ToolbarBackButtonStateChanged ->
-                if (request.sender == getCurrentMasterFragment()) {
-                    setToolbarBackButtonState(request.sender.isBackButtonEnabled())
-                } else {
+            is NavigationRequest._ToolbarBackButtonStateChanged -> {
+                if (request.sender != getCurrentMasterFragment()) {
                     Timber.d("ignored change back button state request from inactive master fragment")
+                    return
                 }
-            is NavigationRequest._ToolbarTitleChanged ->
-                if (request.sender == getCurrentMasterFragment()) {
-                    setToolbarTitle(request.sender.getTitle())
-                } else {
+
+                setToolbarBackButtonState(request.sender.isBackButtonEnabled())
+            }
+            is NavigationRequest._ToolbarTitleChanged -> {
+                if (request.sender != getCurrentMasterFragment()) {
                     Timber.d("ignored change name request from inactive master fragment")
+                    return
                 }
+
+                setToolbarTitle(request.sender.getTitle())
+            }
             is NavigationRequest._Activity_Back -> {
                 val currentPopup = getCurrentPopupFragment()
                 val currentMaster = getCurrentMasterFragment()
@@ -358,11 +365,11 @@ class MainActivity : AppCompatActivity() {
                     val backConsumed = currentMaster.onBackPressedConsumed()
 
                     Timber.d("master fragment backButton consumed?=$backConsumed")
-                    if (!backConsumed) {
-                        finish()
+                    if (backConsumed) {
+                        return
                     }
 
-                    return
+                    finish()
                 }
 
                 Timber.d("no fragment is eligible for backbutton processing")
