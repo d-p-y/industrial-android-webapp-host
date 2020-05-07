@@ -36,10 +36,9 @@ class App : Application(), CoroutineScope by MainScope() {
             remoteDebuggerEnabled = isForcedDevelopmentMode,
             forwardConsoleLogToLogCat = isForcedDevelopmentMode
         )
-    val imagesToDecodeQueueSize = 10 // each raw FullHD photo consumes ~6MB
-    val sufficientStatsSize = 5
+    val imagesToDecodeQueueSize = 20 //each raw FullHD photo consumes ~6MB. Nexus 5 produces photos every ~40ms and decodes 4 of them in parallel every ~200ms
     val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
-    val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for: E/Camera-JNI: Couldn't allocate byte array for JPEG data
+    val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for unlikely: E/Camera-JNI: Couldn't allocate byte array for JPEG data
 
     var overlayImageOnPause : OverlayImage? = null
 
@@ -77,6 +76,5 @@ class App : Application(), CoroutineScope by MainScope() {
         super.onTerminate()
         cancel() //coroutines cancellation
         _parallelComputations.close()
-
     }
 }

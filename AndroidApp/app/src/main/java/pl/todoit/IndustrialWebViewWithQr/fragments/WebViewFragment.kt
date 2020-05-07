@@ -12,6 +12,7 @@ import kotlinx.coroutines.channels.Channel
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
+import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeReply
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 
@@ -25,7 +26,7 @@ fun postReply(host : WebViewFragment, reply : AndroidReply) {
 }
 
 sealed class ScannerStateChange {
-    class Scanned(val barcode : String) : ScannerStateChange()
+    class Scanned(val barcode : BarcodeReply) : ScannerStateChange()
     class Paused() : ScannerStateChange()
     class Resumed() : ScannerStateChange()
     class Cancelled() : ScannerStateChange()
@@ -67,10 +68,11 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                     when(rawReply) {
                         is ScannerStateChange.Scanned -> {
                             Timber.d("decoderReplyChannel got: scanned")
+                            //showToast("${rawReply.barcode.stats.itemsConsumedPercent()}% ${rawReply.barcode.stats.productingEveryMs}->${rawReply.barcode.stats.consumingEveryMs}", true)
                             AndroidReply(
                                 PromiseId = promiseId,
                                 IsCancellation = false,
-                                Barcode = rawReply.barcode)
+                                Barcode = rawReply.barcode.resultBarcode)
                         }
                         is ScannerStateChange.Cancelled -> {
                             Timber.d("decoderReplyChannel got: cancelled")

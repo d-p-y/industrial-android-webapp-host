@@ -6,10 +6,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.App
-import pl.todoit.IndustrialWebViewWithQr.model.extensions.diffInMilisecTo
 import pl.todoit.IndustrialWebViewWithQr.model.Result
-import kotlinx.coroutines.channels.receiveOrNull
+import pl.todoit.IndustrialWebViewWithQr.model.extensions.*
 import timber.log.Timber
+import java.io.Closeable
 import java.util.*
 
 fun <T : Enum<T>> Array<T>.toEnumSet(clazz:Class<T>) : EnumSet<T> {
@@ -53,17 +53,27 @@ fun createMultiFormatReaderFor(formats : Array<BarcodeFormat>) : MultiFormatRead
     return mfr
 }
 
-class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
+fun asClosable(vararg itms : Closeable) = Closeable { itms.forEach { it.close() } }
+
+/**
+ * @param prioritizeFramesStrategy sorts available frames according to expected usefulness from most useful to less useful
+ */
+class ImageWithBarcodeConsumerWorker(
+    val formats : Array<BarcodeFormat>,
+    val prioritizeFramesStrategy:(List<ImageWithBarcode>)->List<ImageWithBarcode>,
+    val maxSimultaneousComputations : Int
+) {
     private val _input = Channel<ImageWithBarcode>(App.Instance.imagesToDecodeQueueSize)
     private val _output = Channel<BarcodeReply>()
-    private var _lastProducerDate : Date? = null
+    private var _stats = WorkerEstimator(maxSimultaneousComputations)
+    private val _mfrs = (0 until maxSimultaneousComputations).map { createMultiFormatReaderFor(formats) }
 
     fun toDecode() : SendChannel<ImageWithBarcode> = _input
     fun decoded() : ReceiveChannel<BarcodeReply> = _output
 
     fun clearToDecode() = App.Instance.launchCoroutine { _input.receiveAllPending().clear() }
 
-    private fun decode(mfr: MultiFormatReader, toDecode: ImageWithBarcode) : Result<String, Exception> {
+    private fun decode(mfr: MultiFormatReader, toDecode: ImageWithBarcode) : Result<String, Exception> =
         try {
             val src = PlanarYUVLuminanceSource(
                 toDecode.imageData,
@@ -77,90 +87,112 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
                 HybridBinarizer(src)
             )
 
-            return Result.Ok(
-                mfr.decodeWithState(
-                    bitmap
-                ).text
-            )
+            Result.Ok(mfr.decodeWithState(bitmap).text)
         } catch (re : Exception) {
-            return Result.Error(re)
+            Result.Error(re)
         } finally {
             mfr.reset()
         }
-    }
 
-    private suspend fun decodeOne(mfr: MultiFormatReader, stats: WorkerEstimator, toDecode: ImageWithBarcode) : String? {
-        return when(val result = stats.measureConsumer { decode(mfr, toDecode) }) {
+    private fun decodeOne(mfr: MultiFormatReader, toDecode: ImageWithBarcode) : String? {
+        return when(val result = decode(mfr, toDecode)) {
             is Result.Ok -> {
-                Timber.d("MultiFormatReader for focused?=${toDecode.hasFocus} got code=${result.value}")
-
-                _input.receiveAllPending() //purge queue so that new requests won't decode old queued code
+                Timber.d("time=${Date().time} MultiFormatReader for focused?=${toDecode.hasFocus} got code=${result.value}")
                 result.value
             }
             is Result.Error -> {
-                Timber.d("MultiFormatReader for focused?=${toDecode.hasFocus} didn't decode because of ${result.error}")
+                Timber.d("time=${Date().time} MultiFormatReader for focused?=${toDecode.hasFocus} didn't decode because of ${result.error}")
                 null
             }
         }
     }
 
     suspend fun startDecoderWorker() {
-        Timber.i("barcodeDecoderWorker started")
+        Timber.i("barcodeDecoderWorker started with parallelism=$maxSimultaneousComputations")
 
-        val startedAt = Date()
-        val stats = WorkerEstimator()
-        val mfr = createMultiFormatReaderFor(formats)
+        val toDoBatch = Channel<Pair<MultiFormatReader,ImageWithBarcode>>(maxSimultaneousComputations)
+        val decodedWithMillis = Channel<Pair<String?,Int>>(maxSimultaneousComputations)
 
-        while(!_input.isClosedForReceive) {
-            var toDecodes = _input.receiveAllPending().sortedByDescending { it.hasFocus }.toMutableList()
-            Timber.d("barcodeDecoderWorker received ${toDecodes.size} items of which focused ${toDecodes.filter { it.hasFocus }
-                .count()}")
-
-            stats.measureProducer(
-                toDecodes
-                    .map {
-                        val last = _lastProducerDate
-                        _lastProducerDate = it.requestedAt
-                        last?.diffInMilisecTo(it.requestedAt) ?: -1 })
-
-            var estimationMade = false
-
-            while (toDecodes.size > 0) {
-                if (!estimationMade) {
-                    val shouldConsumeItemsCount = stats.shouldConsumeItemsCount()
-                    if (shouldConsumeItemsCount != null) {
-                        estimationMade = true
-                        toDecodes = toDecodes.subList(0, shouldConsumeItemsCount)
-                        Timber.d("barcodeDecoderWorker items list shortened to ${toDecodes.size}")
-
-                        if (toDecodes.size <= 0) {
-                            continue
-                        }
+        asClosable(_output.toCloseable(), toDoBatch.toCloseable(), decodedWithMillis.toCloseable()).use {
+            //workers will be auto closed once scope ends
+            (0 until maxSimultaneousComputations).forEach {
+                App.Instance.launchParallelInBackground {
+                    Timber.d("startDecoderWorker starting worker id=$it")
+                    for ((mfr, img) in toDoBatch) {
+                        val started = Date()
+                        val resultCode = decodeOne(mfr, img)
+                        val tookMs = started.diffInMilisecTo(Date())
+                        decodedWithMillis.send(Pair(resultCode, tookMs.toInt()))
                     }
-                }
-
-                val toDecode = toDecodes.first() //favor focused frames
-                toDecodes.removeAt(0)
-
-                val resultBarcode = decodeOne(mfr, stats, toDecode)
-
-                if (resultBarcode != null) {
-                    //no need to decode the rest + help with GC
-                    stats.skipItemsFollowingSuccess(toDecodes.size)
-                    toDecodes.clear() //no need to decode the rest
-
-                    _output.send(
-                        BarcodeReply(
-                            resultBarcode,
-                            stats.createSummary(startedAt)
-                        )
-                    )
+                    Timber.d("startDecoderWorker ending worker id=$it")
                 }
             }
 
-            Timber.d("barcodeDecoderWorker finished with current batch")
+            while (!_input.isClosedForReceive) {
+                var toDecodes = prioritizeFramesStrategy(_input.receiveAllPending()).toMutableList()
+                Timber.d("barcodeDecoderWorker time=${Date().time} received ${toDecodes.size} items of which focused ${toDecodes.filter { it.hasFocus }.count()}")
+
+                if (toDecodes.any { it.resetStats }) {
+                    Timber.d("barcodeDecoderWorker got resetStats request")
+                    _stats = WorkerEstimator(maxSimultaneousComputations)
+                }
+
+                _stats.measureProducer(toDecodes.map { it.timeToProduceMs() })
+
+                var estimationMade = false
+
+                while (toDecodes.size > 0) {
+                    _stats.batchConsumeStarts()
+
+                    if (!estimationMade) {
+                        val shouldConsumeItemsCount = _stats.shouldConsumeItemsCount()
+                        if (shouldConsumeItemsCount != null) {
+                            estimationMade = true
+
+                            val oldSize = toDecodes.size
+                            toDecodes = toDecodes.subList(0, shouldConsumeItemsCount)
+                            Timber.d("barcodeDecoderWorker items list shortened from $oldSize to ${toDecodes.size} items")
+
+                            if (toDecodes.size <= 0) {
+                                continue
+                            }
+                        }
+                    }
+
+                    val batch = toDecodes.popAtMostFirstItems(maxSimultaneousComputations)
+                    Timber.d("barcodeDecoderWorker will now process ${batch.size} items in parallel")
+
+                    batch
+                        .zip(_mfrs)
+                        .forEach { (img, mfr) -> toDoBatch.send(Pair(mfr, img)) }
+
+                    val workerAnswers = decodedWithMillis.receiveExactly(batch.size)
+                    workerAnswers.forEach { _stats.consumerMeasurementRegister(it.second) }
+
+                    _stats.batchConsumeEnds()
+
+                    val maybeBarcode = workerAnswers
+                        .filter { it.first != null }
+                        .map { it.first }
+                        .firstOrNull()
+
+                    if (maybeBarcode != null) {
+                        //no need to decode the rest + help with GC
+
+                        _input.receiveAllPending() //purge queue to ease GC
+                        _stats.ignoreItemsFollowingSuccess(toDecodes.size)
+                        toDecodes.clear() //no need to decode the rest
+
+                        _output.send(
+                            BarcodeReply(maybeBarcode, _stats.createSummary()))
+                    }
+                }
+
+                Timber.d("barcodeDecoderWorker time=${Date().time} finished with current batch")
+            }
+            Timber.d("barcodeDecoderWorker ending")
         }
-        Timber.d("barcodeDecoderWorker ending")
-        _output.close()
     }
+
+    fun endDecoderWorker() = _input.close()
 }
