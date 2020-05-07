@@ -94,11 +94,11 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             val img = ByteArrayInputStream(overlayImg.content)
             val bmp = BitmapFactory.decodeStream(img).apply { density = screenDensityDpi }
 
+            scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active (hide early to avoid flicker)
             scannerOverlay.setImageDrawable(BitmapDrawable(activity?.resources, bmp))
 
             App.Instance.launchCoroutine {
                 Timber.d("show/hide overview image listener - starting")
-                scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active
 
                 val stateUpdate = req.first.scanResult.openSubscription()
                 for (item in stateUpdate) {
