@@ -391,8 +391,7 @@ window.addEventListener('load', (_) => {
         
             btnAccept.onclick = _ => {
                 console?.log("btnAccept clicked (finish)");
-                onAccept(true);
-                document.body.removeChild(cntrlsContainer);
+                onAccept(true);                
                 lblLog.textContent += "scanned: " + divCode.textContent + "\n";
             };
 
