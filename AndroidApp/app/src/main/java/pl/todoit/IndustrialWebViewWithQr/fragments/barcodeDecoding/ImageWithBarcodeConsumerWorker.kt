@@ -92,13 +92,13 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
     private suspend fun decodeOne(mfr: MultiFormatReader, stats: WorkerEstimator, toDecode: ImageWithBarcode) : String? {
         return when(val result = stats.measureConsumer { decode(mfr, toDecode) }) {
             is Result.Ok -> {
-                Timber.i("MultiFormatReader for focused?=${toDecode.hasFocus} got code=${result.value}")
+                Timber.d("MultiFormatReader for focused?=${toDecode.hasFocus} got code=${result.value}")
 
                 _input.receiveAllPending() //purge queue so that new requests won't decode old queued code
                 result.value
             }
             is Result.Error -> {
-                Timber.i("MultiFormatReader for focused?=${toDecode.hasFocus} didn't decode because of ${result.error}")
+                Timber.d("MultiFormatReader for focused?=${toDecode.hasFocus} didn't decode because of ${result.error}")
                 null
             }
         }
@@ -113,7 +113,7 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
 
         while(!_input.isClosedForReceive) {
             var toDecodes = _input.receiveAllPending().sortedByDescending { it.hasFocus }.toMutableList()
-            Timber.i("barcodeDecoderWorker received ${toDecodes.size} items of which focused ${toDecodes.filter { it.hasFocus }
+            Timber.d("barcodeDecoderWorker received ${toDecodes.size} items of which focused ${toDecodes.filter { it.hasFocus }
                 .count()}")
 
             stats.measureProducer(
@@ -131,7 +131,7 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
                     if (shouldConsumeItemsCount != null) {
                         estimationMade = true
                         toDecodes = toDecodes.subList(0, shouldConsumeItemsCount)
-                        Timber.i("barcodeDecoderWorker items list shortened to ${toDecodes.size}")
+                        Timber.d("barcodeDecoderWorker items list shortened to ${toDecodes.size}")
 
                         if (toDecodes.size <= 0) {
                             continue
@@ -158,9 +158,9 @@ class ImageWithBarcodeConsumerWorker(val formats : Array<BarcodeFormat>) {
                 }
             }
 
-            Timber.i("barcodeDecoderWorker finished with current batch")
+            Timber.d("barcodeDecoderWorker finished with current batch")
         }
-        Timber.i("barcodeDecoderWorker ending")
+        Timber.d("barcodeDecoderWorker ending")
         _output.close()
     }
 }

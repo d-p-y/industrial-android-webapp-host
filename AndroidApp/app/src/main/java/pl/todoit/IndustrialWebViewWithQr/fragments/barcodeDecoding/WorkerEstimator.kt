@@ -136,7 +136,7 @@ class WorkerEstimator {
         val willConsumeItemsCount = if (forceAtLeastOneToConsume) Math.min(1, wouldConsumeItemsCount) else wouldConsumeItemsCount
         val increaseSkipBy = leftToConsume - willConsumeItemsCount
 
-        Timber.i(
+        Timber.d(
             """barcodeDecoderWorker 
 receivedBatchSize=$receivedBatchSize received=$_totalReceivedCount consumed=$_totalConsumedCount skipped=$_totalSkippedCount left=$leftToConsume
 avgConsuming[ms]=$avgConsumingTimeMs avgProducing[ms]=$avgProducingTimeMsAvg 
