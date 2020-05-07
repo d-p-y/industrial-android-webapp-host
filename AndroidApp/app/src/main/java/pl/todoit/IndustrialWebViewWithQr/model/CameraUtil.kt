@@ -73,17 +73,16 @@ class CameraData(
     val mmToPx:Float) {}
 
 fun initializeFirstMatchingCamera(act: AppCompatActivity, condition : (Camera.CameraInfo) -> Boolean) : Result<CameraData, String> {
-    val cameras = sequence {
-        for (i in 0..Camera.getNumberOfCameras()) {
-            val ci = Camera.CameraInfo()
-            Camera.getCameraInfo(i, ci)
-            yield(Pair(i, ci))
-        }
-    }
+    val cameras =
+        (0 until Camera.getNumberOfCameras())
+            .map {
+                val ci = Camera.CameraInfo()
+                Camera.getCameraInfo(it, ci)
+                Pair(it, ci)
+            }
 
-    val cameraIndexAndInfo = cameras
-        .filter { condition(it.second) }
-        .firstOrNull()
+    val cameraIndexAndInfo =
+        cameras.firstOrNull { condition(it.second) }
         ?: return Result.Error("No matching camera found")
 
     val cameraIndex = cameraIndexAndInfo.first
