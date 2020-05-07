@@ -8,6 +8,7 @@ import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.ParamContainer
 import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
+import java.util.concurrent.Executors
 
 val Dispatchers_UI = Dispatchers.Main
 
@@ -16,6 +17,7 @@ class App : Application(), CoroutineScope by MainScope() {
         lateinit var Instance : App
     }
 
+    private lateinit var _parallelComputations : ExecutorCoroutineDispatcher
     val isForcedDevelopmentMode = true
     val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
     val permitNoContinousFocusInCamera = isRunningInEmulator
@@ -24,6 +26,7 @@ class App : Application(), CoroutineScope by MainScope() {
     val webViewFragmentParams = ParamContainer<ConnectionInfo>()
     val connSettFragmentParams = ParamContainer<ConnectionInfo>()
     val scanQrFragmentParams = ParamContainer<Pair<ScanRequest,OverlayImage?>>()
+    var maxComputationsAtOnce = 0
 
     //TODO use persistence
     var currentConnection =
@@ -43,21 +46,37 @@ class App : Application(), CoroutineScope by MainScope() {
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
-        Timber.i("logging initialized")
+        Timber.d("logging initialized")
+
+        maxComputationsAtOnce = Runtime.getRuntime().availableProcessors()
+        Timber.d("available processors=$maxComputationsAtOnce")
+
+        if (maxComputationsAtOnce <= 0) {
+            Timber.e("wrong processors count")
+            maxComputationsAtOnce = 2 //newer devices have to have at least 2 cores
+        }
+
+        _parallelComputations = Executors.newFixedThreadPool(maxComputationsAtOnce).asCoroutineDispatcher()
 
         Instance = this
     }
 
+    fun launchParallelInBackground (block : suspend () -> Unit) {
+        launch(_parallelComputations) {
+            block.invoke()
+        }
+    }
+
     fun launchCoroutine (block : suspend () -> Unit) {
-        launch {
-            withContext(Dispatchers_UI) {
-                block.invoke()
-            }
+        launch(Dispatchers_UI) {
+            block.invoke()
         }
     }
 
     override fun onTerminate() {
         super.onTerminate()
         cancel() //coroutines cancellation
+        _parallelComputations.close()
+
     }
 }
