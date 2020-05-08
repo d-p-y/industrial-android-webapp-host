@@ -372,12 +372,13 @@ window.addEventListener('load', (_) => {
             strat.heightMm = 30;
             
             let onAccept = (_:boolean) => {};
+            let scanResult : string | null = null
             
             let cancellator = window.scanQrValidatableAndCancellable(
                 strat, 
                 async (barcode) => new Promise<boolean>(function (resolve,_) {
                     console?.log("validation promise invoked barcode="+barcode);
-                    divCode.textContent = barcode;                    
+                    divCode.textContent = barcode;
                     onAccept = resolve;
                     btnAccept.style.visibility = "initial";
                     btnReject.style.visibility = "initial";
@@ -386,17 +387,19 @@ window.addEventListener('load', (_) => {
                 () => {
                     //android confirmed cancellation
                     document.body.removeChild(cntrlsContainer);
-                    lblLog.textContent += "not scanned\n";
+                    
+                    lblLog.textContent += (scanResult == null) ? "not scanned\n" : ("scanned: " + scanResult + "\n");
                 });    
         
             btnAccept.onclick = _ => {
                 console?.log("btnAccept clicked (finish)");
-                onAccept(true);                
-                lblLog.textContent += "scanned: " + divCode.textContent + "\n";
+                scanResult = divCode.textContent
+                onAccept(true);
             };
 
             btnReject.onclick = _ => {
                 console?.log("btnReject clicked (resume)");
+                scanResult = null
                 onAccept(false);                
                 btnAccept.style.visibility = "hidden";
                 btnReject.style.visibility = "hidden";
