@@ -1,6 +1,8 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -39,6 +41,25 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
         App.Instance.launchCoroutine { App.Instance.navigation.send(
             NavigationRequest.WebBrowser_SetScanOverlayImage(
                 fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray())) }
+    }
+
+    @JavascriptInterface
+    fun openInBrowser(url: String) {
+        val act = host?.activity
+
+        if (act == null) {
+            Timber.e("null activity")
+            return
+        }
+
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        val browserAct = browserIntent.resolveActivity(act.packageManager)
+        if (browserAct == null) {
+            Timber.e("no default browser")
+            return
+        }
+
+        act.startActivity(browserIntent)
     }
 
     @JavascriptInterface

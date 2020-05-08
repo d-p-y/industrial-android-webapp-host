@@ -62,7 +62,8 @@ interface IAndroid {
 
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : string) : void;
-    setToolbarBackButtonState(isEnabled : boolean) : void;    
+    setToolbarBackButtonState(isEnabled : boolean) : void;
+    openInBrowser(url : string) : void;
 }
 
 interface Window {  

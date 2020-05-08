@@ -1,14 +1,6 @@
 ///<reference path='../richer_implementations.ts'/>
 
 window.addEventListener('load', (_) => {
-    //initialize
-    window.nextPromiseId = 1;
-    window.promiseNoAutoClean = new Set<string>();
-    window.promiseResolvedCallBacks = new Map<string, (result:string) => void >();
-    window.promiseRejectedCallBacks = new Map<string, (result:string) => void >();
-});
-
-window.addEventListener('load', (_) => {
     window.setPausedScanOverlayImage("test.png");
 
     let lblLog = document.createElement("div");

@@ -1,5 +1,5 @@
 //
-// This file contains declarations of friendly wrappers around raw contracts
+// This file contains declarations of friendly wrappers around raw contracts. They strive to provide desktop browser compatible fallbacks (where applicable)
 //
 
 ///<reference path='contracts.ts'/>
@@ -18,6 +18,7 @@ interface Window {
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : string) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;
+    openInBrowser(url : string) : void;
 
     //helpers to keep track of promises
     nextPromiseId : number;

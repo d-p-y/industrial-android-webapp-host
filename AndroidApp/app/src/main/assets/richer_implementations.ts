@@ -259,3 +259,21 @@ Window.prototype.setPausedScanOverlayImage = function (pausedScanOverlayImageUrl
     };
     isValidatingImageReq.send(null);
 }
+Window.prototype.openInBrowser = function (url : string) {
+    if (this.Android === undefined) {
+        window.open(url, '_blank')
+        return;
+    }
+
+    this.Android.openInBrowser(url);
+};
+
+
+
+window.addEventListener('load', (_) => {
+    //initialize
+    window.nextPromiseId = 1;
+    window.promiseNoAutoClean = new Set<string>();
+    window.promiseResolvedCallBacks = new Map<string, (result:string) => void >();
+    window.promiseRejectedCallBacks = new Map<string, (result:string) => void >();
+});
