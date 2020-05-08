@@ -8,10 +8,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.*
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.zxing.*
@@ -74,6 +71,19 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         return backbuttonSupported
     }
 
+    private fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
+        if (toggled) {
+            //enabling
+            torchToggler.setImageResource(R.drawable.ic_wb_sunny_white)
+            torchToggler.alpha = 0.65f
+            return
+        }
+
+        //disabling
+        torchToggler.setImageResource(R.drawable.ic_wb_sunny_black)
+        torchToggler.alpha = 0.4f
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_scan_qr, container, false)
 
@@ -86,6 +96,17 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
         val scannerOverlay = result.findViewById<ImageView>(R.id.scannerOverlay)
+        val torchToggler = result.findViewById<ImageView>(R.id.torchToggler)
+
+        var toggled = false
+        setTorchStateEnabled(toggled, torchToggler)
+
+        torchToggler.setOnClickListener {
+            Timber.d("toggling flash")
+            toggled = !toggled
+            _camera.setTorchState(toggled)
+            setTorchStateEnabled(toggled, torchToggler)
+        }
 
         val overlayImg = req.second
         val screenDensityDpi = activity?.resources?.displayMetrics?.densityDpi
@@ -126,24 +147,16 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                 container?.setPadding(
                     layoutProp.marginURBL[3], layoutProp.marginURBL[0], layoutProp.marginURBL[1], layoutProp.marginURBL[2])
             } else {
-                container?.setPadding(0, 0, 0, 0) //to reset former request (if any)
+                container?.setPadding(0, 0, 0, 0) //to reset former request (if there was any)
             }
 
-            camSurfaceView.layoutParams = LinearLayout.LayoutParams(
+            camSurfaceView.layoutParams = FrameLayout.LayoutParams(
                 layoutProp.dimensions.first.toAndroid(),
                 layoutProp.dimensions.second.toAndroid()
             )
         }
 
         camSurfaceView.setTransform(layoutProp.matrix)
-
-        scannerOverlay.translationY =
-            when(val x = layoutProp.dimensions?.second) {
-                is LayoutDimension.ValuePx ->
-                    //TODO dimensions are 3 times too small
-                    - x.px/2f - (scannerOverlay.drawable?.intrinsicHeight ?: 0)/2f
-                else -> 0f
-            }
 
         _decoder =
             BarcodeDecoderForCameraPreview(

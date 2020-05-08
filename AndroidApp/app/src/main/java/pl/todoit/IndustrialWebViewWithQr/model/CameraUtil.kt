@@ -72,6 +72,12 @@ class CameraData(
     val screenResolution : WidthAndHeightWithOrientation,
     val mmToPx:Float) {}
 
+fun CameraData.setTorchState(enabled : Boolean) {
+    val params = this.camera.parameters
+    params.flashMode = if (enabled) Camera.Parameters.FLASH_MODE_TORCH else Camera.Parameters.FLASH_MODE_OFF
+    this.camera.parameters = params //needed to trigger changes
+}
+
 fun initializeFirstMatchingCamera(act: AppCompatActivity, condition : (Camera.CameraInfo) -> Boolean) : Result<CameraData, String> {
     val cameras =
         (0 until Camera.getNumberOfCameras())
