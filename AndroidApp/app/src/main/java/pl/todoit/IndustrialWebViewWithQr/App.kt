@@ -77,4 +77,9 @@ class App : Application(), CoroutineScope by MainScope() {
         cancel() //coroutines cancellation
         _parallelComputations.close()
     }
+
+    fun initializeConnection(requestedUrl: String) {
+        //TODO retrieve settings from preferences. If missing them, ask user for them
+        currentConnection.url = requestedUrl
+    }
 }

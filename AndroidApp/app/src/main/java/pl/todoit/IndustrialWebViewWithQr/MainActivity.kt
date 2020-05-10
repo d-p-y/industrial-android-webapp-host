@@ -164,7 +164,12 @@ class MainActivity : AppCompatActivity() {
         setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
         setToolbarTitle("Loading...")
 
-        Timber.i("starting mainActivityNavigator()")
+        val requestedUrl = intent.dataString
+        Timber.i("starting mainActivityNavigator() for url?={$requestedUrl}")
+
+        if (requestedUrl != null) {
+            App.Instance.initializeConnection(requestedUrl)
+        }
 
         App.Instance.launchCoroutine {
             startMainNavigatorLoop(NavigationRequest._Activity_GoToBrowser())

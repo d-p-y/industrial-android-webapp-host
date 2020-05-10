@@ -1,41 +1,117 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Switch
+import android.widget.Toast
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import pl.todoit.IndustrialWebViewWithQr.App
+import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
 import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
+import timber.log.Timber
 
 class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHasTitle {
     private fun connInfo() = App.Instance.connSettFragmentParams.get()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        var result = inflater.inflate(R.layout.fragment_connections_settings, container, false)
+        val result = inflater.inflate(R.layout.fragment_connections_settings, container, false)
 
-        result.findViewById<Button>(R.id.btnSave)?.setOnClickListener {
-            var editor = view?.findViewById<EditText>(R.id.inpUrl)
+        val inputUrl = result.findViewById<EditText>(R.id.inpUrl)
+        val inputName = result.findViewById<EditText>(R.id.inpName)
+        val createShortcut = result.findViewById<Switch>(R.id.shortcutNeeded)
+        val btnSave = result.findViewById<Button>(R.id.btnSave)
+        val act = activity
 
-            if (editor != null) {
-                App.Instance.launchCoroutine {
-                    App.Instance.navigation.send(
-                        NavigationRequest.ConnectionSettings_Save(ConnectionInfo(editor.text.toString()))
-                    )
-                }
+        if (inputUrl == null) {
+            Timber.e("no input editor")
+            return null
+        }
+
+        if (inputName == null) {
+            Timber.e("no input name")
+            return null
+        }
+
+        if (btnSave == null) {
+            Timber.e("no btnSave")
+            return null
+        }
+
+        if (act == null) {
+            Timber.e("no activity")
+            return null
+        }
+
+        //on API 23 calling ShortcutManagerCompat.getDynamicShortcuts(activity) gets empty list even if there are pinned shortcuts
+
+        inputName.doAfterTextChanged {
+            btnSave.isEnabled = inputUrl.length() > 0 && inputName.length() > 0
+        }
+
+        inputUrl.doAfterTextChanged {
+            btnSave.isEnabled = inputUrl.length() > 0 && inputName.length() > 0
+        }
+
+        btnSave.setOnClickListener {
+            App.Instance.launchCoroutine {
+                managePinnedShortcut(
+                    act,
+                    createShortcut.isChecked,
+                    inputName.text.toString(),
+                    inputUrl.text.toString()
+                )
+
+                App.Instance.navigation.send(
+                    NavigationRequest.ConnectionSettings_Save(ConnectionInfo(inputUrl.text.toString()))
+                )
             }
         }
 
-        var editor = result.findViewById<EditText>(R.id.inpUrl)
-        editor.setText(connInfo()?.url)
+        inputUrl.setText(connInfo()?.url)
 
         return result
+    }
+
+    private fun managePinnedShortcut(act : Activity, needShortcut: Boolean, name : String, url:String) {
+        if (!ShortcutManagerCompat.isRequestPinShortcutSupported(act)) {
+            Timber.e("ShortcutManagerCompat.isRequestPinShortcutSupported is false")
+            Toast.makeText(act, "Launcher doesn't support pinned shortcuts", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        //on API 23 calling ShortcutManagerCompat.getDynamicShortcuts(activity) gets empty list even if there are pinned shortcuts
+        //on API 23 calling ShortcutManagerCompat.removeDynamicShortcuts(activity, id) doesn't seem to remove pinned shortcuts
+
+        if (needShortcut) {
+            Toast.makeText(act, "Creating shortcut", Toast.LENGTH_SHORT).show()
+
+            val x = ShortcutInfoCompat.Builder(act, url).apply {
+                setShortLabel(name)
+                setIcon(IconCompat.createWithResource(act, R.mipmap.ic_launcher))
+                setIntent(
+                    Intent(act, MainActivity::class.java).apply {
+                        action = Intent.ACTION_MAIN
+                        data = Uri.parse(url)
+                    })
+            }
+
+            ShortcutManagerCompat.requestPinShortcut(act, x.build(), null)
+        }
     }
 
     override suspend fun onBackPressedConsumed() : Boolean {

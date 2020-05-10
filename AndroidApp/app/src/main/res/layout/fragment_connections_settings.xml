@@ -19,7 +19,25 @@
         android:background="#989898" />
 
     <TextView
-        android:id="@+id/textView2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="5sp"
+        android:text="Name (for shortcut):" />
+
+    <EditText
+        android:id="@+id/inpName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:hint="My app"
+        android:inputType="text" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#989898" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="5sp"
@@ -31,7 +49,26 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:hint="http://example.com"
-        android:inputType="textPersonName" />
+        android:inputType="textUri" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#989898" />
+
+    <LinearLayout android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5sp"
+            android:text="Create shortcut?" />
+
+        <Switch
+            android:id="@+id/shortcutNeeded"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
 
     <View
         android:layout_width="match_parent"
