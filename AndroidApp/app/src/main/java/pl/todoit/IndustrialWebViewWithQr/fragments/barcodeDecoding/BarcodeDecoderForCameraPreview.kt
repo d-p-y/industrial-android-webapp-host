@@ -2,19 +2,16 @@
 
 package pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding
 
-import com.google.zxing.BarcodeFormat
+import com.google.zxing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.sendBlocking
-import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.model.*
-import pl.todoit.IndustrialWebViewWithQr.model.extensions.diffInMilisecTo
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.toCloseable
 import timber.log.Timber
 import java.util.*
@@ -26,7 +23,7 @@ suspend fun <T,U> receiveFromAny(fst: ReceiveChannel<T>, snd : ReceiveChannel<U>
     }
 
 sealed class BarcodeDecoderNotification {
-    class GotBarcode(val decodedBarcode:BarcodeReply, val expectMoreMessages:Boolean) : BarcodeDecoderNotification()
+    class GotBarcode(val decodedBarcode:ProcessorSuccess<String>, val expectMoreMessages:Boolean) : BarcodeDecoderNotification()
     class Cancelling() : BarcodeDecoderNotification()
     class Pausing() : BarcodeDecoderNotification()
     class Resuming() : BarcodeDecoderNotification()
@@ -41,7 +38,13 @@ class BarcodeDecoderForCameraPreview(
     private val _camera: CameraData,
     val notify : suspend (BarcodeDecoderNotification) -> Unit
 ) {
-    private val _barcodeDecoder = ImageWithBarcodeConsumerWorker(_barcodeFormats, ::newestFocusedFirst, App.Instance.maxComputationsAtOnce)
+    private val _barcodeDecoder = EstimatingConsumerWorker(
+        { ZxingMultiFormatReader(_barcodeFormats) },
+        ::newestFocusedFirst,
+        App.Instance.maxComputationsAtOnce,
+        { it.resetStats },
+        { it.timeToProduceMs()}
+    )
     private var _hasFocus = false
     private var _sent = 0
     private var _skipped = 0
@@ -56,7 +59,7 @@ class BarcodeDecoderForCameraPreview(
     init {
         App.Instance.launchCoroutine {
             withContext(Dispatchers.Default) {
-                _barcodeDecoder.startDecoderWorker()
+                _barcodeDecoder.startConsumerWorker()
             }
         }
         App.Instance.launchCoroutine { responseLoop() }
@@ -72,12 +75,12 @@ class BarcodeDecoderForCameraPreview(
         App.Instance.launchCoroutine { _commandChannel.send(CancelPauseResume.Resume) }
     }
 
-    private suspend fun onBarcode(answer: BarcodeReply) {
+    private suspend fun onBarcode(answer: ProcessorSuccess<String>) {
         _received++
 
         with(answer.stats) { addSkipped(_skipped) }
 
-        Timber.d("received barcodeDecoder reply answer=${answer.resultBarcode} processingTimePerItem=${answer.stats.processingTimePerItemMs()}[ms] decodingLibraryTimePerItem=${answer.stats.oneItemDecodeTimeMs()}[ms] percentageConsumed=${answer.stats.itemsConsumedPercent()} photosProducedEvery=${answer.stats.productingEveryMs}[ms]")
+        Timber.d("received barcodeDecoder reply answer=${answer.result} processingTimePerItem=${answer.stats.processingTimePerItemMs()}[ms] decodingLibraryTimePerItem=${answer.stats.oneItemDecodeTimeMs()}[ms] percentageConsumed=${answer.stats.itemsConsumedPercent()} photosProducedEvery=${answer.stats.productingEveryMs}[ms]")
 
         _sendToDecoder = false
 
@@ -88,7 +91,7 @@ class BarcodeDecoderForCameraPreview(
     }
 
     private suspend fun onCommand(value: CancelPauseResume) {
-        _barcodeDecoder.clearToDecode() //ease GC and don't use old images in new requests
+        _barcodeDecoder.clearToConsume() //ease GC and don't use old images in new requests
 
         when(value) {
             CancelPauseResume.Cancel -> {
@@ -96,7 +99,7 @@ class BarcodeDecoderForCameraPreview(
                 _finish = true
                 _sendToDecoder = false
 
-                _barcodeDecoder.endDecoderWorker()
+                _barcodeDecoder.endConsumerWorker()
                 notify(BarcodeDecoderNotification.Cancelling())
             }
             CancelPauseResume.Pause -> {
@@ -127,7 +130,7 @@ class BarcodeDecoderForCameraPreview(
         var done = false
 
         while(!_finish || done) {
-            when(val barcodeOrCommand = receiveFromAny(_barcodeDecoder.decoded(), _commandChannel)) {
+            when(val barcodeOrCommand = receiveFromAny(_barcodeDecoder.consumed(), _commandChannel)) {
                 null -> {
                     Timber.d("responseLoop ending due to channel close")
                     done = true
@@ -215,7 +218,7 @@ class BarcodeDecoderForCameraPreview(
         var sent =
             if (!_sendToDecoder) {
                 false
-            } else if (_barcodeDecoder.toDecode().offer(itm)) {
+            } else if (_barcodeDecoder.toConsume().offer(itm)) {
                 _sent++
                 true
             } else {

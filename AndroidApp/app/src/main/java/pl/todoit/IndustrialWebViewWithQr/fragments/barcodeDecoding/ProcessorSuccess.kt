@@ -1,3 +1,3 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding
 
-class BarcodeReply(val resultBarcode:String, val stats: WorkerStats)
+class ProcessorSuccess<T>(val result : T, val stats : WorkerStats)
