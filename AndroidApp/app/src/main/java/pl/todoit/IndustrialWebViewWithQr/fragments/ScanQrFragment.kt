@@ -27,14 +27,14 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
     private lateinit var _camera: CameraData
     private lateinit var _decoder : BarcodeDecoderForCameraPreview
 
-    private fun req() : Pair<ScanRequest,OverlayImage?>? = App.Instance.scanQrFragmentParams.get()
+    lateinit var req : Pair<ScanRequest,OverlayImage?>
 
     override fun getRequiredAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
     override fun onRequiredPermissionRejected(rejectedPerms:List<String>) =
         App.Instance.navigator.postNavigateTo(NavigationRequest.ScanQr_Back())
 
     override fun getTitleMaybe() =
-        when(val x = req()?.first?.layoutStrategy) {
+        when(val x = req.first.layoutStrategy) {
             is FitScreenLayoutStrategy ->x.screenTitle ?: "Scan QR code"
             is MatchWidthWithFixedHeightLayoutStrategy -> null
             else -> {
@@ -43,7 +43,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
     private fun backButtonCausesCancellation() : Boolean =
-        when(req()?.first?.layoutStrategy) {
+        when(req.first.layoutStrategy) {
             is FitScreenLayoutStrategy -> true
             is MatchWidthWithFixedHeightLayoutStrategy -> false
             else -> {
@@ -86,13 +86,6 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_scan_qr, container, false)
-
-        val req = req()
-
-        if (req == null) {
-            Timber.e("req is null")
-            return result
-        }
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
         val scannerOverlay = result.findViewById<ImageView>(R.id.scannerOverlay)

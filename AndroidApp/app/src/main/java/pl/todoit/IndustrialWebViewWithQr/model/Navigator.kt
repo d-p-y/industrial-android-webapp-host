@@ -160,21 +160,16 @@ class Navigator {
     /**
      * @return true if actually shown. false if request was rejected
      */
-    private suspend fun replacePopupWithScanQr(act:MainActivity, scanReq: ScanRequest, overlayImage: OverlayImage?) : Boolean {
-        App.Instance.scanQrFragmentParams.set(Pair(scanReq, overlayImage))
-        val fragment = ScanQrFragment()
-        return act.replacePopupFragment(fragment)
-    }
+    private suspend fun replacePopupWithScanQr(act:MainActivity, scanReq: ScanRequest, overlayImage: OverlayImage?) =
+        act.replacePopupFragment(
+            ScanQrFragment().apply {req = Pair(scanReq, overlayImage)} )
 
-    private fun replaceMasterWithWebBrowser(act:MainActivity, connInfo: ConnectionInfo) {
-        App.Instance.webViewFragmentParams.set(connInfo)
-        val fragment = WebViewFragment()
-        act.replaceMasterFragment(fragment)
-    }
 
-    private fun replaceMasterWithConnectionsSettings(act:MainActivity, connInfo: ConnectionInfo) {
-        App.Instance.connSettFragmentParams.set(connInfo)
-        val fragment = ConnectionsSettingsFragment()
-        act.replaceMasterFragment(fragment)
-    }
+    private fun replaceMasterWithWebBrowser(act:MainActivity, connInfo: ConnectionInfo) =
+        act.replaceMasterFragment(
+            WebViewFragment().apply { req = connInfo })
+
+    private fun replaceMasterWithConnectionsSettings(act:MainActivity, connInfo: ConnectionInfo) =
+        act.replaceMasterFragment(
+            ConnectionsSettingsFragment().apply { req = connInfo } )
 }

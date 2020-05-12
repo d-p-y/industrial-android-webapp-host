@@ -26,7 +26,7 @@ import pl.todoit.IndustrialWebViewWithQr.model.IProcessesBackButtonEvents
 import timber.log.Timber
 
 class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHasTitle {
-    private fun connInfo() = App.Instance.connSettFragmentParams.get()
+    lateinit var req : ConnectionInfo
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val result = inflater.inflate(R.layout.fragment_connections_settings, container, false)
@@ -79,7 +79,7 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHas
                 NavigationRequest.ConnectionSettings_Save(ConnectionInfo(inputUrl.text.toString())))
         }
 
-        inputUrl.setText(connInfo()?.url)
+        inputUrl.setText(req.url)
 
         return result
     }

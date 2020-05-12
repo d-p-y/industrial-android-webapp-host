@@ -131,7 +131,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
 val trues = arrayOf("true")
 
 class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IProcessesBackButtonEvents {
-    private fun connInfo() = App.Instance.webViewFragmentParams.get()
+    lateinit var req : ConnectionInfo
 
     private var _currentTitle : String = "Untitled WebApp"
     private var _backButtonEnabled = false
@@ -158,7 +158,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         }
         webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
 
-        if (connInfo()?.forwardConsoleLogToLogCat == true) {
+        if (req.forwardConsoleLogToLogCat == true) {
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(msg: ConsoleMessage?): Boolean {
                     Timber.d("received console.log: ${msg?.sourceId()}:${msg?.lineNumber()} ${msg?.message()}")
@@ -167,14 +167,14 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
             }
         }
 
-        WebView.setWebContentsDebuggingEnabled(connInfo()?.remoteDebuggerEnabled == true)
+        WebView.setWebContentsDebuggingEnabled(req.remoteDebuggerEnabled == true)
 
-        if (connInfo()?.forceReloadFromNet == true) {
+        if (req.forceReloadFromNet == true) {
             webView.clearCache(true)
         }
 
-        Timber.d("navigating to ${connInfo()?.url}")
-        webView.loadUrl(connInfo()?.url)
+        Timber.d("navigating to ${req.url}")
+        webView.loadUrl(req.url)
 
         return result
     }

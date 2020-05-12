@@ -23,9 +23,6 @@ class App : Application(), CoroutineScope by MainScope() {
     val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
     val permitNoContinousFocusInCamera = isRunningInEmulator
     val navigator = Navigator()
-    val webViewFragmentParams = ParamContainer<ConnectionInfo>()
-    val connSettFragmentParams = ParamContainer<ConnectionInfo>()
-    val scanQrFragmentParams = ParamContainer<Pair<ScanRequest,OverlayImage?>>()
     var maxComputationsAtOnce = 0
 
     //TODO enumerate assets programmatically to find all index.html

@@ -29,12 +29,10 @@ class EstimatingConsumerWorker<InputT,OutputT>(
     private val _input = Channel<InputT>(App.Instance.imagesToDecodeQueueSize)
     private val _output = Channel<ProcessorSuccess<OutputT>>()
     private var _stats = WorkerEstimator(maxSimultaneousComputations)
-
     private val _processors = (0 until maxSimultaneousComputations).map { consumerFactory() }
 
     fun toConsume() : SendChannel<InputT> = _input
     fun consumed() : ReceiveChannel<ProcessorSuccess<OutputT>> = _output
-
     fun clearToConsume() = App.Instance.launchCoroutine { _input.receiveAllPending().clear() }
 
     suspend fun startConsumerWorker() {
