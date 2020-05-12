@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +21,8 @@ import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
+import java.io.File
+import java.util.*
 
 enum class OkOrDismissed {
     OK,
@@ -153,6 +156,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Thread.setDefaultUncaughtExceptionHandler {thread, exc -> saveExceptionToDisk(exc) }
 
         setContentView(R.layout.activity_main)
 
@@ -171,6 +175,11 @@ class MainActivity : AppCompatActivity() {
 
         App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityActivated(this, maybeRequestedUrl))
     }
+
+    private fun saveExceptionToDisk(exc: Throwable) =
+        File(this.filesDir, "exceptions.txt")
+            .appendText(
+                "millisSinceEpoch=${Date().time} exception=${Log.getStackTraceString(exc)}\n")
 
     override fun onStop() {
         App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityInactivated(this))
