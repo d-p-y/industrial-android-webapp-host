@@ -5,6 +5,7 @@ import android.os.Build
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
+import pl.todoit.IndustrialWebViewWithQr.model.Navigator
 import pl.todoit.IndustrialWebViewWithQr.model.ParamContainer
 import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 import timber.log.Timber
@@ -21,14 +22,14 @@ class App : Application(), CoroutineScope by MainScope() {
     val isForcedDevelopmentMode = true
     val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
     val permitNoContinousFocusInCamera = isRunningInEmulator
-
-    val navigation = Channel<NavigationRequest>()
+    val navigator = Navigator()
     val webViewFragmentParams = ParamContainer<ConnectionInfo>()
     val connSettFragmentParams = ParamContainer<ConnectionInfo>()
     val scanQrFragmentParams = ParamContainer<Pair<ScanRequest,OverlayImage?>>()
     var maxComputationsAtOnce = 0
 
-    //TODO use persistence
+    //TODO enumerate assets programmatically to find all index.html
+    //TODO use persistence for per-URL-settings-and-permissions
     var currentConnection =
         ConnectionInfo(
             url = "file:///android_asset/DemoWebSite/index.html",
@@ -58,6 +59,10 @@ class App : Application(), CoroutineScope by MainScope() {
         _parallelComputations = Executors.newFixedThreadPool(maxComputationsAtOnce).asCoroutineDispatcher()
 
         Instance = this
+
+        launchCoroutine {
+            navigator.startMainNavigatorLoop()
+        }
     }
 
     fun launchParallelInBackground (block : suspend () -> Unit) {
@@ -72,6 +77,9 @@ class App : Application(), CoroutineScope by MainScope() {
         }
     }
 
+    /**
+     * silly cleanup code that in reality will not be called on real device
+     */
     override fun onTerminate() {
         super.onTerminate()
         cancel() //coroutines cancellation

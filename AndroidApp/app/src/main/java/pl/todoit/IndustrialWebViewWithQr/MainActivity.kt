@@ -38,18 +38,16 @@ fun Activity.performHapticFeedback() =
 class OverlayImage(val content:ByteArray)
 
 class MainActivity : AppCompatActivity() {
-    private var _scanPromiseId : String? = null
-
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
 
-    private fun getCurrentMasterFragment() : Fragment? {
+    fun getCurrentMasterFragment() : Fragment? {
         val result = supportFragmentManager.findFragmentById(R.id.base_fragment)
         Timber.d("curr master fragment=$result")
         return result
     }
 
-    private fun getCurrentPopupFragment() : Fragment? {
+    fun getCurrentPopupFragment() : Fragment? {
         val result = supportFragmentManager.findFragmentById(R.id.popup_fragment)
         Timber.d("curr popup fragment=$result")
         return result
@@ -113,13 +111,13 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             Timber.d("onOptionsItemSelected() up-navigation")
-            App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest._Activity_Back()) }
+            App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_Back())
 
             return true
         }
 
         if (item.itemId == R.id.menuItemSettings) {
-            App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest._Toolbar_GoToConnectionSettings()) }
+            App.Instance.navigator.postNavigateTo(NavigationRequest._Toolbar_GoToConnectionSettings())
 
             return true
         }
@@ -127,7 +125,7 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    private fun setToolbarTitle(title : String) {
+    fun setToolbarTitle(title : String) {
         val tb = supportActionBar
 
         if (tb == null) {
@@ -138,7 +136,7 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.title = title
     }
 
-    private fun setToolbarBackButtonState(enabled : Boolean) {
+    fun setToolbarBackButtonState(enabled : Boolean) {
         val tb = supportActionBar
 
         if (tb == null) {
@@ -160,20 +158,23 @@ class MainActivity : AppCompatActivity() {
 
         val toolBar = findViewById<Toolbar>(R.id.toolBar)
         setSupportActionBar(toolBar)
+    }
+
+    override fun onStart() {
+        super.onStart()
 
         setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
         setToolbarTitle("Loading...")
 
-        val requestedUrl = intent.dataString
-        Timber.i("starting mainActivityNavigator() for url?={$requestedUrl}")
+        val maybeRequestedUrl = intent.dataString
+        Timber.i("starting mainActivityNavigator() for url?={$maybeRequestedUrl}")
 
-        if (requestedUrl != null) {
-            App.Instance.initializeConnection(requestedUrl)
-        }
+        App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityActivated(this, maybeRequestedUrl))
+    }
 
-        App.Instance.launchCoroutine {
-            startMainNavigatorLoop(NavigationRequest._Activity_GoToBrowser())
-        }
+    override fun onStop() {
+        App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityInactivated(this))
+        super.onStop()
     }
 
     private fun removeMasterFragmentIfNeeded() {
@@ -185,7 +186,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun <T> replaceMasterFragment(fragment:T) where T:Fragment, T:IHasTitle {
+    fun <T> replaceMasterFragment(fragment:T) where T:Fragment, T:IHasTitle {
         removeMasterFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment).commit()
 
@@ -194,19 +195,7 @@ class MainActivity : AppCompatActivity() {
         Timber.d("replaceMasterFragment currentMasterFragment=$fragment")
     }
 
-    private fun replaceMasterWithWebBrowser(connInfo: ConnectionInfo) {
-        App.Instance.webViewFragmentParams.set(connInfo)
-        val fragment = WebViewFragment()
-        replaceMasterFragment(fragment)
-    }
-
-    private fun replaceMasterWithConnectionsSettings(connInfo: ConnectionInfo) {
-        App.Instance.connSettFragmentParams.set(connInfo)
-        val fragment = ConnectionsSettingsFragment()
-        replaceMasterFragment(fragment)
-    }
-
-    private fun removePopupFragmentIfNeeded() {
+    fun removePopupFragmentIfNeeded() {
         val old = getCurrentPopupFragment()
         Timber.d("removePopupFragmentIfNeeded currentPopupFragment=$old")
 
@@ -221,7 +210,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun <T> replacePopupFragment(fragment:T) : Boolean
+    suspend fun <T> replacePopupFragment(fragment:T) : Boolean
             where T : IProcessesBackButtonEvents, T: Fragment, T:IMaybeHasTitle {
 
         if (fragment is IRequiresPermissions) {
@@ -273,131 +262,5 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    /**
-     * @return true if actually shown. false if request was rejected
-     */
-    private suspend fun replacePopupWithScanQr(scanReq: ScanRequest, overlayImage: OverlayImage?) : Boolean {
-        App.Instance.scanQrFragmentParams.set(Pair(scanReq, overlayImage))
-        val fragment = ScanQrFragment()
-        return replacePopupFragment(fragment)
-    }
-
-    private suspend fun consumeNavigationRequest(request:NavigationRequest) {
-        Timber.d("mainActivityNavigator() received navigationrequest=$request currentMaster=${getCurrentMasterFragment()} currentPopup=${getCurrentPopupFragment()}")
-
-        when (request) {
-            is NavigationRequest._Activity_GoToBrowser -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
-            is NavigationRequest._Toolbar_GoToConnectionSettings -> replaceMasterWithConnectionsSettings(
-                App.Instance.currentConnection
-            )
-            is NavigationRequest.ConnectionSettings_Save -> {
-                App.Instance.currentConnection = request.connInfo
-                replaceMasterWithWebBrowser(App.Instance.currentConnection)
-            }
-            is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(App.Instance.currentConnection)
-            is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
-                Timber.d("setting scan overlay image")
-                App.Instance.overlayImageOnPause = OverlayImage(request.content)
-            }
-            is NavigationRequest.WebBrowser_RequestedScanQr -> {
-                if (_scanPromiseId != null) {
-                    Timber.d("rejected request to start scanner as former scan request is still active")
-                    request.req.scanResult.sendAndClose(ScannerStateChange.Cancelled())
-                    return
-                }
-
-                if (replacePopupWithScanQr(request.req, App.Instance.overlayImageOnPause)) {
-                    _scanPromiseId = request.req.jsPromiseId
-                }
-            }
-            is NavigationRequest.WebBrowser_ResumeScanQr -> {
-                val currentPopup = getCurrentPopupFragment()
-                if (currentPopup !is ScanQrFragment || _scanPromiseId != request.jsPromiseId) {
-                    Timber.e("resuming request ignored because scanner is not active anymore OR jsPromiseId not matches")
-                    return
-                }
-
-                Timber.d("requesting resuming scanning because scanner is still active AND jsPromiseId matches")
-                currentPopup.onReceivedScanningResumeRequest()
-            }
-            is NavigationRequest.WebBrowser_CancelScanQr -> {
-                val currentPopup = getCurrentPopupFragment()
-                if (currentPopup !is ScanQrFragment || _scanPromiseId != request.jsPromiseId) {
-                    Timber.e("cancellation request ignored because scanner is not active anymore OR jsPromiseId not matches")
-                    return
-                }
-
-                Timber.d("requesting cancellation of scanning because scanner is still active AND jsPromiseId matches")
-                currentPopup.onReceivedScanningCancellationRequest()
-            }
-            is NavigationRequest.ScanQr_Scanned -> {
-                removePopupFragmentIfNeeded()
-                _scanPromiseId = null
-            }
-            is NavigationRequest.ScanQr_Back -> {
-                removePopupFragmentIfNeeded()
-                _scanPromiseId = null
-            }
-            is NavigationRequest._ToolbarBackButtonStateChanged -> {
-                if (request.sender != getCurrentMasterFragment()) {
-                    Timber.d("ignored change back button state request from inactive master fragment")
-                    return
-                }
-
-                setToolbarBackButtonState(request.sender.isBackButtonEnabled())
-            }
-            is NavigationRequest._ToolbarTitleChanged -> {
-                if (request.sender != getCurrentMasterFragment()) {
-                    Timber.d("ignored change name request from inactive master fragment")
-                    return
-                }
-
-                setToolbarTitle(request.sender.getTitle())
-            }
-            is NavigationRequest._Activity_Back -> {
-                val currentPopup = getCurrentPopupFragment()
-                val currentMaster = getCurrentMasterFragment()
-
-                if (currentPopup is IProcessesBackButtonEvents) {
-                    Timber.d("delegating back button to popup fragment")
-                    val backConsumed = currentPopup.onBackPressedConsumed()
-                    Timber.d("popup consumed backbutton event?=$backConsumed")
-                    if (backConsumed) {
-                        return
-                    }
-                }
-
-                if (currentMaster is IProcessesBackButtonEvents) {
-                    //delegate question to master fragment (likely webapp)
-                    Timber.d("trying to delegate back button to master fragment")
-                    val backConsumed = currentMaster.onBackPressedConsumed()
-
-                    Timber.d("master fragment backButton consumed?=$backConsumed")
-                    if (backConsumed) {
-                        return
-                    }
-
-                    finish()
-                }
-
-                Timber.d("no fragment is eligible for backbutton processing")
-            }
-        }
-    }
-
-    private suspend fun startMainNavigatorLoop(initialRequest:NavigationRequest?) {
-        removePopupFragmentIfNeeded()
-
-        if (initialRequest != null) {
-            consumeNavigationRequest(initialRequest)
-        }
-
-        while(true) {
-            consumeNavigationRequest(App.Instance.navigation.receive())
-        }
-    }
-
-    override fun onBackPressed() {
-        App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest._Activity_Back()) }
-    }
+    override fun onBackPressed() = App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_Back())
 }

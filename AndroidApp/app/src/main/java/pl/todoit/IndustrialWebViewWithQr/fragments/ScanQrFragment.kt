@@ -31,7 +31,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
     override fun getRequiredAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
     override fun onRequiredPermissionRejected(rejectedPerms:List<String>) =
-        App.Instance.launchCoroutine { App.Instance.navigation.send(NavigationRequest.ScanQr_Back()) }
+        App.Instance.navigator.postNavigateTo(NavigationRequest.ScanQr_Back())
 
     override fun getTitleMaybe() =
         when(val x = req()?.first?.layoutStrategy) {
@@ -172,12 +172,12 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
                             req.first.scanResult.send(ScannerStateChange.Scanned(it.decodedBarcode))
                             if (!it.expectMoreMessages) {
-                                App.Instance.navigation.send(NavigationRequest.ScanQr_Scanned())
+                                App.Instance.navigator.navigateTo(NavigationRequest.ScanQr_Scanned())
                             }
                         }
                         is BarcodeDecoderNotification.Cancelling -> {
                             req.first.scanResult.sendAndClose(ScannerStateChange.Cancelled())
-                            App.Instance.navigation.send(NavigationRequest.ScanQr_Back())
+                            App.Instance.navigator.navigateTo(NavigationRequest.ScanQr_Back())
                         }
                         is BarcodeDecoderNotification.Pausing  ->
                             req.first.scanResult.send(ScannerStateChange.Paused())

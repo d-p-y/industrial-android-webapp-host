@@ -68,18 +68,15 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHas
         }
 
         btnSave.setOnClickListener {
-            App.Instance.launchCoroutine {
-                managePinnedShortcut(
-                    act,
-                    createShortcut.isChecked,
-                    inputName.text.toString(),
-                    inputUrl.text.toString()
-                )
+            managePinnedShortcut(
+                act,
+                createShortcut.isChecked,
+                inputName.text.toString(),
+                inputUrl.text.toString()
+            )
 
-                App.Instance.navigation.send(
-                    NavigationRequest.ConnectionSettings_Save(ConnectionInfo(inputUrl.text.toString()))
-                )
-            }
+            App.Instance.navigator.postNavigateTo(
+                NavigationRequest.ConnectionSettings_Save(ConnectionInfo(inputUrl.text.toString())))
         }
 
         inputUrl.setText(connInfo()?.url)
@@ -115,9 +112,7 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHas
     }
 
     override suspend fun onBackPressedConsumed() : Boolean {
-        App.Instance.launchCoroutine {
-            App.Instance.navigation.send(NavigationRequest.ConnectionSettings_Back())
-        }
+        App.Instance.navigator.postNavigateTo(NavigationRequest.ConnectionSettings_Back())
         return true
     }
 

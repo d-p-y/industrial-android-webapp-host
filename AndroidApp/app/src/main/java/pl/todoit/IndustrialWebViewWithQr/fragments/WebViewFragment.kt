@@ -37,11 +37,10 @@ sealed class ScannerStateChange {
 class WebViewExposedMethods(private var host: WebViewFragment) {
 
     @JavascriptInterface
-    fun setPausedScanOverlayImage(fileContent : String) {
-        App.Instance.launchCoroutine { App.Instance.navigation.send(
+    fun setPausedScanOverlayImage(fileContent : String) =
+        App.Instance.navigator.postNavigateTo(
             NavigationRequest.WebBrowser_SetScanOverlayImage(
-                fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray())) }
-    }
+                fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray()))
 
     @JavascriptInterface
     fun openInBrowser(url: String) {
@@ -82,7 +81,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
 
             val decoderReplyChannel = req.scanResult.openSubscription()
 
-            App.Instance.navigation.send(NavigationRequest.WebBrowser_RequestedScanQr(req))
+            App.Instance.navigator.navigateTo(NavigationRequest.WebBrowser_RequestedScanQr(req))
 
             for (rawReply in decoderReplyChannel) {
                 val maybeReply =
@@ -121,18 +120,12 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
     }
 
     @JavascriptInterface
-    fun resumeScanQr(promiseId : String) {
-        App.Instance.launchCoroutine {
-            App.Instance.navigation.send(NavigationRequest.WebBrowser_ResumeScanQr(promiseId))
-        }
-    }
+    fun resumeScanQr(promiseId : String) =
+        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ResumeScanQr(promiseId))
 
     @JavascriptInterface
-    fun cancelScanQr(promiseId : String) {
-        App.Instance.launchCoroutine {
-            App.Instance.navigation.send(NavigationRequest.WebBrowser_CancelScanQr(promiseId))
-        }
-    }
+    fun cancelScanQr(promiseId : String) =
+        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_CancelScanQr(promiseId))
 }
 
 val trues = arrayOf("true")
@@ -189,14 +182,9 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
     override suspend fun onBackPressedConsumed() : Boolean {
         val result = Channel<Boolean>()
 
-        val callback =  { it : String? ->
-            App.Instance.launchCoroutine { result.send(it in trues) }
-            Unit
-        };
-
         getWebView()?.evaluateJavascript(
             "(window.androidBackConsumed === undefined) ? false : window.androidBackConsumed()",
-            callback)
+            { App.Instance.launchCoroutine { result.send(it in trues) } })
 
         return result.receive()
     }
@@ -205,19 +193,13 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
     fun onBackButtonStateChanged(enabled : Boolean) {
         _backButtonEnabled = enabled
-
-        App.Instance.launchCoroutine {
-            App.Instance.navigation.send(NavigationRequest._ToolbarBackButtonStateChanged(this))
-        }
+        App.Instance.navigator.postNavigateTo(NavigationRequest._ToolbarBackButtonStateChanged(this))
     }
 
     override fun getTitle() = _currentTitle
 
     fun onTitleChanged(currentTitle: String) {
         _currentTitle = currentTitle
-
-        App.Instance.launchCoroutine {
-            App.Instance.navigation.send(NavigationRequest._ToolbarTitleChanged(this))
-        }
+        App.Instance.navigator.postNavigateTo(NavigationRequest._ToolbarTitleChanged(this))
     }
 }
