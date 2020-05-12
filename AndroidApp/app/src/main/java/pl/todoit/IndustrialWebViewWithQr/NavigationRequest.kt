@@ -12,7 +12,7 @@ import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
 sealed class NavigationRequest {
     class _Activity_MainActivityActivated(val act:MainActivity, val maybeRequestedUrl : String?) : NavigationRequest()
     class _Activity_MainActivityInactivated(val act:MainActivity) : NavigationRequest()
-    class _Activity_GoToBrowser() : NavigationRequest()
+    class _Activity_GoToBrowser(val maybeUrl : String?) : NavigationRequest()
     class _Toolbar_GoToConnectionSettings() : NavigationRequest()
     class _Activity_Back() : NavigationRequest()
     class _ToolbarTitleChanged(val sender : IHasTitle) : NavigationRequest()

@@ -6,12 +6,17 @@
 
 interface HTMLElement {
     removeAllChildren() : void;
+    appendChildren(nodes: Node[]) : void;
 }    
 
 HTMLElement.prototype.removeAllChildren = function() : void {
     while (this.children.length > 0) {
         this.removeChild(this.children[0]);
     }    
+}
+
+HTMLElement.prototype.appendChildren = function(nodes : Node[]) : void {    
+    nodes.forEach(x => this.appendChild(x));
 }
 
 Window.prototype.androidPostReplyToPromise = function (replyToJson : string) {
@@ -267,7 +272,13 @@ Window.prototype.openInBrowser = function (url : string) {
 
     this.Android.openInBrowser(url);
 };
+Window.prototype.getKnownConnections = function() {
+    if (this.Android === undefined) {        
+        return "[{\"url\":\"http://wikipedia.com\",\"name\":\"Wikipedia (EN)\"}, {\"url\":\"http://duck.com\",\"name\":\"DuckDuckGo\"}]";
+    }
 
+    return this.Android.getKnownConnections();
+};
 
 
 window.addEventListener('load', (_) => {

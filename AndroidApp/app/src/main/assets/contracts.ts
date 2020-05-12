@@ -64,6 +64,12 @@ interface IAndroid {
     setTitle(title : string) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;
     openInBrowser(url : string) : void;
+
+    /**
+     * private, sensitive APIs that may only be called from hardcoded URLs. 
+     * Attempt to call it outside of those URLs will fail in unspecified way.
+     */
+    getKnownConnections() : string; //returns ConnectionInfo[] as JSON
 }
 
 interface Window {  

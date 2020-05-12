@@ -10,7 +10,10 @@ import android.view.ViewGroup
 import android.webkit.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import kotlinx.android.synthetic.main.fragment_web_view.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.serialization.builtins.list
+import kotlinx.serialization.json.JsonArraySerializer
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
@@ -18,11 +21,13 @@ import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.ProcessorSucc
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 
+fun String.escapeJsonForWebView() = replace("\"", "\\\"")
+
 fun postReply(host : WebViewFragment, reply : AndroidReply) {
     var replyJson = jsonStrict.stringify(AndroidReply.serializer(), reply)
     var msg =
         "androidPostReplyToPromise(\"" +
-        replyJson.replace("\"", "\\\"") +
+        replyJson.escapeJsonForWebView() +
         "\")"
     host.getWebView()?.evaluateJavascript(msg, null)
 }
@@ -34,7 +39,24 @@ sealed class ScannerStateChange {
     class Cancelled() : ScannerStateChange()
 }
 
+sealed class SensitiveWebExposedOperation() {
+    class GetKnownConnections(val caller : ConnectionInfo?) : SensitiveWebExposedOperation()
+}
+
+fun maybeExecuteSensitiveOperation(inp:SensitiveWebExposedOperation) : String =
+    when(inp) {
+        is SensitiveWebExposedOperation.GetKnownConnections ->
+            jsonStrict.stringify(
+                ConnectionInfo.serializer().list,
+                if (inp.caller?.mayManageConnections == true) App.Instance.knownConnections.filter { !it.isConnectionManager } else listOf())
+    }
+
 class WebViewExposedMethods(private var host: WebViewFragment) {
+    @JavascriptInterface
+    fun getKnownConnections() : String? =
+        maybeExecuteSensitiveOperation(
+            SensitiveWebExposedOperation.GetKnownConnections(
+                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url)))
 
     @JavascriptInterface
     fun setPausedScanOverlayImage(fileContent : String) =
@@ -44,7 +66,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
 
     @JavascriptInterface
     fun openInBrowser(url: String) {
-        val act = host?.activity
+        val act = host.activity
 
         if (act == null) {
             Timber.e("null activity")
@@ -136,8 +158,10 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
     private var _currentTitle : String = "Untitled WebApp"
     private var _backButtonEnabled = false
 
-    fun getWebView() : WebView? = view?.findViewById(R.id.webView)
+    //need to maintain URL manually as attempting to call WebView.getUrl() from @JavascriptInterface annotated methods results with
+    //W/WebView: java.lang.Throwable: A WebView method was called on thread 'JavaBridge'. All WebView methods must be called on the same thread.
 
+    fun getWebView() : WebView? = view?.findViewById(R.id.webView)
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -153,8 +177,13 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
                 super.onReceivedError(view, errorCode, description, failingUrl)
             }
 
-            //don't start regular browser
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?) = false
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?) : Boolean {
+                if (url != null) {
+                    App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(url).second
+                }
+
+                return false //don't start regular browser
+            }
         }
         webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
 
@@ -174,6 +203,10 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         }
 
         Timber.d("navigating to ${req.url}")
+
+        //as loadUrl doesn't invoke shouldOverrideUrlLoading()
+        App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(req.url).second
+
         webView.loadUrl(req.url)
 
         return result

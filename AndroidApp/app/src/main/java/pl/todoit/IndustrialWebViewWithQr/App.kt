@@ -25,15 +25,39 @@ class App : Application(), CoroutineScope by MainScope() {
     val navigator = Navigator()
     var maxComputationsAtOnce = 0
 
-    //TODO enumerate assets programmatically to find all index.html
-    //TODO use persistence for per-URL-settings-and-permissions
-    var currentConnection =
+    //TODO read from private storage + add from assets
+    var knownConnections = listOf(
         ConnectionInfo(
-            url = "file:///android_asset/DemoWebSite/index.html",
+            url = "file:///android_asset/ConnectionsManager/index.html",
+            name = "Connection Manager",
             forceReloadFromNet = isForcedDevelopmentMode,
             remoteDebuggerEnabled = isForcedDevelopmentMode,
+            forwardConsoleLogToLogCat = isForcedDevelopmentMode,
+            mayManageConnections = true,
+            isConnectionManager = true
+        ),
+        ConnectionInfo(
+            url = "file:///android_asset/DemoWebSite/index.html",
+            name = "Demo",
+            forceReloadFromNet = isForcedDevelopmentMode,
+            remoteDebuggerEnabled = isForcedDevelopmentMode,
+            hapticFeedbackOnBarcodeRecognized = true,
+            forwardConsoleLogToLogCat = isForcedDevelopmentMode
+        ),
+        ConnectionInfo(
+            url = "file:///android_asset/SimpleQrScanner/index.html",
+            name = "Simple scanner",
+            forceReloadFromNet = isForcedDevelopmentMode,
+            remoteDebuggerEnabled = isForcedDevelopmentMode,
+            hapticFeedbackOnBarcodeRecognized = true,
             forwardConsoleLogToLogCat = isForcedDevelopmentMode
         )
+    )
+
+    //TODO enumerate assets programmatically to find all index.html
+    //TODO use persistence for per-URL-settings-and-permissions
+    lateinit var currentConnection : ConnectionInfo
+
     val imagesToDecodeQueueSize = 20 //each raw FullHD photo consumes ~6MB. Nexus 5 produces photos every ~40ms and decodes 4 of them in parallel every ~200ms
     val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
     val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for unlikely: E/Camera-JNI: Couldn't allocate byte array for JPEG data
@@ -83,8 +107,18 @@ class App : Application(), CoroutineScope by MainScope() {
         _parallelComputations.close()
     }
 
-    fun initializeConnection(requestedUrl: String) {
-        //TODO retrieve settings from preferences. If missing them, ask user for them
-        currentConnection.url = requestedUrl
+    /**
+     * @return true if created
+     */
+    fun getOrCreateConnectionByUrl(currentUrl: String): Pair<Boolean, ConnectionInfo> {
+        val result = knownConnections.firstOrNull { it.url == currentUrl}
+        //TODO store somewhere information that given connection is persisted (as user asked) or is transient (on unkown URL it should ask for permissions)
+        return if (result == null) Pair(true, ConnectionInfo(url = currentUrl, name = "Unknown")) else Pair(false, result)
     }
+
+    fun getConnectionByUrl(currentUrl: String): ConnectionInfo? = knownConnections.firstOrNull { it.url == currentUrl}
+    fun getConnectionMenuUrl() : ConnectionInfo = knownConnections.first {it.isConnectionManager}
+
+    //TODO unknown connection - need more data, ask connection manager for that
+    fun getConnectionManagerNewUrl(url : String) = getConnectionMenuUrl()
 }

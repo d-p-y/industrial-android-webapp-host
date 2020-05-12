@@ -76,7 +76,7 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHas
             )
 
             App.Instance.navigator.postNavigateTo(
-                NavigationRequest.ConnectionSettings_Save(ConnectionInfo(inputUrl.text.toString())))
+                NavigationRequest.ConnectionSettings_Save(ConnectionInfo(inputUrl.text.toString(), "hardcodedName")))
         }
 
         inputUrl.setText(req.url)

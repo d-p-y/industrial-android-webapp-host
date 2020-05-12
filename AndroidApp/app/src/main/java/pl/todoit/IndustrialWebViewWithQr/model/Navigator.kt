@@ -40,12 +40,7 @@ class Navigator {
 
                     request.act.removePopupFragmentIfNeeded()
 
-                    if (request.maybeRequestedUrl != null) {
-                        App.Instance.initializeConnection(request.maybeRequestedUrl)
-                    }
-
-                    //TODO if no url given (=program not started from shortcut) show known connections menu/list instead
-                    navigateTo(NavigationRequest._Activity_GoToBrowser())
+                    navigateTo(NavigationRequest._Activity_GoToBrowser(request.maybeRequestedUrl))
                 }
                 else -> {
                     Timber.e("_mainActivity may not be null when handling NavigationRequest=$request")
@@ -60,11 +55,22 @@ class Navigator {
                 _mainActivity = null
             }
 
-            is NavigationRequest._Activity_GoToBrowser -> replaceMasterWithWebBrowser(act, App.Instance.currentConnection)
+            is NavigationRequest._Activity_GoToBrowser -> {
+                //TODO if no url given (=program not started from shortcut) show known connections menu/list instead
+
+                val connInfo =
+                    if (request.maybeUrl != null) {
+                        val x = App.Instance.getConnectionByUrl(request.maybeUrl)
+                        if (x == null) App.Instance.getConnectionManagerNewUrl(request.maybeUrl) else x
+                    } else {
+                        App.Instance.getConnectionMenuUrl()
+                    }
+
+                replaceMasterWithWebBrowser(act, connInfo)
+            }
             is NavigationRequest._Toolbar_GoToConnectionSettings -> replaceMasterWithConnectionsSettings(act, App.Instance.currentConnection)
             is NavigationRequest.ConnectionSettings_Save -> {
-                App.Instance.currentConnection = request.connInfo
-                replaceMasterWithWebBrowser(act, App.Instance.currentConnection)
+                replaceMasterWithWebBrowser(act, request.connInfo)
             }
             is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(act, App.Instance.currentConnection)
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
@@ -165,11 +171,12 @@ class Navigator {
             ScanQrFragment().apply {req = Pair(scanReq, overlayImage)} )
 
 
-    private fun replaceMasterWithWebBrowser(act:MainActivity, connInfo: ConnectionInfo) =
+    private fun replaceMasterWithWebBrowser(act:MainActivity, connInfo: ConnectionInfo) {
+        App.Instance.currentConnection = connInfo
         act.replaceMasterFragment(
             WebViewFragment().apply { req = connInfo })
+    }
 
     private fun replaceMasterWithConnectionsSettings(act:MainActivity, connInfo: ConnectionInfo) =
-        act.replaceMasterFragment(
-            ConnectionsSettingsFragment().apply { req = connInfo } )
+        act.replaceMasterFragment(ConnectionsSettingsFragment().apply { req = connInfo })
 }

@@ -27,5 +27,10 @@ interface Window {
     promiseResolvedCallBacks : Map<string, (result:string) => void>;
     promiseRejectedCallBacks : Map<string, (error:string) => void>;
     promiseDisableAutoClean(promiseId : string) : void;
-    promiseClean(promiseId : string) : void;   
+    promiseClean(promiseId : string) : void;
+    
+    /**
+     * private API returning fake mocked data when running outside of WebView
+     */
+    getKnownConnections() : string; 
 }    
