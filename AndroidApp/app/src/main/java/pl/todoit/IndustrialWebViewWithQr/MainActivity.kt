@@ -23,6 +23,7 @@ import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
 import java.io.File
 import java.util.*
+import kotlin.system.exitProcess
 
 enum class OkOrDismissed {
     OK,
@@ -176,10 +177,18 @@ class MainActivity : AppCompatActivity() {
         App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityActivated(this, maybeRequestedUrl))
     }
 
-    private fun saveExceptionToDisk(exc: Throwable) =
+    private fun saveExceptionToDisk(exc: Throwable) {
         File(this.filesDir, "exceptions.txt")
             .appendText(
-                "millisSinceEpoch=${Date().time} exception=${Log.getStackTraceString(exc)}\n")
+                "millisSinceEpoch=${Date().time} exception=${Log.getStackTraceString(exc)}\n"
+            )
+
+        Timber.e(Log.getStackTraceString(exc))
+
+        //app is potentially in invalid state
+        finishAffinity()
+        exitProcess(1)
+    }
 
     override fun onStop() {
         App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityInactivated(this))
