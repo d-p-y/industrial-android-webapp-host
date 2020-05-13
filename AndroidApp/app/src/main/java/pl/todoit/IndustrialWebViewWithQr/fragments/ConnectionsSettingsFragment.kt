@@ -100,10 +100,13 @@ class ConnectionsSettingsFragment : Fragment(), IProcessesBackButtonEvents, IHas
             val x = ShortcutInfoCompat.Builder(act, url).apply {
                 setShortLabel(name)
                 setIcon(IconCompat.createWithResource(act, R.mipmap.ic_launcher))
+
+                //https://developer.android.com/guide/components/activities/tasks-and-back-stack
                 setIntent(
                     Intent(act, MainActivity::class.java).apply {
                         action = Intent.ACTION_MAIN
                         data = Uri.parse(url)
+                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP + Intent.FLAG_ACTIVITY_NEW_TASK
                     })
             }
 
