@@ -66,10 +66,30 @@ interface IAndroid {
     openInBrowser(url : string) : void;
 
     /**
-     * private, sensitive APIs that may only be called from hardcoded URLs. 
-     * Attempt to call it outside of those URLs will fail in unspecified way.
+     * private, sensitive APIs that may only be called if has adequate ConnectionInfo permission
+     * @returns ConnectionInfo[] as JSON. Empty if have no permission
      */
-    getKnownConnections() : string; //returns ConnectionInfo[] as JSON
+    getKnownConnections() : string;
+
+    /**
+     * private, sensitive APIs that may only be called if has adequate ConnectionInfo permission
+     * @returns 'true' if success, 'false' if error or no permission
+     */
+    saveConnection(connInfoAsJson : string) : string;
+
+    /**
+     * private API 
+     * @param url of existing registered connection as returned from getKnownConnections()
+     * @returns 'true' if android didn't refuse request
+     */
+    createShortcut(url : string) : string;
+
+    /**
+     * private API
+     * @param maybe url to navigate to
+     * @returns irrelevant
+     */
+    finishConnectionManager(url : string | null) : string;
 }
 
 interface Window {  

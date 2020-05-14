@@ -5,6 +5,22 @@
             input[type='button'] {
                 min-height: 10mm; /*sausage fingers compatible*/
             }
+            div.createOrEdit {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+            body > div.chooser {
+                display: flex;
+                flex-direction: column;
+                align-items: center;                
+            }
+            body > div.chooser > * {
+                margin-top: 30px;   
+                width: 100%;
+            }
+            body > div.chooser > a {
+                text-align: center;
+            }
         </style>
         <script src="script.js"></script>
     </head>

@@ -1,6 +1,7 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -10,10 +11,8 @@ import android.view.ViewGroup
 import android.webkit.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_web_view.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.builtins.list
-import kotlinx.serialization.json.JsonArraySerializer
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
@@ -41,22 +40,67 @@ sealed class ScannerStateChange {
 
 sealed class SensitiveWebExposedOperation() {
     class GetKnownConnections(val caller : ConnectionInfo?) : SensitiveWebExposedOperation()
+    class SaveConnection(val caller : ConnectionInfo?, val conn:ConnectionInfo) : SensitiveWebExposedOperation()
+    class CreateShortcut(val caller : ConnectionInfo?, val conn:ConnectionInfo?) : SensitiveWebExposedOperation()
+    class FinishConnectionManager(val caller : ConnectionInfo?, val maybeUrl : String?) : SensitiveWebExposedOperation()
 }
 
-fun maybeExecuteSensitiveOperation(inp:SensitiveWebExposedOperation) : String =
+fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperation) : String =
     when(inp) {
         is SensitiveWebExposedOperation.GetKnownConnections ->
             jsonStrict.stringify(
                 ConnectionInfo.serializer().list,
                 if (inp.caller?.mayManageConnections == true) App.Instance.knownConnections.filter { !it.isConnectionManager } else listOf())
+        is SensitiveWebExposedOperation.CreateShortcut ->
+            if (inp.caller?.mayManageConnections == true && inp.conn != null && act != null) {
+                if (App.Instance.createShortcut(act, inp.conn)) "true" else "false"
+            } else "false"
+        is SensitiveWebExposedOperation.SaveConnection ->
+            if (inp.caller?.mayManageConnections == true) {
+                App.Instance.persistConnection(inp.conn)
+                "true"
+            } else "false"
+        is SensitiveWebExposedOperation.FinishConnectionManager ->
+            if (inp.caller?.mayManageConnections == true) {
+                App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_GoToBrowser(inp.maybeUrl))
+                ""
+            } else ""
     }
 
 class WebViewExposedMethods(private var host: WebViewFragment) {
     @JavascriptInterface
+    fun finishConnectionManager(maybeUrl : String) {
+        maybeExecuteSensitiveOperation(
+            host.activity,
+            SensitiveWebExposedOperation.FinishConnectionManager(
+                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url),
+                maybeUrl
+            )
+        )
+    }
+
+    @JavascriptInterface
+    fun createShortcut(url : String) : String =
+        maybeExecuteSensitiveOperation(
+            host.activity,
+            SensitiveWebExposedOperation.CreateShortcut(
+                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url),
+                App.Instance.getConnectionByUrl(url)))
+
+    @JavascriptInterface
     fun getKnownConnections() : String? =
         maybeExecuteSensitiveOperation(
+            host.activity,
             SensitiveWebExposedOperation.GetKnownConnections(
                 App.Instance.getConnectionByUrl(App.Instance.currentConnection.url)))
+
+    @JavascriptInterface
+    fun saveConnection(connInfoAsJson : String) : String? =
+        maybeExecuteSensitiveOperation(
+            host.activity,
+            SensitiveWebExposedOperation.SaveConnection(
+                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url),
+                jsonStrict.parse(ConnectionInfo.serializer(), connInfoAsJson)))
 
     @JavascriptInterface
     fun setPausedScanOverlayImage(fileContent : String) =
@@ -179,7 +223,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?) : Boolean {
                 if (url != null) {
-                    App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(url).second
+                    App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(url)
                 }
 
                 return false //don't start regular browser
@@ -204,8 +248,8 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
         Timber.d("navigating to ${req.url}")
 
-        //as loadUrl doesn't invoke shouldOverrideUrlLoading()
-        App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(req.url).second
+        //next line is needed because loadUrl doesn't invoke shouldOverrideUrlLoading()
+        App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(req.url)
 
         webView.loadUrl(req.url)
 

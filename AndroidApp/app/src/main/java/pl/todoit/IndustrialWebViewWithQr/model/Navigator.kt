@@ -1,11 +1,7 @@
 package pl.todoit.IndustrialWebViewWithQr.model
 
 import kotlinx.coroutines.channels.Channel
-import pl.todoit.IndustrialWebViewWithQr.App
-import pl.todoit.IndustrialWebViewWithQr.MainActivity
-import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
-import pl.todoit.IndustrialWebViewWithQr.OverlayImage
-import pl.todoit.IndustrialWebViewWithQr.fragments.ConnectionsSettingsFragment
+import pl.todoit.IndustrialWebViewWithQr.*
 import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.ScannerStateChange
 import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
@@ -56,23 +52,19 @@ class Navigator {
             }
 
             is NavigationRequest._Activity_GoToBrowser -> {
-                //TODO if no url given (=program not started from shortcut) show known connections menu/list instead
-
                 val connInfo =
                     if (request.maybeUrl != null) {
-                        val x = App.Instance.getConnectionByUrl(request.maybeUrl)
-                        if (x == null) App.Instance.getConnectionManagerNewUrl(request.maybeUrl) else x
+                        App.Instance.getConnectionByUrl(request.maybeUrl)
+                            ?: App.Instance.getConnectionManagerNewUrl(request.maybeUrl)
                     } else {
-                        App.Instance.getConnectionMenuUrl()
+                        App.Instance.getConnectionMenuUrl(ConnectionManagerMode.ConnectionChooser())
                     }
 
                 replaceMasterWithWebBrowser(act, connInfo)
             }
-            is NavigationRequest._Toolbar_GoToConnectionSettings -> replaceMasterWithConnectionsSettings(act, App.Instance.currentConnection)
-            is NavigationRequest.ConnectionSettings_Save -> {
-                replaceMasterWithWebBrowser(act, request.connInfo)
+            is NavigationRequest._Toolbar_GoToConnectionSettings -> {
+                replaceMasterWithWebBrowser(act, App.Instance.getConnectionManagerEditUrl(App.Instance.currentConnection))
             }
-            is NavigationRequest.ConnectionSettings_Back -> replaceMasterWithWebBrowser(act, App.Instance.currentConnection)
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
                 Timber.d("setting scan overlay image")
                 App.Instance.overlayImageOnPause = OverlayImage(request.content)
@@ -170,13 +162,9 @@ class Navigator {
         act.replacePopupFragment(
             ScanQrFragment().apply {req = Pair(scanReq, overlayImage)} )
 
-
     private fun replaceMasterWithWebBrowser(act:MainActivity, connInfo: ConnectionInfo) {
         App.Instance.currentConnection = connInfo
         act.replaceMasterFragment(
             WebViewFragment().apply { req = connInfo })
     }
-
-    private fun replaceMasterWithConnectionsSettings(act:MainActivity, connInfo: ConnectionInfo) =
-        act.replaceMasterFragment(ConnectionsSettingsFragment().apply { req = connInfo })
 }

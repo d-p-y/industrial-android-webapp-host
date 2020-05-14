@@ -33,4 +33,24 @@ interface Window {
      * private API returning fake mocked data when running outside of WebView
      */
     getKnownConnections() : string; 
+
+    /**
+     * private API 
+     * @returns 'true' when running outside of WebView
+     */
+    saveConnection(connInfoAsJson : string) : string;
+
+    /**
+     * private API 
+     * @param url of existing registered connection as returned from getKnownConnections()
+     * @returns 'true' if android didn't refuse request
+     */
+    createShortcut(url : string) : string;
+
+    /**
+     * private API
+     * @param maybe url to navigate to
+     * @returns irrelevant
+     */
+    finishConnectionManager(url : string | null) : string;
 }    

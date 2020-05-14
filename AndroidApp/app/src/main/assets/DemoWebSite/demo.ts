@@ -29,7 +29,7 @@ window.addEventListener('load', (_) => {
         document.body.appendChild(container);
         
         Window.prototype.androidBackConsumed = function () {
-            console?.log("got consume back button request");
+            lblLog.textContent += "got consume back button request\n";
             return checkbox.checked;
         };    
     }

@@ -14,12 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
-import pl.todoit.IndustrialWebViewWithQr.fragments.ConnectionsSettingsFragment
-import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
-import pl.todoit.IndustrialWebViewWithQr.fragments.ScannerStateChange
-import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.*
-import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
 import java.io.File
 import java.util.*
@@ -157,7 +152,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Thread.setDefaultUncaughtExceptionHandler {thread, exc -> saveExceptionToDisk(exc) }
+        Thread.setDefaultUncaughtExceptionHandler { _, exc -> saveExceptionToDisk(exc) }
 
         setContentView(R.layout.activity_main)
 

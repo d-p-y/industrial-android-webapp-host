@@ -7,6 +7,7 @@
 interface HTMLElement {
     removeAllChildren() : void;
     appendChildren(nodes: Node[]) : void;
+    replaceChildrenWith(node: Node) : void;
 }    
 
 HTMLElement.prototype.removeAllChildren = function() : void {
@@ -17,6 +18,11 @@ HTMLElement.prototype.removeAllChildren = function() : void {
 
 HTMLElement.prototype.appendChildren = function(nodes : Node[]) : void {    
     nodes.forEach(x => this.appendChild(x));
+}
+
+HTMLElement.prototype.replaceChildrenWith = function(node: Node) : void {    
+    this.removeAllChildren();
+    this.appendChild(node);
 }
 
 Window.prototype.androidPostReplyToPromise = function (replyToJson : string) {
@@ -279,7 +285,27 @@ Window.prototype.getKnownConnections = function() {
 
     return this.Android.getKnownConnections();
 };
+Window.prototype.saveConnection = function(connInfoJson) {
+    if (this.Android === undefined) {        
+        return "true";
+    }
 
+    return this.Android.saveConnection(connInfoJson);
+};
+Window.prototype.createShortcut = function (url : string) {
+    if (this.Android === undefined) {        
+        return "false";
+    }
+
+    return this.Android.createShortcut(url);
+};
+Window.prototype.finishConnectionManager = function (url : string | null) {
+    if (this.Android === undefined) {        
+        return "false";
+    }
+
+    return this.Android.finishConnectionManager(url);
+};
 
 window.addEventListener('load', (_) => {
     //initialize
