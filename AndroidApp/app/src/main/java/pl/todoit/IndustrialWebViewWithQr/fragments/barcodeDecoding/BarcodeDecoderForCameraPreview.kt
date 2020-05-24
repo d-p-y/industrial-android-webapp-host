@@ -14,6 +14,7 @@ import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.toCloseable
 import timber.log.Timber
+import java.io.Closeable
 import java.util.*
 
 suspend fun <T,U> receiveFromAny(fst: ReceiveChannel<T>, snd : ReceiveChannel<U>) =
@@ -37,7 +38,8 @@ class BarcodeDecoderForCameraPreview(
     private val _postScanBehavior:PauseOrFinish,
     private val _camera: CameraData,
     val notify : suspend (BarcodeDecoderNotification) -> Unit
-) {
+) : Closeable {
+
     private val _barcodeDecoder = EstimatingConsumerWorker(
         { ZxingMultiFormatReader(_barcodeFormats) },
         ::newestFocusedFirst,
@@ -64,6 +66,8 @@ class BarcodeDecoderForCameraPreview(
         }
         App.Instance.launchCoroutine { responseLoop() }
     }
+
+    override fun close() = cancelDecoder()
 
     fun cancelDecoder() {
         Timber.d("received request to cancel decoding")

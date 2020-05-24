@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".fragments.TakePhotoFragment">
+
+    <TextureView
+        android:id="@+id/camSurfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ImageView
+        android:id="@+id/torchToggler"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right|top"
+        android:paddingTop="10dp"
+        android:paddingRight="10dp"
+        android:scaleType="center"
+        android:scaleX="2"
+        android:scaleY="2"
+        app:srcCompat="@drawable/ic_wb_sunny_black" />
+
+    <ImageView
+        android:id="@+id/takePictureAction"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:scaleType="center"
+        app:srcCompat="@drawable/ic_shutter" />
+</FrameLayout>

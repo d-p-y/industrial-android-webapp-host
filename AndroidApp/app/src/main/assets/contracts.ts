@@ -35,6 +35,8 @@ interface AndroidReply {
 }
 
 interface IAndroid {
+    //implicit API: triggering browser's file picker assumes intent to take photo
+
     /**
      * @param promiseId 
      * @param askJsForValidation when true it means that when barcode is detected scanner gets paused and waits until cancelScanQr(promisedId) or resumeScanQr(promisedId) is invoked

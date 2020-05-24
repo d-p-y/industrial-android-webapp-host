@@ -3,6 +3,10 @@ package pl.todoit.IndustrialWebViewWithQr
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -16,6 +20,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
+import java.io.Closeable
 import java.io.File
 import java.util.*
 import kotlin.system.exitProcess
@@ -36,9 +41,40 @@ fun Activity.performHapticFeedback() =
 
 class OverlayImage(val content:ByteArray)
 
+class DelegatingSensorEventListener(val onChanged:(Pair<Float,Float>)->Unit) : SensorEventListener {
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        val ev = event
+        if (ev == null) {
+            Timber.e("null onSensorChanged parameter")
+            return
+        }
+        if (ev.values.size <2) {
+            Timber.e("onSensorChanged expected at least two values")
+            return
+        }
+        onChanged(Pair(ev.values[0], ev.values[1]))
+    }
+}
+
 class MainActivity : AppCompatActivity() {
+    private lateinit var _sm: SensorManager
+    private val _sensorListeners = mutableListOf<Closeable>()
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
+
+    private fun sensorValuesAsRotation(sensorValues : Pair<Float,Float>) =
+        if (sensorValues.first > -6.6 && sensorValues.first < 6.6) {
+            if (sensorValues.second > 0) RightAngleRotation.RotateBy0 else RightAngleRotation.RotateBy180
+        } else if (sensorValues.first <= -6.6) RightAngleRotation.RotateBy90
+        else RightAngleRotation.RotateBy270
+        /* Rotations from natural portrait position (clockwise values). +-6.6 is experimentally for +-45 deg
+            0;9 -> 0 deg
+            -9;0 -> 90deg
+            0;-9 -> 180
+            9;0 -> 270
+        */
 
     fun getCurrentMasterFragment() : Fragment? {
         val result = supportFragmentManager.findFragmentById(R.id.base_fragment)
@@ -135,6 +171,23 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.title = title
     }
 
+    fun setToolbarVisibility(visible : Boolean) {
+        val tb = supportActionBar
+
+        if (tb == null) {
+            Timber.e("no toolbar - cannot change button state")
+            return
+        }
+
+        Timber.e("changing toolbar visibility to $visible")
+
+        if (visible) {
+            tb.show()
+        } else {
+            tb.hide()
+        }
+    }
+
     fun setToolbarBackButtonState(enabled : Boolean) {
         val tb = supportActionBar
 
@@ -162,6 +215,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        _sm = getSystemService(SENSOR_SERVICE) as SensorManager
 
         setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
         setToolbarTitle("Loading...")
@@ -170,6 +224,33 @@ class MainActivity : AppCompatActivity() {
         Timber.i("starting mainActivityNavigator() for url?={$maybeRequestedUrl}")
 
         App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityActivated(this, maybeRequestedUrl))
+    }
+
+    /**
+     * call close on returned object
+     */
+    fun createSensorListener(listener : (RightAngleRotation)->Unit) : Closeable {
+        val result = object : Closeable {
+            private val _sensorListener = DelegatingSensorEventListener { listener(sensorValuesAsRotation(it)) }
+            private var _closed = false
+
+            init {
+                //https://developer.android.com/reference/android/hardware/SensorEvent
+                _sm.registerListener(_sensorListener, _sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL)
+            }
+
+            override fun close() {
+                if (_closed) {
+                    return
+                }
+                _closed = true
+                _sm.unregisterListener(_sensorListener)
+                _sensorListeners.remove(this)
+            }
+        }
+
+        _sensorListeners.add(result)
+        return result
     }
 
     private fun saveExceptionToDisk(exc: Throwable) {
@@ -186,6 +267,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        val cpy = _sensorListeners.toList()
+        _sensorListeners.clear()
+
+        cpy.forEach { it.close() }
+
         App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_MainActivityInactivated(this))
         super.onStop()
     }
@@ -199,11 +285,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun <T> replaceMasterFragment(fragment:T) where T:Fragment, T:IHasTitle {
+    fun <T> replaceMasterFragment(fragment:T) where T:Fragment {
         removeMasterFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment).commit()
 
-        setToolbarTitle(fragment.getTitle())
+        if (fragment is IHasTitle) {
+            setToolbarTitle(fragment.getTitle())
+        }
+
+        if (fragment is ITogglesToolbarVisibility) {
+            setToolbarVisibility(fragment.isToolbarVisible())
+        }
 
         Timber.d("replaceMasterFragment currentMasterFragment=$fragment")
     }
@@ -221,21 +313,26 @@ class MainActivity : AppCompatActivity() {
         if (currentMasterFragment is IHasTitle) {
             setToolbarTitle(currentMasterFragment.getTitle())
         }
+        if (currentMasterFragment is ITogglesToolbarVisibility) {
+            setToolbarVisibility(currentMasterFragment.isToolbarVisible())
+        }
     }
 
     suspend fun <T> replacePopupFragment(fragment:T) : Boolean
-            where T : IProcessesBackButtonEvents, T: Fragment, T:IMaybeHasTitle {
+            where T : IProcessesBackButtonEvents, T: Fragment {
 
         if (fragment is IRequiresPermissions) {
             val failedToGetPermission =
-                fragment.getRequiredAndroidManifestPermissions()
+                fragment.getNeededAndroidManifestPermissions()
                     .map { Pair(it, grantPermission(it)) }
                     .filter { !it.second }
 
             if (failedToGetPermission.any()) {
                 Timber.e("failed to get required permissions (user rejected?)")
-                fragment.onRequiredPermissionRejected(failedToGetPermission.map { it.first })
-                return false
+                when(fragment.onNeededPermissionRejected(failedToGetPermission.map { it.first })) {
+                    PermissionRequestRejected.MayNotOpenFragment -> return false
+                    PermissionRequestRejected.MayOpenFragment -> {}
+                }
             }
         }
 
@@ -265,10 +362,15 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<ViewGroup>(R.id.popup_fragment)?.visibility = View.VISIBLE
 
-        val maybeTitle = fragment.getTitleMaybe()
-        if (maybeTitle != null) {
-            setToolbarTitle(maybeTitle)
+        if (fragment is IMaybeHasTitle) {
+            val maybeTitle = fragment.getTitleMaybe()
+            if (maybeTitle != null) {
+                setToolbarTitle(maybeTitle)
+            }
         }
+
+        setToolbarVisibility(
+            if (fragment is ITogglesToolbarVisibility) fragment.isToolbarVisible() else true)
 
         Timber.d("replacePopupFragment currentPopupFragmentTag=${getCurrentPopupFragment()}")
 

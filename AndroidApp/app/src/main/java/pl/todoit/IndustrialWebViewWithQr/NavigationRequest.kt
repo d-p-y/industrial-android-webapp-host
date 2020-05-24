@@ -1,9 +1,11 @@
 package pl.todoit.IndustrialWebViewWithQr
 
+import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
 import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
 import pl.todoit.IndustrialWebViewWithQr.model.ITogglesBackButtonVisibility
 import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
+import java.io.File
 
 /**
  * convention for form initiated navigation (form requests navigation): Sender_ActionName
@@ -21,6 +23,8 @@ sealed class NavigationRequest {
     class WebBrowser_RequestedScanQr(val req: ScanRequest) : NavigationRequest()
     class WebBrowser_ResumeScanQr(val jsPromiseId: String) : NavigationRequest()
     class WebBrowser_CancelScanQr(val jsPromiseId: String) : NavigationRequest()
+    class WebBrowser_RequestedTakePhoto(val req:SendChannel<File?>) : NavigationRequest()
+    class TakePhoto_Back() : NavigationRequest()
     class ScanQr_Scanned() : NavigationRequest()
     class ScanQr_Back() : NavigationRequest()
 }

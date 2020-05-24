@@ -1,7 +1,11 @@
 package pl.todoit.IndustrialWebViewWithQr.model
 
-interface IRequiresPermissions {
-    fun getRequiredAndroidManifestPermissions() : Array<String>
-    fun onRequiredPermissionRejected(rejectedPerms:List<String>)
+enum class PermissionRequestRejected {
+    MayOpenFragment,
+    MayNotOpenFragment
 }
 
+interface IRequiresPermissions {
+    fun getNeededAndroidManifestPermissions() : Array<String>
+    fun onNeededPermissionRejected(rejectedPerms:List<String>) : PermissionRequestRejected
+}

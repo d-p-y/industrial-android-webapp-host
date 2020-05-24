@@ -12,7 +12,9 @@ data class ConnectionInfo(
     var forwardConsoleLogToLogCat : Boolean = false,
     val hapticFeedbackOnBarcodeRecognized : Boolean = true,
     val mayManageConnections : Boolean = false,
-    val isConnectionManager : Boolean = false
+    val isConnectionManager : Boolean = false,
+    val hapticFeedbackOnAutoFocused : Boolean = true,
+    val photoJpegQuality : Int = 85 //valid range 1-100
 )
 
 //TODO consider using it within implementation of ConnectionInfo.equals()

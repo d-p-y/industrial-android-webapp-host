@@ -1,12 +1,15 @@
 package pl.todoit.IndustrialWebViewWithQr.model
 
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.*
 import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.ScannerStateChange
+import pl.todoit.IndustrialWebViewWithQr.fragments.TakePhotoFragment
 import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
+import java.io.File
 
 class Navigator {
     private var _mainActivity : MainActivity? = null
@@ -62,12 +65,22 @@ class Navigator {
 
                 replaceMasterWithWebBrowser(act, connInfo)
             }
-            is NavigationRequest._Toolbar_GoToConnectionSettings -> {
+            is NavigationRequest._Toolbar_GoToConnectionSettings ->
                 replaceMasterWithWebBrowser(act, App.Instance.getConnectionManagerEditUrl(App.Instance.currentConnection))
-            }
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
                 Timber.d("setting scan overlay image")
                 App.Instance.overlayImageOnPause = OverlayImage(request.content)
+            }
+            is NavigationRequest.WebBrowser_RequestedTakePhoto -> {
+                //TODO see if currently doesn't have another active popup such as barcode scanner
+                replacePopupWithTakePhoto(act, request.req)
+            }
+            is NavigationRequest.TakePhoto_Back -> {
+                if (_mainActivity?.getCurrentPopupFragment() !is TakePhotoFragment) {
+                    Timber.e("current popup doesn't seem to be TakePhotoFragment")
+                    return
+                }
+                act.removePopupFragmentIfNeeded()
             }
             is NavigationRequest.WebBrowser_RequestedScanQr -> {
                 if (_scanPromiseId != null) {
@@ -101,10 +114,12 @@ class Navigator {
                 currentPopup.onReceivedScanningCancellationRequest()
             }
             is NavigationRequest.ScanQr_Scanned -> {
+                //TODO see if current popup is actually ScanQrFragment
                 act.removePopupFragmentIfNeeded()
                 _scanPromiseId = null
             }
             is NavigationRequest.ScanQr_Back -> {
+                //TODO see if current popup is actually ScanQrFragment
                 act.removePopupFragmentIfNeeded()
                 _scanPromiseId = null
             }
@@ -159,12 +174,15 @@ class Navigator {
      * @return true if actually shown. false if request was rejected
      */
     private suspend fun replacePopupWithScanQr(act:MainActivity, scanReq: ScanRequest, overlayImage: OverlayImage?) =
+        act.replacePopupFragment(ScanQrFragment().apply {req = Pair(scanReq, overlayImage)} )
+
+    private suspend fun replacePopupWithTakePhoto(act : MainActivity, request:SendChannel<File>) =
         act.replacePopupFragment(
-            ScanQrFragment().apply {req = Pair(scanReq, overlayImage)} )
+            TakePhotoFragment()
+                .apply {req = request})
 
     private fun replaceMasterWithWebBrowser(act:MainActivity, connInfo: ConnectionInfo) {
         App.Instance.currentConnection = connInfo
-        act.replaceMasterFragment(
-            WebViewFragment().apply { req = connInfo })
+        act.replaceMasterFragment(WebViewFragment().apply { req = connInfo })
     }
 }

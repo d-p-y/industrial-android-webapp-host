@@ -22,6 +22,20 @@ import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
 import java.io.ByteArrayInputStream
 
+
+fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
+    if (toggled) {
+        //enabling
+        torchToggler.setImageResource(R.drawable.ic_wb_sunny_white)
+        torchToggler.alpha = 0.65f
+        return
+    }
+
+    //disabling
+    torchToggler.setImageResource(R.drawable.ic_wb_sunny_black)
+    torchToggler.alpha = 0.4f
+}
+
 class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions,
                        IBeforeNavigationValidation, IMaybeHasTitle {
     private lateinit var _camera: CameraData
@@ -29,9 +43,11 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
     lateinit var req : Pair<ScanRequest,OverlayImage?>
 
-    override fun getRequiredAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
-    override fun onRequiredPermissionRejected(rejectedPerms:List<String>) =
+    override fun getNeededAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
+    override fun onNeededPermissionRejected(rejectedPerms:List<String>) : PermissionRequestRejected {
         App.Instance.navigator.postNavigateTo(NavigationRequest.ScanQr_Back())
+        return PermissionRequestRejected.MayNotOpenFragment
+    }
 
     override fun getTitleMaybe() =
         when(val x = req.first.layoutStrategy) {
@@ -52,7 +68,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
     override suspend fun maybeGetBeforeNavigationError(act: AppCompatActivity) : String? =
-        when(val result = initializeFirstBackFacingCamera(act)) {
+        when(val result = initializeFirstBackFacingCameraWithContinuousFocus(act)) {
             is Result.Error -> result.error
             is Result.Ok -> {
                 _camera = result.value
@@ -71,21 +87,10 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         return backbuttonSupported
     }
 
-    private fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
-        if (toggled) {
-            //enabling
-            torchToggler.setImageResource(R.drawable.ic_wb_sunny_white)
-            torchToggler.alpha = 0.65f
-            return
-        }
-
-        //disabling
-        torchToggler.setImageResource(R.drawable.ic_wb_sunny_black)
-        torchToggler.alpha = 0.4f
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_scan_qr, container, false)
+
+        lifecycle.closeOnDestroy(_camera)
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
         val scannerOverlay = result.findViewById<ImageView>(R.id.scannerOverlay)
@@ -178,9 +183,12 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                             req.first.scanResult.send(ScannerStateChange.Resumed())
                     }
                 })
+        lifecycle.closeOnDestroy(_decoder)
 
         camSurfaceView.surfaceTextureListener = BarcodeDecoderSurfaceTextureListener(_camera, _decoder)
 
         return result
     }
+
+
 }

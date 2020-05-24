@@ -12,7 +12,7 @@ window.addEventListener('load', (_) => {
     document.body.style.display = "flex";
     document.body.style.flexDirection = "column";
 
-    {
+    {   //checkbox backEvent consume
         let container = document.createElement("div");
 
         let checkbox = document.createElement("input");
@@ -34,8 +34,7 @@ window.addEventListener('load', (_) => {
         };    
     }
 
-
-    {
+    {   //checkbox backbutton show
         let container = document.createElement("div");
 
         let checkbox = document.createElement("input");
@@ -55,6 +54,55 @@ window.addEventListener('load', (_) => {
             console?.log("back button enabled="+checkbox.checked);
             window.setToolbarBackButtonState(checkbox.checked);
         });
+    }
+
+    {   //take photo
+        let img = document.createElement("img");
+        img.style.imageOrientation = "from-image";
+        img.style.position = "absolute";
+        img.style.maxWidth = "100vw";
+        img.style.maxHeight = "100vh";
+        img.style.margin = "auto";
+        img.style.left = "0";
+        img.style.top = "0";
+        img.style.right = "0";
+        img.style.bottom = "0";
+        img.addEventListener("click", _ => img.style.display = "none")
+        document.body.appendChild(img);
+        
+    
+        let imgResponseForm = document.createElement("form");
+        let imgResponse = document.createElement("input");    
+        imgResponse.type = "file";
+        imgResponse.style.display = "none";
+        imgResponse.addEventListener("change", _ => {
+            if (imgResponse.files?.length != 1) {
+                return;
+            }
+    
+            let fr = new FileReader();
+            fr.onload = ev => {
+                let x = ev.target?.result;
+                if (typeof x !== typeof "") {
+                    console?.log("file was not read as dataURL");
+                    return;
+                }            
+                img.src = x as string;
+                img.style.display = "initial";
+                imgResponseForm.reset();//prepare for next requests
+            };
+            fr.readAsDataURL(imgResponse?.files[0])
+        });
+    
+        imgResponseForm.appendChild(imgResponse);
+        document.body.appendChild(imgResponseForm);
+    
+        let imgReq = document.createElement("input");
+        imgReq.type = "button";
+        imgReq.value = "Take photo";
+        document.body.appendChild(imgReq);
+    
+        imgReq.addEventListener("click", () => imgResponse.click());
     }
 
     {
@@ -232,6 +280,6 @@ window.addEventListener('load', (_) => {
     document.body.appendChild(btnChangeTitle);
     
     document.body.appendChild(lblLog);
-
+    
     window.setTitle("Showcase app");
 });        

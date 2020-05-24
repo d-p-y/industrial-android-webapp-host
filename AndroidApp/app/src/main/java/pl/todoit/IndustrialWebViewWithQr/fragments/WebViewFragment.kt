@@ -12,6 +12,8 @@ import android.webkit.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.receiveOrNull
+import kotlinx.coroutines.delay
 import kotlinx.serialization.builtins.list
 import pl.todoit.IndustrialWebViewWithQr.App
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
@@ -19,6 +21,7 @@ import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.ProcessorSuccess
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
+import java.io.File
 
 fun String.escapeJsonForWebView() = replace("\"", "\\\"")
 
@@ -196,7 +199,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
 
 val trues = arrayOf("true")
 
-class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IProcessesBackButtonEvents {
+class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IProcessesBackButtonEvents, ITogglesToolbarVisibility {
     lateinit var req : ConnectionInfo
 
     private var _currentTitle : String = "Untitled WebApp"
@@ -231,10 +234,37 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         }
         webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
 
-        if (req.forwardConsoleLogToLogCat == true) {
+        if (req.forwardConsoleLogToLogCat) {
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(msg: ConsoleMessage?): Boolean {
                     Timber.d("received console.log: ${msg?.sourceId()}:${msg?.lineNumber()} ${msg?.message()}")
+                    return true
+                }
+
+                override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?) : Boolean {
+                    if (filePathCallback == null) {
+                        Timber.d("onShowFileChooser() got null filePathCallback")
+                        return false
+                    }
+
+                    App.Instance.launchCoroutine {
+                        val req = Channel<File?>()
+                        App.Instance.navigator.navigateTo(NavigationRequest.WebBrowser_RequestedTakePhoto(req))
+
+                        when(val x = req.receiveOrNull()) {
+                            is File -> {
+                                //val pth = Uri.parse("file:///data/data/pl.todoit.IndustrialWebViewWithQr/files/needrotate.jpg")
+                                val rawPath = x.absolutePath
+                                val uriPath = Uri.parse("file://"+rawPath)
+                                Timber.d("onShowFileChooser() got rawPath=$rawPath that was converted to uriPath=$uriPath")
+                                filePathCallback.onReceiveValue(arrayOf(uriPath))
+                            }
+                            else -> {
+                                Timber.d("onShowFileChooser() got cancellation")
+                                filePathCallback.onReceiveValue(arrayOf())
+                            }
+                        }
+                    }
                     return true
                 }
             }
@@ -242,7 +272,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
         WebView.setWebContentsDebuggingEnabled(req.remoteDebuggerEnabled == true)
 
-        if (req.forceReloadFromNet == true) {
+        if (req.forceReloadFromNet) {
             webView.clearCache(true)
         }
 
@@ -279,4 +309,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         _currentTitle = currentTitle
         App.Instance.navigator.postNavigateTo(NavigationRequest._ToolbarTitleChanged(this))
     }
+
+    //TODO implement web API to toggle it (needing ConnectionInfo permission being true by default)
+    override fun isToolbarVisible(): Boolean = true
 }

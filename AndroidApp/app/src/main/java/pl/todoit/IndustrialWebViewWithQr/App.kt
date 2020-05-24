@@ -32,13 +32,31 @@ class App : Application(), CoroutineScope by MainScope() {
     }
 
     private lateinit var _parallelComputations : ExecutorCoroutineDispatcher
-    val isForcedDevelopmentMode = true
-    val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
-    val permitNoContinousFocusInCamera = isRunningInEmulator
+
     val navigator = Navigator()
     var maxComputationsAtOnce = 0
+    var overlayImageOnPause : OverlayImage? = null
+    private var _jpegTempFileNo = 0
 
-    var builtinConnections = listOf(
+    lateinit var knownConnections : MutableList<ConnectionInfo>
+
+    //consider enumerating assets programmatically to find all index.html
+    //TODO use persistence for per-URL-settings-and-permissions
+    lateinit var currentConnection : ConnectionInfo
+
+    val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
+
+    //TODO: encapsulate following variables as "global settings" adjustable somewhere
+    val isForcedDevelopmentMode = true
+    val permitNoContinousFocusInCamera = isRunningInEmulator
+    val tempJpegFilesRotateAt = 10
+    val imagesToDecodeQueueSize = 20 //each raw FullHD photo consumes ~6MB. Nexus 5 produces photos every ~40ms and decodes 4 of them in parallel every ~200ms
+    val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
+    val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for unlikely: E/Camera-JNI: Couldn't allocate byte array for JPEG data
+
+    private val connectionInfosFileName = "connectionInfos.json"
+
+    fun getBuiltinConnections() = listOf(
         ConnectionInfo(
             persisted = false,
             url = "file:///android_asset/ConnectionsManager/index.html",
@@ -66,24 +84,20 @@ class App : Application(), CoroutineScope by MainScope() {
             remoteDebuggerEnabled = isForcedDevelopmentMode,
             hapticFeedbackOnBarcodeRecognized = true,
             forwardConsoleLogToLogCat = isForcedDevelopmentMode
-        )
-    )
-    lateinit var knownConnections : MutableList<ConnectionInfo>
+        ))
 
-    //consider enumerating assets programmatically to find all index.html
-    //TODO use persistence for per-URL-settings-and-permissions
-    lateinit var currentConnection : ConnectionInfo
+    fun buildJpegFilePath() : String {
+        if (cacheDir == null) {
+            throw Exception("cacheDir is not available yet. Is App created?")
+        }
 
-    val imagesToDecodeQueueSize = 20 //each raw FullHD photo consumes ~6MB. Nexus 5 produces photos every ~40ms and decodes 4 of them in parallel every ~200ms
-    val decodeAtLeastOnceEveryMs = 1000 //unlikely needed
-    val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for unlikely: E/Camera-JNI: Couldn't allocate byte array for JPEG data
-
-    var overlayImageOnPause : OverlayImage? = null
-
-    private val connectionInfosFileName = "connectionInfos.json"
+        val result = File(cacheDir, "photo_${_jpegTempFileNo++}.jpg").absolutePath
+        Timber.e("generated jpegFilePath set to $result")
+        return result
+    }
 
     private fun maybeReadPersistedKnownConnections() : List<ConnectionInfo>? {
-        val f = File(this.filesDir, connectionInfosFileName)
+        val f = File(filesDir, connectionInfosFileName)
 
         return if (f.exists()) {
             try {
@@ -166,7 +180,7 @@ class App : Application(), CoroutineScope by MainScope() {
         Instance = this
 
         //if executed as field initializer it fails because context.getFilesDir() fails
-        knownConnections = maybeReadPersistedKnownConnections()?.toMutableList() ?: builtinConnections.toMutableList()
+        knownConnections = maybeReadPersistedKnownConnections()?.toMutableList() ?: getBuiltinConnections().toMutableList()
 
         launchCoroutine {
             navigator.startMainNavigatorLoop()
