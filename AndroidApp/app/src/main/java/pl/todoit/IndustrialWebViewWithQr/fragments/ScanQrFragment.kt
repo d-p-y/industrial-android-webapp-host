@@ -18,6 +18,7 @@ import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeDecode
 import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.BarcodeDecoderNotification
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import pl.todoit.IndustrialWebViewWithQr.model.Result
+import pl.todoit.IndustrialWebViewWithQr.model.extensions.closeOnDestroy
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
 import java.io.ByteArrayInputStream

@@ -47,6 +47,7 @@ class App : Application(), CoroutineScope by MainScope() {
     val isRunningInEmulator = Build.PRODUCT.toLowerCase().contains("sdk")
 
     //TODO: encapsulate following variables as "global settings" adjustable somewhere
+    val playPictureTakenSound = true
     val isForcedDevelopmentMode = true
     val permitNoContinousFocusInCamera = isRunningInEmulator
     val tempJpegFilesRotateAt = 10

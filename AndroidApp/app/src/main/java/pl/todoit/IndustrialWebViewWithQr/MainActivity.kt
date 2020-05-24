@@ -7,6 +7,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -19,6 +21,7 @@ import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.model.*
+import pl.todoit.IndustrialWebViewWithQr.model.extensions.playOnce
 import timber.log.Timber
 import java.io.Closeable
 import java.io.File
@@ -41,6 +44,10 @@ fun Activity.performHapticFeedback() =
 
 class OverlayImage(val content:ByteArray)
 
+enum class SndItem {
+    PictureTaken
+}
+
 class DelegatingSensorEventListener(val onChanged:(Pair<Float,Float>)->Unit) : SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
@@ -61,6 +68,10 @@ class DelegatingSensorEventListener(val onChanged:(Pair<Float,Float>)->Unit) : S
 class MainActivity : AppCompatActivity() {
     private lateinit var _sm: SensorManager
     private val _sensorListeners = mutableListOf<Closeable>()
+
+    private lateinit var _sndPool: SoundPool
+    private var _sndCameraClickId : Int = 0
+
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
 
@@ -213,12 +224,25 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(toolBar)
     }
 
+    fun playSound(sndItem:SndItem) {
+        _sndPool.playOnce(when(sndItem) {
+            SndItem.PictureTaken -> _sndCameraClickId
+        })
+    }
+
     override fun onStart() {
         super.onStart()
         _sm = getSystemService(SENSOR_SERVICE) as SensorManager
 
         setToolbarBackButtonState(false) //webapp may support it but this seems to be the sane default
         setToolbarTitle("Loading...")
+
+        _sndPool = SoundPool
+            .Builder()
+            .setAudioAttributes(AudioAttributes.Builder().build())
+            .setMaxStreams(2)
+            .build()
+        _sndCameraClickId = _sndPool.load("/system/media/audio/ui/camera_click.ogg", 1 /*unused param*/)
 
         val maybeRequestedUrl = intent.dataString
         Timber.i("starting mainActivityNavigator() for url?={$maybeRequestedUrl}")
@@ -269,6 +293,8 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         val cpy = _sensorListeners.toList()
         _sensorListeners.clear()
+
+        _sndPool.release()
 
         cpy.forEach { it.close() }
 

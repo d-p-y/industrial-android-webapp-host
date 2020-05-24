@@ -3,8 +3,8 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.Manifest
-import android.graphics.ImageFormat
 import android.graphics.YuvImage
+import android.media.SoundPool
 import android.os.Bundle
 import android.view.*
 import android.widget.ImageView
@@ -18,24 +18,11 @@ import kotlinx.coroutines.channels.SendChannel
 import pl.todoit.IndustrialWebViewWithQr.*
 import pl.todoit.IndustrialWebViewWithQr.fragments.photoTaking.PhotoTakerSurfaceTextureListener
 import pl.todoit.IndustrialWebViewWithQr.model.*
+import pl.todoit.IndustrialWebViewWithQr.model.extensions.closeOnDestroy
 import timber.log.Timber
 import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
-
-fun Lifecycle.addOnDestroyListener(callOnDestroy : ()->Unit) {
-    addObserver(object : LifecycleObserver {
-        @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-        fun onDestroy() =  callOnDestroy()
-    })
-}
-
-fun Lifecycle.closeOnDestroy(vararg toClosesOnDestroy : Closeable) {
-    addObserver(object : LifecycleObserver {
-        @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-        fun onDestroy() = toClosesOnDestroy.forEach { it.close() }
-    })
-}
 
 fun rightAngleToMaybeExifOrientation(angle:RightAngleRotation) =
     when(angle) {
@@ -114,6 +101,7 @@ class TakePhotoFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermi
         }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        lifecycle.closeOnDestroy(_camera)
         container?.setPadding(0, 0, 0, 0) //to reset former request (if there was any)
         val result = inflater.inflate(R.layout.fragment_take_photo, container, false)
         val act = activity
@@ -124,7 +112,7 @@ class TakePhotoFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermi
         }
 
         _sensorListener = act.createSensorListener { _orientation = it }
-        lifecycle.closeOnDestroy(_sensorListener, _camera)
+        lifecycle.closeOnDestroy(_sensorListener)
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
         val torchToggler = result.findViewById<ImageView>(R.id.torchToggler)
@@ -144,9 +132,11 @@ class TakePhotoFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermi
             Timber.d("taking picture")
 
             _camera.camera.setOneShotPreviewCallback { data, _ ->
-                //TODO play default android take-picture-sound here if that is user preference
-
                 App.Instance.launchCoroutine {
+                    if (App.Instance.playPictureTakenSound) {
+                        act.playSound(SndItem.PictureTaken)
+                    }
+
                     App.Instance.navigator.navigateTo(NavigationRequest.TakePhoto_Back())
                 }
 
