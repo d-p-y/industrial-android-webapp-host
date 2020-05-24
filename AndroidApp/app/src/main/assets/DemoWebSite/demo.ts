@@ -2,6 +2,7 @@
 
 window.addEventListener('load', (_) => {
     window.setPausedScanOverlayImage("test.png");
+    window.setScanSuccessSound("store_scanner_beep.mp3");
 
     let lblLog = document.createElement("div");
     lblLog.style.whiteSpace = "pre";
