@@ -247,6 +247,30 @@ Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
     console?.log("back button is now " + (isEnabled ? "enabled" : "disabled"));
 }
 
+Window.prototype.setScanSuccessSound = function (scanSuccessSoundUrl) {
+    if (this.Android === undefined) {
+        console?.log("setPausedScanOverlayImage ignoring because doesn't run within android");
+        return;
+    }
+
+    let scanSuccessSoundReq = new XMLHttpRequest();       
+    scanSuccessSoundReq.open("GET", scanSuccessSoundUrl, true);
+    scanSuccessSoundReq.responseType = "arraybuffer";
+
+    scanSuccessSoundReq.onload = (_) => {
+        let arrayBuffer : ArrayBuffer|null = scanSuccessSoundReq.response;
+
+        if (arrayBuffer == null) {
+            console?.log("got empty arrayBuffer");
+            return;
+        }
+
+        let fileContent = new Uint8Array(arrayBuffer).toString();
+        window.Android.setScanSuccessSound(fileContent);
+    };
+    scanSuccessSoundReq.send(null);
+}
+
 Window.prototype.setPausedScanOverlayImage = function (pausedScanOverlayImageUrl) {
     if (this.Android === undefined) {
         console?.log("setPausedScanOverlayImage ignoring because doesn't run within android");
@@ -270,6 +294,7 @@ Window.prototype.setPausedScanOverlayImage = function (pausedScanOverlayImageUrl
     };
     isValidatingImageReq.send(null);
 }
+
 Window.prototype.openInBrowser = function (url : string) {
     if (this.Android === undefined) {
         window.open(url, '_blank')

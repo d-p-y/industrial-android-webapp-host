@@ -54,12 +54,17 @@ interface IAndroid {
      * resumes paused validable request. Validable is the one requested using requestScanQr(askJsForValidation=true)
      */
     resumeScanQr(promiseId : string) : void;
-    
+
+    /**
+     * set scan success sound
+     * @param fileContent comma separated ints that are valid unsigned bytes
+     */
+    setScanSuccessSound(fileContent : string) : void;
+
     /**
      * set image drawn on top of camera scanner preview when scanning is paused
      * @param fileContent comma separated ints that are valid unsigned bytes
      */
-
     setPausedScanOverlayImage(fileContent : string) : void;
 
     showToast(label : string, longDuration : boolean) : void;

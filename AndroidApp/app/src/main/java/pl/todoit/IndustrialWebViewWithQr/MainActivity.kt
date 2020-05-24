@@ -45,7 +45,8 @@ fun Activity.performHapticFeedback() =
 class OverlayImage(val content:ByteArray)
 
 enum class SndItem {
-    PictureTaken
+    PictureTaken,
+    ScanSuccess
 }
 
 class DelegatingSensorEventListener(val onChanged:(Pair<Float,Float>)->Unit) : SensorEventListener {
@@ -70,7 +71,8 @@ class MainActivity : AppCompatActivity() {
     private val _sensorListeners = mutableListOf<Closeable>()
 
     private lateinit var _sndPool: SoundPool
-    private var _sndCameraClickId : Int = 0
+    private var _sndCameraClickId : Int? = null
+    private var _sndScanSuccessId : Int? = null
 
     private var permissionRequestCode = 0
     private val permissionRequestToIsGrantedReplyChannel : MutableMap<Int, Channel<Pair<String,Boolean>>> = mutableMapOf()
@@ -225,9 +227,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun playSound(sndItem:SndItem) {
-        _sndPool.playOnce(when(sndItem) {
+        val maybeSnd = when(sndItem) {
             SndItem.PictureTaken -> _sndCameraClickId
-        })
+            SndItem.ScanSuccess -> _sndScanSuccessId
+        }
+        if (maybeSnd == null) {
+            Timber.d("sound $sndItem is null (not loaded?)")
+            return
+        }
+        _sndPool.playOnce(maybeSnd)
     }
 
     override fun onStart() {
@@ -404,4 +412,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() = App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_Back())
+
+    fun updateSoundSuccessScan() {
+        val _sndScanSuccessIdCopy = _sndScanSuccessId
+        if (_sndScanSuccessIdCopy != null) {
+            _sndPool.unload(_sndScanSuccessIdCopy)
+        }
+
+        _sndScanSuccessId = _sndPool.load(App.Instance.getScanSuccessSoundFilePath().absolutePath, 1 /*unused param*/)
+    }
 }

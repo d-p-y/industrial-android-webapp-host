@@ -56,6 +56,7 @@ class App : Application(), CoroutineScope by MainScope() {
     val expectPictureTakenAtLeastAfterMs : Long = 300 //workaround for unlikely: E/Camera-JNI: Couldn't allocate byte array for JPEG data
 
     private val connectionInfosFileName = "connectionInfos.json"
+    private val scanSuccessSoundFileName = "successScanSound"
 
     fun getBuiltinConnections() = listOf(
         ConnectionInfo(
@@ -180,6 +181,8 @@ class App : Application(), CoroutineScope by MainScope() {
 
         Instance = this
 
+        cleanSoundSuccessScanIfNeeded()
+
         //if executed as field initializer it fails because context.getFilesDir() fails
         knownConnections = maybeReadPersistedKnownConnections()?.toMutableList() ?: getBuiltinConnections().toMutableList()
 
@@ -231,4 +234,18 @@ class App : Application(), CoroutineScope by MainScope() {
 
     fun getConnectionManagerNewUrl(url : String) = getConnectionMenuUrl(ConnectionManagerMode.NewConnection(url))
     fun getConnectionManagerEditUrl(ci : ConnectionInfo) = getConnectionMenuUrl(ConnectionManagerMode.EditConnection(ci))
+
+    private fun cleanSoundSuccessScanIfNeeded() {
+        var f = getScanSuccessSoundFilePath()
+        if (f.exists()) {
+            f.delete()
+        }
+    }
+
+    fun setSoundSuccessScan(content: ByteArray) {
+        var f = getScanSuccessSoundFilePath()
+        f.writeBytes(content)
+    }
+
+    fun getScanSuccessSoundFilePath() = File(filesDir, scanSuccessSoundFileName)
 }

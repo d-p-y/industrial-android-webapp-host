@@ -91,6 +91,12 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         var result = inflater.inflate(R.layout.fragment_scan_qr, container, false)
 
+        val act = activity
+        if (act !is MainActivity) {
+            Timber.e("not running within MainActivity")
+            return null
+        }
+
         lifecycle.closeOnDestroy(_camera)
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
@@ -108,14 +114,14 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
         val overlayImg = req.second
-        val screenDensityDpi = activity?.resources?.displayMetrics?.densityDpi
+        val screenDensityDpi = act.resources?.displayMetrics?.densityDpi
 
         if (overlayImg != null && scannerOverlay != null && screenDensityDpi != null) {
             val img = ByteArrayInputStream(overlayImg.content)
             val bmp = BitmapFactory.decodeStream(img).apply { density = screenDensityDpi }
 
             scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active (hide early to avoid flicker)
-            scannerOverlay.setImageDrawable(BitmapDrawable(activity?.resources, bmp))
+            scannerOverlay.setImageDrawable(BitmapDrawable(act.resources, bmp))
 
             App.Instance.launchCoroutine {
                 Timber.d("show/hide overview image listener - starting")
@@ -166,8 +172,10 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                     when(it) {
                         is BarcodeDecoderNotification.GotBarcode -> {
                             if (App.Instance.currentConnection.hapticFeedbackOnBarcodeRecognized) {
-                                activity?.performHapticFeedback()
+                                act.performHapticFeedback()
                             }
+
+                            act.playSound(SndItem.ScanSuccess)
 
                             req.first.scanResult.send(ScannerStateChange.Scanned(it.decodedBarcode))
                             if (!it.expectMoreMessages) {
@@ -190,6 +198,4 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
         return result
     }
-
-
 }

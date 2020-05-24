@@ -106,6 +106,12 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                 jsonStrict.parse(ConnectionInfo.serializer(), connInfoAsJson)))
 
     @JavascriptInterface
+    fun setScanSuccessSound(fileContent : String) =
+        App.Instance.navigator.postNavigateTo(
+            NavigationRequest.WebBrowser_SetScanSuccessSound(
+                fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray()))
+
+    @JavascriptInterface
     fun setPausedScanOverlayImage(fileContent : String) =
         App.Instance.navigator.postNavigateTo(
             NavigationRequest.WebBrowser_SetScanOverlayImage(

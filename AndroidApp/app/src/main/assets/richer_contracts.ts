@@ -13,8 +13,10 @@ interface Window {
      * @returns function requesting android to cancel scanning
      */
     scanQrValidatableAndCancellable(layoutData : contracts.LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>), onCancellation : () => void ) : (() => void);
+    
+    setScanSuccessSound(fromUrl:string) : void;
     setPausedScanOverlayImage(fromUrl:string) : void;
-
+    
     showToast(label : string, longDuration : boolean) : void;
     setTitle(title : string) : void;
     setToolbarBackButtonState(isEnabled : boolean) : void;

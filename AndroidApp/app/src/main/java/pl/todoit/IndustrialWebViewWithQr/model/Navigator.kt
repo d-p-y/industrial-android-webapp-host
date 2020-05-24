@@ -67,6 +67,11 @@ class Navigator {
             }
             is NavigationRequest._Toolbar_GoToConnectionSettings ->
                 replaceMasterWithWebBrowser(act, App.Instance.getConnectionManagerEditUrl(App.Instance.currentConnection))
+            is NavigationRequest.WebBrowser_SetScanSuccessSound -> {
+                Timber.d("setting scan success sound")
+                App.Instance.setSoundSuccessScan(request.content)
+                act.updateSoundSuccessScan()
+            }
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
                 Timber.d("setting scan overlay image")
                 App.Instance.overlayImageOnPause = OverlayImage(request.content)
