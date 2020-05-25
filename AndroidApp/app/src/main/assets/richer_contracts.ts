@@ -17,8 +17,7 @@ interface Window {
     setScanSuccessSound(fromUrl:string) : void;
     setPausedScanOverlayImage(fromUrl:string) : void;
     
-    showToast(label : string, longDuration : boolean) : void;
-    setTitle(title : string) : void;
+    showToast(label : string, longDuration : boolean) : void;    
     setToolbarBackButtonState(isEnabled : boolean) : void;
     openInBrowser(url : string) : void;
 

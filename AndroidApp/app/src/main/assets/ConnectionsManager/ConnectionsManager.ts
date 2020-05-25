@@ -15,7 +15,7 @@ class ConnectionInfo {
 }
 
 function createShortcutForm(onBack : (() => void)) : Node {
-    window.setTitle("Create shortcut");
+    document.title = "Create shortcut";
     window.setToolbarBackButtonState(true);
     window.androidBackConsumed = () => {
         onBack();
@@ -50,7 +50,7 @@ function createShortcutForm(onBack : (() => void)) : Node {
 }
 
 function createConnectionChooserForm(activateNewConnectionScreen : (() => void), activateCreateShortcutScreen : (() => void)) : Node {
-    window.setTitle("Connect to");    
+    document.title = "Connect to";
     window.setToolbarBackButtonState(false);
     window.androidBackConsumed = () => false;
 
@@ -99,7 +99,7 @@ function createConnectionChooserForm(activateNewConnectionScreen : (() => void),
 }
 
 function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone : ((url:string) => void), ci : ConnectionInfo) : Node {
-    window.setTitle(ci.persisted ? "Edit connection" : "New connection");
+    document.title = ci.persisted ? "Edit connection" : "New connection";
     window.setToolbarBackButtonState(onBack != null);
     window.androidBackConsumed = () => {
         if (onBack != null) {

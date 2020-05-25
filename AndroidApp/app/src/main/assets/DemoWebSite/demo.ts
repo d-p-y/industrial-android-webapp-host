@@ -292,7 +292,7 @@ window.addEventListener('load', (_) => {
     btnChangeTitle.type = "button";
     btnChangeTitle.value = "Change title";
     btnChangeTitle.onclick = () => {
-        window.setTitle("some title #" + new Date().getMilliseconds());
+        document.title = "some title #" + new Date().getMilliseconds();
         persistState();
     };
     document.body.appendChild(btnChangeTitle);
@@ -300,14 +300,14 @@ window.addEventListener('load', (_) => {
     document.body.appendChild(lblLog);
     
     getStateAsJson = () => JSON.stringify([lblLog.textContent, document.title]);
-
-    window.setTitle("Showcase app");
-
+   
     let iFrag = document.location.href.indexOf("#");
     if (iFrag >= 0) {        
         let fromJson : [string, string] = JSON.parse(decodeURIComponent(document.location.href.substring(iFrag+1)))
         console?.log("got state: restoring it: "+ fromJson[0])
         lblLog.textContent = fromJson[0];
-        window.setTitle(fromJson[1]);
+        document.title = fromJson[1];
+    } else {
+        document.title = "Showcase app";
     }
 });        

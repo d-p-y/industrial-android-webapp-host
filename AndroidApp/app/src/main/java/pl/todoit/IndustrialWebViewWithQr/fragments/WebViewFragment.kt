@@ -135,9 +135,6 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
     fun setToolbarBackButtonState(state: Boolean) = host.onBackButtonStateChanged(state)
 
     @JavascriptInterface
-    fun setTitle(currentTitle: String) = host.onTitleChanged(currentTitle)
-
-    @JavascriptInterface
     fun showToast(text : String, durationLong: Boolean) =
         Toast.makeText(host.activity, text, if (durationLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
 
@@ -245,43 +242,49 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         }
         webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
 
-        if (req.forwardConsoleLogToLogCat) {
-            webView.webChromeClient = object : WebChromeClient() {
-                override fun onConsoleMessage(msg: ConsoleMessage?): Boolean {
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(msg: ConsoleMessage?): Boolean {
+                if (req.forwardConsoleLogToLogCat) {
                     Timber.d("received console.log: ${msg?.sourceId()}:${msg?.lineNumber()} ${msg?.message()}")
-                    return true
+                }
+                return true
+            }
+
+            override fun onReceivedTitle(view: WebView?, title: String?) {
+                super.onReceivedTitle(view, title)
+                onTitleChanged(title ?: "")
+            }
+
+            override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?) : Boolean {
+                if (!App.Instance.currentConnection.hasPermissionToTakePhoto) {
+                    Timber.d("connection doesn't have permission to take photo")
+                    return false
                 }
 
-                override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?) : Boolean {
-                    if (!App.Instance.currentConnection.hasPermissionToTakePhoto) {
-                        Timber.d("connection doesn't have permission to take photo")
-                        return false
-                    }
+                if (filePathCallback == null) {
+                    Timber.d("onShowFileChooser() got null filePathCallback")
+                    return false
+                }
 
-                    if (filePathCallback == null) {
-                        Timber.d("onShowFileChooser() got null filePathCallback")
-                        return false
-                    }
+                App.Instance.launchCoroutine {
+                    val req = Channel<File?>()
+                    App.Instance.navigator.navigateTo(NavigationRequest.WebBrowser_RequestedTakePhoto(req))
 
-                    App.Instance.launchCoroutine {
-                        val req = Channel<File?>()
-                        App.Instance.navigator.navigateTo(NavigationRequest.WebBrowser_RequestedTakePhoto(req))
-
-                        when(val x = req.receiveOrNull()) {
-                            is File -> {
-                                val rawPath = x.absolutePath
-                                val uriPath = Uri.parse("file://"+rawPath)
-                                Timber.d("onShowFileChooser() got rawPath=$rawPath that was converted to uriPath=$uriPath")
-                                filePathCallback.onReceiveValue(arrayOf(uriPath))
-                            }
-                            else -> {
-                                Timber.d("onShowFileChooser() got cancellation")
-                                filePathCallback.onReceiveValue(arrayOf())
-                            }
+                    when(val x = req.receiveOrNull()) {
+                        is File -> {
+                            val rawPath = x.absolutePath
+                            val uriPath = Uri.parse("file://"+rawPath)
+                            Timber.d("onShowFileChooser() got rawPath=$rawPath that was converted to uriPath=$uriPath")
+                            filePathCallback.onReceiveValue(arrayOf(uriPath))
+                        }
+                        else -> {
+                            Timber.d("onShowFileChooser() got cancellation")
+                            filePathCallback.onReceiveValue(arrayOf())
                         }
                     }
-                    return true
                 }
+                return true
             }
         }
 

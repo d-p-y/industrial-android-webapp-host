@@ -230,14 +230,6 @@ Window.prototype.showToast = function(label : string, longDuration : boolean) : 
     this.Android.showToast(label, longDuration);
 }
 
-Window.prototype.setTitle = function (title : string) {
-    document.title = title;
-
-    if (this.Android !== undefined) {
-        this.Android.setTitle(title);
-    }
-}
-
 Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
     if (this.Android !== undefined) {
         this.Android.setToolbarBackButtonState(isEnabled);

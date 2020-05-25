@@ -39,6 +39,8 @@ interface IAndroid {
 
     //implicit API: URL fragment element ( proto://site:port/path?query#fragment ) is understood as persistent state that webapp wants to be preserved between run times
 
+    //implicit API: changing title is noticed and propagated as AppBar title
+
     /**
      * @param promiseId 
      * @param askJsForValidation when true it means that when barcode is detected scanner gets paused and waits until cancelScanQr(promisedId) or resumeScanQr(promisedId) is invoked
@@ -69,8 +71,7 @@ interface IAndroid {
      */
     setPausedScanOverlayImage(fileContent : string) : void;
 
-    showToast(label : string, longDuration : boolean) : void;
-    setTitle(title : string) : void;
+    showToast(label : string, longDuration : boolean) : void;    
     setToolbarBackButtonState(isEnabled : boolean) : void;
     openInBrowser(url : string) : void;
 

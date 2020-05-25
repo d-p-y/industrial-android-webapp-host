@@ -75,5 +75,5 @@ window.addEventListener('load', (_) => {
     } );
     document.body.appendChild(btnScanQr);
 
-    window.setTitle("Simple QR scanner");
+    document.title = "Simple QR scanner";
 });        
