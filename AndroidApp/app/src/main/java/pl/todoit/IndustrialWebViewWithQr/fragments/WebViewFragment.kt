@@ -13,9 +13,12 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.receiveOrNull
+import kotlinx.coroutines.channels.sendBlocking
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.list
 import pl.todoit.IndustrialWebViewWithQr.App
+import pl.todoit.IndustrialWebViewWithQr.MainActivity
 import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
 import pl.todoit.IndustrialWebViewWithQr.R
 import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.ProcessorSuccess
@@ -41,11 +44,11 @@ sealed class ScannerStateChange {
     class Cancelled() : ScannerStateChange()
 }
 
-sealed class SensitiveWebExposedOperation() {
-    class GetKnownConnections(val caller : ConnectionInfo?) : SensitiveWebExposedOperation()
-    class SaveConnection(val caller : ConnectionInfo?, val conn:ConnectionInfo) : SensitiveWebExposedOperation()
-    class CreateShortcut(val caller : ConnectionInfo?, val conn:ConnectionInfo?) : SensitiveWebExposedOperation()
-    class FinishConnectionManager(val caller : ConnectionInfo?, val maybeUrl : String?) : SensitiveWebExposedOperation()
+sealed class SensitiveWebExposedOperation(val caller : ConnectionInfo? = App.Instance.getConnectionByUrl(App.Instance.currentConnection.url)) {
+    class GetKnownConnections() : SensitiveWebExposedOperation()
+    class SaveConnection(val conn:ConnectionInfo) : SensitiveWebExposedOperation()
+    class CreateShortcut(val conn:ConnectionInfo?) : SensitiveWebExposedOperation()
+    class FinishConnectionManager(val maybeUrl : String?) : SensitiveWebExposedOperation()
 }
 
 fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperation) : String =
@@ -72,37 +75,29 @@ fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperatio
 
 class WebViewExposedMethods(private var host: WebViewFragment) {
     @JavascriptInterface
-    fun finishConnectionManager(maybeUrl : String) {
+    fun finishConnectionManager(maybeUrl : String) =
         maybeExecuteSensitiveOperation(
             host.activity,
-            SensitiveWebExposedOperation.FinishConnectionManager(
-                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url),
-                maybeUrl
-            )
-        )
-    }
+            SensitiveWebExposedOperation.FinishConnectionManager(maybeUrl) )
 
     @JavascriptInterface
-    fun createShortcut(url : String) : String =
+    fun createShortcut(url : String) =
         maybeExecuteSensitiveOperation(
             host.activity,
             SensitiveWebExposedOperation.CreateShortcut(
-                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url),
                 App.Instance.getConnectionByUrl(url)))
 
     @JavascriptInterface
-    fun getKnownConnections() : String? =
+    fun getKnownConnections() =
         maybeExecuteSensitiveOperation(
             host.activity,
-            SensitiveWebExposedOperation.GetKnownConnections(
-                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url)))
+            SensitiveWebExposedOperation.GetKnownConnections())
 
     @JavascriptInterface
-    fun saveConnection(connInfoAsJson : String) : String? =
+    fun saveConnection(connInfoAsJson : String) =
         maybeExecuteSensitiveOperation(
             host.activity,
             SensitiveWebExposedOperation.SaveConnection(
-                App.Instance.getConnectionByUrl(App.Instance.currentConnection.url),
                 jsonStrict.parse(ConnectionInfo.serializer(), connInfoAsJson)))
 
     @JavascriptInterface
@@ -231,8 +226,18 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?) : Boolean {
-                if (url != null) {
-                    App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(url)
+                if (url == null) {
+                    return false
+                }
+
+                App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(url)
+
+                if (!url.contains("#") && App.Instance.currentConnection.webAppPersistentState != null) {
+                    //no state yet but can retrieve it
+
+                    App.Instance.launchCoroutine {
+                        webView.loadUrl(App.Instance.currentConnection.buildUrlWithState())
+                    }
                 }
 
                 return false //don't start regular browser
@@ -280,18 +285,19 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
             }
         }
 
-        WebView.setWebContentsDebuggingEnabled(req.remoteDebuggerEnabled == true)
+        WebView.setWebContentsDebuggingEnabled(req.remoteDebuggerEnabled)
 
         if (req.forceReloadFromNet) {
             webView.clearCache(true)
         }
 
-        Timber.d("navigating to ${req.url}")
+        val urlWithState = req.buildUrlWithState()
+        Timber.d("navigating to $urlWithState")
 
         //next line is needed because loadUrl doesn't invoke shouldOverrideUrlLoading()
         App.Instance.currentConnection = App.Instance.getOrCreateConnectionByUrl(req.url)
 
-        webView.loadUrl(req.url)
+        webView.loadUrl(urlWithState)
 
         return result
     }
@@ -322,4 +328,6 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
     //TODO implement web API to toggle it (needing ConnectionInfo permission being true by default)
     override fun isToolbarVisible(): Boolean = true
+
+    fun maybeGetWebAppUrl() : String? = getWebView()?.url
 }

@@ -1,12 +1,26 @@
 ///<reference path='../richer_implementations.ts'/>
 
 window.addEventListener('load', (_) => {
+    let getStateAsJson = () => "";
+    let persistState = () => {
+        let i = window.document.location.href.indexOf('#');
+        let newState = encodeURIComponent(getStateAsJson())
+
+        //replace existing state if there's any
+        window.document.location.href = ((i >= 0) ? window.document.location.href.substring(0, i) : window.document.location.href) + "#" + newState
+    };
+
     window.setPausedScanOverlayImage("test.png");
     window.setScanSuccessSound("store_scanner_beep.mp3");
 
     let lblLog = document.createElement("div");
+    lblLog.id = "visibleLogger";
     lblLog.style.whiteSpace = "pre";
     lblLog.textContent = new Date().toJSON() + "\n";
+    let logMsg = (m:string) => {
+        lblLog.textContent += m + "\n";
+        persistState();
+    };
 
     document.body.removeAllChildren();
     document.body.style.backgroundColor = "#e6ffff";
@@ -30,7 +44,7 @@ window.addEventListener('load', (_) => {
         document.body.appendChild(container);
         
         Window.prototype.androidBackConsumed = function () {
-            lblLog.textContent += "got consume back button request\n";
+            logMsg("got consume back button request");
             return checkbox.checked;
         };    
     }
@@ -179,7 +193,7 @@ window.addEventListener('load', (_) => {
                     //android confirmed cancellation
                     document.body.removeChild(cntrlsContainer);
                     
-                    lblLog.textContent += (scanResult == null) ? "not scanned\n" : ("scanned: " + scanResult + "\n");
+                    logMsg((scanResult == null) ? "not scanned" : ("scanned: " + scanResult));
                 });    
         
             btnAccept.onclick = _ => {
@@ -233,10 +247,10 @@ window.addEventListener('load', (_) => {
 
                 let res = await resultPromise;
                 console?.log("scanned: "+res);
-                lblLog.textContent += "scanned " + res  +"\n";
+                logMsg("scanned " + res);
             } catch (error) {
                 console?.log("scanner rejected: "+error);
-                lblLog.textContent += "not scanned\n";
+                logMsg("not scanned");
             }
             document.body.removeChild(btnCancel);
         };        
@@ -252,10 +266,10 @@ window.addEventListener('load', (_) => {
                 strat.screenTitle = "Need QR code";              
                 let res = await window.scanQr(strat);
                 console?.log("scanned: "+res);
-                lblLog.textContent += "scanned " + res  +"\n";
+                logMsg("scanned " + res);
             } catch (error) {
                 console?.log("scanner rejected: "+error);
-                lblLog.textContent += "not scanned\n";
+                logMsg("not scanned");
             }
         };
         document.body.appendChild(btn);
@@ -277,10 +291,23 @@ window.addEventListener('load', (_) => {
     let btnChangeTitle = document.createElement("input");
     btnChangeTitle.type = "button";
     btnChangeTitle.value = "Change title";
-    btnChangeTitle.onclick = () => window.setTitle("some title #" + new Date().getMilliseconds());
+    btnChangeTitle.onclick = () => {
+        window.setTitle("some title #" + new Date().getMilliseconds());
+        persistState();
+    };
     document.body.appendChild(btnChangeTitle);
     
     document.body.appendChild(lblLog);
     
+    getStateAsJson = () => JSON.stringify([lblLog.textContent, document.title]);
+
     window.setTitle("Showcase app");
+
+    let iFrag = document.location.href.indexOf("#");
+    if (iFrag >= 0) {        
+        let fromJson : [string, string] = JSON.parse(decodeURIComponent(document.location.href.substring(iFrag+1)))
+        console?.log("got state: restoring it: "+ fromJson[0])
+        lblLog.textContent = fromJson[0];
+        window.setTitle(fromJson[1]);
+    }
 });        

@@ -31,7 +31,7 @@ class App : Application(), CoroutineScope by MainScope() {
         lateinit var Instance : App
     }
 
-    private lateinit var _parallelComputations : ExecutorCoroutineDispatcher
+    lateinit var _parallelComputations : ExecutorCoroutineDispatcher
 
     val navigator = Navigator()
     var maxComputationsAtOnce = 0
@@ -112,7 +112,7 @@ class App : Application(), CoroutineScope by MainScope() {
         } else null
     }
 
-    private fun persistKnownConnections() {
+    fun persistKnownConnections() {
         //TODO first write to temp file then rename for extra safety
         File(this.filesDir, connectionInfosFileName)
             .writeText(jsonStrict.stringify(ConnectionInfo.serializer().list, knownConnections))
@@ -148,7 +148,7 @@ class App : Application(), CoroutineScope by MainScope() {
 
     fun persistConnection(conn:ConnectionInfo) {
         val existingAt = knownConnections
-            .mapIndexed { i,x -> if (x.urlWithoutQueryAndFragment() == conn.urlWithoutQueryAndFragment()) i else null }
+            .mapIndexed { i,x -> if (x.urlWithoutFragment() == conn.urlWithoutFragment()) i else null }
             .filterNotNull()
             .firstOrNull()
 
@@ -160,8 +160,6 @@ class App : Application(), CoroutineScope by MainScope() {
             Timber.d("appending new connectionInfo")
             knownConnections.add(conn)
         }
-
-        persistKnownConnections()
     }
 
     override fun onCreate() {
@@ -212,20 +210,29 @@ class App : Application(), CoroutineScope by MainScope() {
         _parallelComputations.close()
     }
 
-    fun getOrCreateConnectionByUrl(currentUrl: String) : ConnectionInfo {
-        val newConn = ConnectionInfo(url = currentUrl, name = "Unknown", persisted = false)
-        val result = knownConnections.firstOrNull { it.urlWithoutQueryAndFragment() == newConn.urlWithoutQueryAndFragment()}
-        return result ?: newConn
+    private fun createConnectionByUrl(currentUrl: String) : ConnectionInfo {
+        val (url, state) = urlAndMaybeFragment(currentUrl)
+        return ConnectionInfo(url = url, name = "Unknown", persisted = false, webAppPersistentState = state)
     }
 
-    fun getConnectionByUrl(currentUrl: String): ConnectionInfo? = knownConnections.firstOrNull { it.url == currentUrl}
+    fun getOrCreateConnectionByUrl(currentUrl: String) : ConnectionInfo {
+        val x = urlWithoutQueryAndFragment(currentUrl)
+        val result = knownConnections.firstOrNull { it.urlWithoutQueryAndFragment() == x}
+        return result ?: createConnectionByUrl(currentUrl)
+    }
+
+    fun getConnectionByUrl(currentUrl: String): ConnectionInfo? {
+        val x = urlWithoutQueryAndFragment(currentUrl)
+        return knownConnections.firstOrNull { it.urlWithoutQueryAndFragment() == x}
+    }
+
     fun getConnectionMenuUrl(mode : ConnectionManagerMode) : ConnectionInfo {
         val x = knownConnections.first {it.isConnectionManager}
 
         val result = when(mode) {
-            is ConnectionManagerMode.ConnectionChooser -> x.copy(url = x.url + "#mode=choice")
-            is ConnectionManagerMode.EditConnection -> x.copy(url = x.url + "#mode=edit&url=${URLEncoder.encode(mode.connInfo.url, "UTF-8")}")
-            is ConnectionManagerMode.NewConnection -> x.copy(url = x.url + "#mode=new&url=${URLEncoder.encode(mode.url, "UTF-8")}")
+            is ConnectionManagerMode.ConnectionChooser -> x.copy(url = x.url + "?mode=choice")
+            is ConnectionManagerMode.EditConnection -> x.copy(url = x.url + "?mode=edit&url=${URLEncoder.encode(mode.connInfo.url, "UTF-8")}")
+            is ConnectionManagerMode.NewConnection -> x.copy(url = x.url + "?mode=new&url=${URLEncoder.encode(mode.url, "UTF-8")}")
         }
 
         Timber.d("getConnectionMenuUrl for mode=${mode} gave=${result}")

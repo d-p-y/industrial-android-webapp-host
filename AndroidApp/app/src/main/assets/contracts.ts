@@ -35,7 +35,9 @@ interface AndroidReply {
 }
 
 interface IAndroid {
-    //implicit API: triggering browser's file picker assumes intent to take photo
+    //implicit API: triggering browser's file picker (f.e. by tapping on <input type='file'>) is understood as take photo request
+
+    //implicit API: URL fragment element ( proto://site:port/path?query#fragment ) is understood as persistent state that webapp wants to be preserved between run times
 
     /**
      * @param promiseId 
@@ -108,5 +110,5 @@ interface Window {
      * webapp is notified that backbutton was pressed and gets chance to act on it
      * @returns When 'true' webapp consumed event and it should not be processed further. When 'false' back button should be processed by parent activity (most likely causing exiting from android app)
      */
-    androidBackConsumed() : boolean;     
+    androidBackConsumed() : boolean;
 }    

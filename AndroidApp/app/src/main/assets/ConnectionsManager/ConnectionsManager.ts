@@ -169,14 +169,20 @@ function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone 
     return result;
 }
 
-function decodeFragmentParams() : Map<string,string> {
-    let i = document.location.href.indexOf('#');
-    if (i <= 0) {
-        return new Map();
+function decodeQueryParams() : Map<string,string> {
+    let q = document.location.href;
+    let i = q.indexOf('#');
+    if (i > 0) {
+        q = q.substring(0, i);        
     }
 
+    i = q.indexOf("?");
+    if (i < 0) {
+        return new Map();
+    }
+    
     let result = new Map();
-    document.location.href
+    q
         .substring(i+1)
         .split('&')
         .forEach(x => {
@@ -209,7 +215,7 @@ window.addEventListener('load', (_) => {
     document.body.style.flexDirection = "column";
     document.body.style.height = "100vh";
     
-    let params = decodeFragmentParams();
+    let params = decodeQueryParams();
     
     let mode = stringToMenuMode(params.get("mode"));
     let url = params.get("url");
@@ -283,6 +289,7 @@ window.addEventListener('load', (_) => {
 
         default: 
             let err = document.createElement("div");
+            console?.log("url="+document.location.href);            
             err.textContent = "unknown mode";
             document.body.appendChild(err);
             break;

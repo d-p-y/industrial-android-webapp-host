@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
+import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.playOnce
 import timber.log.Timber
@@ -298,7 +299,28 @@ class MainActivity : AppCompatActivity() {
         exitProcess(1)
     }
 
+    override fun onPause() {
+        val webApp = getCurrentMasterFragment()
+        if (webApp is WebViewFragment) {
+            val currentUrl =  webApp.maybeGetWebAppUrl()
+            Timber.d("onPause() maybe persisting state for url=$currentUrl")
+            if (currentUrl != null) {
+                val (_, newState) = urlAndMaybeFragment(currentUrl)
+                val existState = App.Instance.getOrCreateConnectionByUrl(currentUrl)
+
+                if (newState != existState.webAppPersistentState) {
+                    existState.webAppPersistentState = newState
+                    App.Instance.persistConnection(existState)
+                }
+            }
+        }
+
+        super.onPause()
+    }
+
     override fun onStop() {
+        App.Instance.persistKnownConnections()
+
         val cpy = _sensorListeners.toList()
         _sensorListeners.clear()
 
