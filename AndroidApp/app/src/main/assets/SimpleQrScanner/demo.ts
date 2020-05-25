@@ -8,13 +8,14 @@ window.addEventListener('load', (_) => {
     document.body.style.flexDirection = "column";
     document.body.style.height = "100vh";
     
-    let scannedCode = document.createElement("div");
+    let scannedCode = document.createElement("a");
+    scannedCode.href = "#";
     scannedCode.style.fontSize = "34px";
     scannedCode.style.wordWrap = "anywhere";
     scannedCode.style.display = "none";
     scannedCode.style.width = "95vw";
     scannedCode.style.alignSelf = "center";
-    scannedCode.style.marginTop = "50px";
+    scannedCode.style.marginTop = "50px";    
     document.body.appendChild(scannedCode);
 
     let actionsBar = document.createElement("div");
@@ -24,13 +25,6 @@ window.addEventListener('load', (_) => {
     actionsBar.style.marginTop = "auto";
     actionsBar.style.marginBottom = "15px";
     actionsBar.style.justifyContent = "space-between";
-
-    let actionBrowseIt = document.createElement("input");    
-    actionBrowseIt.value = "Browse it";
-    actionBrowseIt.type = "button";
-    actionBrowseIt.addEventListener("click", 
-        _ => window.openInBrowser(scannedCode.textContent as string));
-    actionsBar.appendChild(actionBrowseIt);
 
     let actionInetSearchIt = document.createElement("input");    
     actionInetSearchIt.value = "Google it";
@@ -63,9 +57,20 @@ window.addEventListener('load', (_) => {
         try {
             var scannedContent = await window.scanQr(new contracts.FitScreenLayoutStrategy());
             scannedCode.textContent = scannedContent;
+                        
+            if (scannedContent.toLowerCase().startsWith("http://") || scannedContent.toLowerCase().startsWith("https://")) {                
+                scannedCode.style.textDecoration = "underline";
+                scannedCode.style.color = "blue";
+                scannedCode.onclick = ev => {
+                    ev.preventDefault();
+                    window.openInBrowser(scannedCode.textContent as string);
+                }
+            } else {
+                scannedCode.style.textDecoration = "none";
+                scannedCode.style.color = "black";
+                scannedCode.onclick = ev => ev.preventDefault();
+            }
             
-            actionBrowseIt.style.display = 
-                (scannedContent.toLowerCase().startsWith("http://") || scannedContent.toLowerCase().startsWith("https://") ) ? "initial" : "none";
             
             scannedCode.style.display = "initial";
             actionsBar.style.display = "flex";
