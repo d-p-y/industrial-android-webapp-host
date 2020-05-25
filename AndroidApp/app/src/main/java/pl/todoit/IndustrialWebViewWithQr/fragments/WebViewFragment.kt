@@ -248,6 +248,11 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
                 }
 
                 override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?) : Boolean {
+                    if (!App.Instance.currentConnection.hasPermissionToTakePhoto) {
+                        Timber.d("connection doesn't have permission to take photo")
+                        return false
+                    }
+
                     if (filePathCallback == null) {
                         Timber.d("onShowFileChooser() got null filePathCallback")
                         return false
@@ -259,7 +264,6 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
                         when(val x = req.receiveOrNull()) {
                             is File -> {
-                                //val pth = Uri.parse("file:///data/data/pl.todoit.IndustrialWebViewWithQr/files/needrotate.jpg")
                                 val rawPath = x.absolutePath
                                 val uriPath = Uri.parse("file://"+rawPath)
                                 Timber.d("onShowFileChooser() got rawPath=$rawPath that was converted to uriPath=$uriPath")

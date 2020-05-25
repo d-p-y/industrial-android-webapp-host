@@ -14,6 +14,7 @@ data class ConnectionInfo(
     val mayManageConnections : Boolean = false,
     val isConnectionManager : Boolean = false,
     val hapticFeedbackOnAutoFocused : Boolean = true,
+    val hasPermissionToTakePhoto : Boolean = true,
     val photoJpegQuality : Int = 85 //valid range 1-100
 )
 
