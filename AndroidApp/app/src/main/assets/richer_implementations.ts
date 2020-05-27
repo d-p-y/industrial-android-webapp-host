@@ -239,6 +239,16 @@ Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
     console?.log("back button is now " + (isEnabled ? "enabled" : "disabled"));
 }
 
+Window.prototype.setToolbarItems = function (menuItems : contracts.MenuItemInfo[]) {
+    if (this.Android !== undefined) {
+        this.Android.setToolbarItems(JSON.stringify(menuItems));
+        return;
+    }
+    
+    (window as any).devMenuItems = menuItems;
+    console?.log("developer: registered menu items as window.devMenuItems");
+};
+
 Window.prototype.setScanSuccessSound = function (scanSuccessSoundUrl) {
     if (this.Android === undefined) {
         console?.log("setPausedScanOverlayImage ignoring because doesn't run within android");

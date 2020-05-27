@@ -1,10 +1,8 @@
 package pl.todoit.IndustrialWebViewWithQr
 
+import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.SendChannel
-import pl.todoit.IndustrialWebViewWithQr.model.ConnectionInfo
-import pl.todoit.IndustrialWebViewWithQr.model.IHasTitle
-import pl.todoit.IndustrialWebViewWithQr.model.ITogglesBackButtonVisibility
-import pl.todoit.IndustrialWebViewWithQr.model.ScanRequest
+import pl.todoit.IndustrialWebViewWithQr.model.*
 import java.io.File
 
 /**
@@ -16,9 +14,11 @@ sealed class NavigationRequest {
     class _Activity_MainActivityInactivated(val act:MainActivity) : NavigationRequest()
     class _Activity_GoToBrowser(val maybeUrl : String?) : NavigationRequest()
     class _Toolbar_GoToConnectionSettings() : NavigationRequest()
+    class _Toolbar_ItemActivated(val mi:MenuItemInfo) : NavigationRequest()
     class _Activity_Back() : NavigationRequest()
     class _ToolbarTitleChanged(val sender : IHasTitle) : NavigationRequest()
     class _ToolbarBackButtonStateChanged(val sender : ITogglesBackButtonVisibility) : NavigationRequest()
+    class WebBrowser_ToolbarMenuChanged(val sender : Fragment, val menuItems:List<MenuItemInfo>) : NavigationRequest()
     class WebBrowser_SetScanSuccessSound(val content: ByteArray) : NavigationRequest()
     class WebBrowser_SetScanOverlayImage(val content: ByteArray) : NavigationRequest()
     class WebBrowser_RequestedScanQr(val req: ScanRequest) : NavigationRequest()

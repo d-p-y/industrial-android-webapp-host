@@ -19,6 +19,8 @@ interface Window {
     
     showToast(label : string, longDuration : boolean) : void;    
     setToolbarBackButtonState(isEnabled : boolean) : void;
+    setToolbarItems(menuItems : contracts.MenuItemInfo[]): void;
+
     openInBrowser(url : string) : void;
 
     //helpers to keep track of promises

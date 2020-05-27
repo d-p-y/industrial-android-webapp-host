@@ -21,6 +21,10 @@ window.addEventListener('load', (_) => {
         lblLog.textContent += m + "\n";
         persistState();
     };
+    let clearLogMsg = () => {
+        lblLog.textContent = "cleared at " + new Date().toJSON() + "\n";
+        persistState();
+    };
 
     document.body.removeAllChildren();
     document.body.style.backgroundColor = "#e6ffff";
@@ -275,6 +279,39 @@ window.addEventListener('load', (_) => {
         document.body.appendChild(btn);
     }
 
+    {
+        let added = false;
+        let getBtnCaption = () => added ? "Remove menu items" : "Add menu items";
+        let addRemoveMenuItem = document.createElement("input");
+        addRemoveMenuItem.type = "button";
+        addRemoveMenuItem.value = getBtnCaption();
+        addRemoveMenuItem.onclick = () => {
+            if (added) {                
+                window.setToolbarItems([]);
+            } else {
+                let itm1 = new contracts.MenuItemInfo();
+                itm1.trueForAction = true;
+                itm1.title = "Demo";
+                itm1.webMenuItemId = "demoActionId";
+
+                let itm2 = new contracts.MenuItemInfo();
+                itm2.trueForAction = false;
+                itm2.title = "Demo menu item";
+                itm2.webMenuItemId = "demoItemId";
+
+                window.setToolbarItems([itm1, itm2]);
+            }
+
+            added = !added;
+            addRemoveMenuItem.value = getBtnCaption();
+        };
+        document.body.appendChild(addRemoveMenuItem);
+
+        Window.prototype.androidPostToolbarItemActivated = function (webMenuItemId) {
+            logMsg("menu item pressed: "+webMenuItemId);
+        };    
+    }
+
 
     let btnShowToastShort = document.createElement("input");
     btnShowToastShort.type = "button";
@@ -296,7 +333,13 @@ window.addEventListener('load', (_) => {
         persistState();
     };
     document.body.appendChild(btnChangeTitle);
-    
+
+    let btnClearLog = document.createElement("input");
+    btnClearLog.type = "button";
+    btnClearLog.value = "Clear log below";
+    btnClearLog.onclick = () => clearLogMsg();
+    document.body.appendChild(btnClearLog);
+
     document.body.appendChild(lblLog);
     
     getStateAsJson = () => JSON.stringify([lblLog.textContent, document.title]);

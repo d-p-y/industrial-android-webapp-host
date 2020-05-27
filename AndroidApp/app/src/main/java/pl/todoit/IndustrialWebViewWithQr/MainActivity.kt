@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.serialization.Serializable
 import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.playOnce
@@ -67,7 +68,16 @@ class DelegatingSensorEventListener(val onChanged:(Pair<Float,Float>)->Unit) : S
     }
 }
 
+val appBarActionIds = arrayOf(
+    R.id.menuActionProgrammatic0, R.id.menuActionProgrammatic1, R.id.menuActionProgrammatic2, R.id.menuActionProgrammatic3)
+val appBarMenuItmsIds = arrayOf(
+    R.id.menuItemProgrammatic0, R.id.menuItemProgrammatic1, R.id.menuItemProgrammatic2, R.id.menuItemProgrammatic3,
+    R.id.menuItemProgrammatic4, R.id.menuItemProgrammatic5, R.id.menuItemProgrammatic6,
+    R.id.menuItemProgrammatic7, R.id.menuItemProgrammatic8, R.id.menuItemProgrammatic9)
+
 class MainActivity : AppCompatActivity() {
+    private var _menu : Menu? = null
+    private var _menuItems = listOf<MenuItemInfo>()
     private lateinit var _sm: SensorManager
     private val _sensorListeners = mutableListOf<Closeable>()
 
@@ -154,7 +164,66 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        _menu = menu
+        setAppBarMenuItems(_menuItems)
         return super.onCreateOptionsMenu(menu)
+    }
+
+    /**
+     * @return error if any
+     */
+    fun setAppBarMenuItems(items:List<MenuItemInfo>) : String? {
+        val (actions, menus) = items.partition { it.isAction() }
+
+        if (actions.size > appBarActionIds.size) {
+            return "requested more actions than available slots"
+        }
+
+        if (menus.size > appBarMenuItmsIds.size) {
+            return "requested more menuItems than available slots"
+        }
+
+        _menuItems = items
+
+        var menu = _menu
+
+        if (menu == null) {
+            Timber.d("menu not available yet")
+            return null
+        }
+
+        (appBarActionIds + appBarMenuItmsIds)
+            .forEach { menu.findItem(it).isVisible = false }
+
+        val wrkItms =
+            items
+                .withIndex()
+                .map { Pair(
+                    it.value,
+                    if (it.value.isAction()) appBarActionIds[it.index] else appBarMenuItmsIds[it.index])
+                }
+                .map { Triple(
+                    it.first,
+                    it.second,
+                    menu.findItem(it.second))
+                }
+
+        if (wrkItms.any { it.third == null }) {
+            return "problem with finding menu items"
+        }
+
+        wrkItms
+            .filter {it.third != null}
+            .forEach {
+                it.first.physicalMenuItemId = it.second
+                it.third.apply {
+                    isVisible = true
+                    isEnabled = it.first.enabled
+                    title = it.first.title
+                }
+            }
+
+        return null //no error
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -168,6 +237,14 @@ class MainActivity : AppCompatActivity() {
         if (item.itemId == R.id.menuItemSettings) {
             App.Instance.navigator.postNavigateTo(NavigationRequest._Toolbar_GoToConnectionSettings())
 
+            return true
+        }
+
+        val maybeUserItem = _menuItems.firstOrNull { it.physicalMenuItemId == item.itemId }
+
+        if (maybeUserItem != null) {
+            Timber.d("onOptionsItemSelected() activated user item, delegating to browser")
+            App.Instance.navigator.postNavigateTo(NavigationRequest._Toolbar_ItemActivated(maybeUserItem))
             return true
         }
 

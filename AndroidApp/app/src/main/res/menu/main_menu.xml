@@ -5,6 +5,66 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
     <item
+        android:id="@+id/menuActionProgrammatic0"
+        android:title="Action0"
+        app:showAsAction="always"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuActionProgrammatic1"
+        android:title="Action1"
+        app:showAsAction="always"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuActionProgrammatic2"
+        android:title="Action2"
+        app:showAsAction="always"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuActionProgrammatic3"
+        android:title="Action3"
+        app:showAsAction="always"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic0"
+        android:title="Programmatic0"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic1"
+        android:title="Programmatic1"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic2"
+        android:title="Programmatic2"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic3"
+        android:title="Programmatic3"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic4"
+        android:title="Programmatic4"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic5"
+        android:title="Programmatic5"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic6"
+        android:title="Programmatic6"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic7"
+        android:title="Programmatic7"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic8"
+        android:title="Programmatic8"
+        android:visible="false" />
+    <item
+        android:id="@+id/menuItemProgrammatic9"
+        android:title="Programmatic9"
+        android:visible="false" />
+    <item
         android:id="@+id/menuItemSettings"
         android:orderInCategory="1"
         android:title="Settings"

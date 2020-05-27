@@ -12,19 +12,15 @@ import android.webkit.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.receiveOrNull
-import kotlinx.coroutines.channels.sendBlocking
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.list
-import pl.todoit.IndustrialWebViewWithQr.App
-import pl.todoit.IndustrialWebViewWithQr.MainActivity
-import pl.todoit.IndustrialWebViewWithQr.NavigationRequest
-import pl.todoit.IndustrialWebViewWithQr.R
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.stringify
+import pl.todoit.IndustrialWebViewWithQr.*
 import pl.todoit.IndustrialWebViewWithQr.fragments.barcodeDecoding.ProcessorSuccess
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 import java.io.File
+import kotlinx.coroutines.channels.receiveOrNull
 
 fun String.escapeJsonForWebView() = replace("\"", "\\\"")
 
@@ -74,6 +70,10 @@ fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperatio
     }
 
 class WebViewExposedMethods(private var host: WebViewFragment) {
+    companion object {
+        fun getJavascriptWindowPropertyName() = "Android"
+    }
+
     @JavascriptInterface
     fun finishConnectionManager(maybeUrl : String) =
         maybeExecuteSensitiveOperation(
@@ -99,6 +99,11 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
             host.activity,
             SensitiveWebExposedOperation.SaveConnection(
                 jsonStrict.parse(ConnectionInfo.serializer(), connInfoAsJson)))
+
+    @JavascriptInterface
+    fun setToolbarItems(menuItemsAsJson : String) =
+        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ToolbarMenuChanged(
+            host, jsonStrict.parse(MenuItemInfo.serializer().list, menuItemsAsJson)))
 
     @JavascriptInterface
     fun setScanSuccessSound(fileContent : String) =
@@ -240,7 +245,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
                 return false //don't start regular browser
             }
         }
-        webView.addJavascriptInterface(WebViewExposedMethods(this), "Android")
+        webView.addJavascriptInterface(WebViewExposedMethods(this), WebViewExposedMethods.getJavascriptWindowPropertyName())
 
 
         webView.webChromeClient = object : WebChromeClient() {
@@ -305,10 +310,32 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         return result
     }
 
+    fun onNotifyWebAppAboutMenuItemActivated(itm:MenuItemInfo) {
+        val webView = getWebView()
+
+        if (webView == null) {
+            Timber.e("bug: no webView?")
+            return
+        }
+
+        webView.evaluateJavascript(
+            "(window.androidPostToolbarItemActivated === undefined) ? \"no function\" : window.androidPostToolbarItemActivated(\"" +
+                jsonStrict.stringify(String.serializer(), itm.webMenuItemId).escapeJsonForWebView() +
+            "\")",
+            ValueCallback { Timber.e("androidPostToolbarItemActivated() reply=$it") })
+    }
+
     override suspend fun onBackPressedConsumed() : Boolean {
+        val webView = getWebView()
+
+        if (webView == null) {
+            Timber.e("bug: no webView?")
+            return false
+        }
+
         val result = Channel<Boolean>()
 
-        getWebView()?.evaluateJavascript(
+        webView.evaluateJavascript(
             "(window.androidBackConsumed === undefined) ? false : window.androidBackConsumed()",
             { App.Instance.launchCoroutine { result.send(it in trues) } })
 

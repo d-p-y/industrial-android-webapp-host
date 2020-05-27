@@ -25,7 +25,17 @@ module contracts {
         public constructor() {
             super("MatchWidthWithFixedHeightLayoutStrategy");
         }
-    }    
+    }
+    
+    /**
+     * trueForAction: 'true' means it's an action outside of "three dots menu". 'false' means menuitem is present within "three dots menu"
+     */
+    export class MenuItemInfo {
+        public webMenuItemId : string = "";
+        public trueForAction : boolean = false;
+        public title : string = "None";
+        public enabled : boolean = true;
+    }
 }
 
 interface AndroidReply {
@@ -76,6 +86,14 @@ interface IAndroid {
     openInBrowser(url : string) : void;
 
     /**
+     * replaces AppBar menu items with provided items. When item is activated by user androidPostToolbarItemActivated() will be called
+     * 
+     * @param menuItemInfosAsJson JSONized list of MenuItemInfo instances
+     */
+    setToolbarItems(menuItemInfosAsJson : string): void;
+
+
+    /**
      * private, sensitive APIs that may only be called if has adequate ConnectionInfo permission
      * @returns ConnectionInfo[] as JSON. Empty if have no permission
      */
@@ -106,6 +124,12 @@ interface Window {
     Android:IAndroid;
 
     androidPostReplyToPromise(replyJson : string) : void;
+
+    /**
+     * Android calls it when user activated AppBar item previously registered with setToolbarItems()
+     * @param itemId MenuItemInfo->webMenuItemId of activated item
+     */
+    androidPostToolbarItemActivated(itemId : string) : void;
 
     /**
      * webapp is notified that backbutton was pressed and gets chance to act on it

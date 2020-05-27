@@ -67,6 +67,17 @@ class Navigator {
             }
             is NavigationRequest._Toolbar_GoToConnectionSettings ->
                 replaceMasterWithWebBrowser(act, App.Instance.getConnectionManagerEditUrl(App.Instance.currentConnection))
+            is NavigationRequest._Toolbar_ItemActivated -> {
+                val maybeWebApp = act.getCurrentMasterFragment()
+
+                if (maybeWebApp !is WebViewFragment) {
+                    Timber.d("ignored change because webview is not within current base fragment")
+                    return
+                }
+
+                maybeWebApp.onNotifyWebAppAboutMenuItemActivated(request.mi)
+            }
+
             is NavigationRequest.WebBrowser_SetScanSuccessSound -> {
                 Timber.d("setting scan success sound")
                 App.Instance.setSoundSuccessScan(request.content)
@@ -143,6 +154,14 @@ class Navigator {
                 }
 
                 act.setToolbarTitle(request.sender.getTitle())
+            }
+            is NavigationRequest.WebBrowser_ToolbarMenuChanged -> {
+                if (request.sender != act.getCurrentMasterFragment()) {
+                    Timber.d("ignored change name request from inactive master fragment")
+                    return
+                }
+
+                act.setAppBarMenuItems(request.menuItems)
             }
             is NavigationRequest._Activity_Back -> {
                 val currentPopup = act.getCurrentPopupFragment()
