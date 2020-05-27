@@ -16,8 +16,9 @@ import pl.todoit.IndustrialWebViewWithQr.model.extensions.toCloseable
 import timber.log.Timber
 import java.io.Closeable
 import java.util.*
+import kotlinx.coroutines.channels.onReceiveOrNull
 
-suspend fun <T,U> receiveFromAny(fst: ReceiveChannel<T>, snd : ReceiveChannel<U>) =
+suspend fun <T : Any,U : Any> receiveFromAny(fst: ReceiveChannel<T>, snd : ReceiveChannel<U>) =
     select<Choice2<T, U>?> {
         fst.onReceiveOrNull { if (it == null) null else Choice2.Choice1Of2(it) }
         snd.onReceiveOrNull { if (it == null) null else Choice2.Choice2Of2(it) }

@@ -268,7 +268,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
                 }
 
                 App.Instance.launchCoroutine {
-                    val req = Channel<File?>()
+                    val req = Channel<File>()
                     App.Instance.navigator.navigateTo(NavigationRequest.WebBrowser_RequestedTakePhoto(req))
 
                     when(val x = req.receiveOrNull()) {

@@ -19,7 +19,7 @@ fun asClosable(vararg items : Closeable) = Closeable { items.forEach { it.close(
  * @param prioritize sorts items to process according to expected usefulness from most useful to less useful
  * @param isResetStatisticsRequest consuming process may be paused externally due to different factors. Need to account it
  */
-class EstimatingConsumerWorker<InputT,OutputT>(
+class EstimatingConsumerWorker<InputT : Any,OutputT>(
     val consumerFactory : ()->IItemConsumer<InputT,OutputT>,
     private val prioritize:(List<InputT>)->List<InputT>,
     private val maxSimultaneousComputations : Int,
