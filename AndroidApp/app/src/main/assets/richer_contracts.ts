@@ -14,8 +14,9 @@ interface Window {
      */
     scanQrValidatableAndCancellable(layoutData : contracts.LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>), onCancellation : () => void ) : (() => void);
     
-    setScanSuccessSound(fromUrl:string) : void;
-    setPausedScanOverlayImage(fromUrl:string) : void;
+    registerMediaAsset(fromUrl:string) : Promise<string>;
+    setScanSuccessSound(assetId:string) : boolean;
+    setPausedScanOverlayImage(assetId:string) : boolean;
     
     showToast(label : string, longDuration : boolean) : void;    
     setToolbarBackButtonState(isEnabled : boolean) : void;

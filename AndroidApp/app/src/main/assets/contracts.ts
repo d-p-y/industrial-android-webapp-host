@@ -70,16 +70,27 @@ interface IAndroid {
     resumeScanQr(promiseId : string) : void;
 
     /**
-     * set scan success sound
+     * adds file into android cache dir and returns its identifier (to be used for setPausedScanOverlayImage(),setScanSuccessSound(), toolbar icons etc ).
+     * NOTE: returned mediaAssetHandleId is not ready immediately as bytes are stored to disk in parallel!
+     * 
      * @param fileContent comma separated ints that are valid unsigned bytes
+     * @returns mediaAssetHandleId
      */
-    setScanSuccessSound(fileContent : string) : void;
+    registerMediaAsset(fileContent : string) : string;
+
+    /**
+     * set scan success sound
+     * @param as returned by registerMediaAsset() call
+     * @returns true if asset is known (is still in cache)
+     */
+    setScanSuccessSound(mediaAssetIdentifier : string) : boolean;
 
     /**
      * set image drawn on top of camera scanner preview when scanning is paused
-     * @param fileContent comma separated ints that are valid unsigned bytes
+     * @param as returned by registerMediaAsset() call
+     * @returns true if asset is known (is still in cache)
      */
-    setPausedScanOverlayImage(fileContent : string) : void;
+    setPausedScanOverlayImage(mediaAssetIdentifier : string) : boolean;
 
     showToast(label : string, longDuration : boolean) : void;    
     setToolbarBackButtonState(isEnabled : boolean) : void;

@@ -44,8 +44,6 @@ suspend fun <T> buildAndShowDialog(ctx: Context, bld:(AlertDialog.Builder, SendC
 fun Activity.performHapticFeedback() =
     window?.decorView?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
 
-class OverlayImage(val content:ByteArray)
-
 enum class SndItem {
     PictureTaken,
     ScanSuccess
@@ -512,12 +510,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onBackPressed() = App.Instance.navigator.postNavigateTo(NavigationRequest._Activity_Back())
 
-    fun updateSoundSuccessScan() {
+    fun updateSoundSuccessScan(f : File) {
         val _sndScanSuccessIdCopy = _sndScanSuccessId
         if (_sndScanSuccessIdCopy != null) {
             _sndPool.unload(_sndScanSuccessIdCopy)
         }
 
-        _sndScanSuccessId = _sndPool.load(App.Instance.getScanSuccessSoundFilePath().absolutePath, 1 /*unused param*/)
+        _sndScanSuccessId = _sndPool.load(f.absolutePath, 1 /*unused param*/)
     }
 }

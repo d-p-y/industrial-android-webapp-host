@@ -82,7 +82,7 @@ Window.prototype.promiseClean = function (promiseId : string) {
 Window.prototype.scanQr = function(layoutData : contracts.LayoutStrategy) : Promise<string> {
     let self = this;
 
-    return new Promise(function (resolve,reject) {        
+    return new Promise(function (resolve,reject) {
         if (self.Android === undefined) {
             //dev friendly polyfill
             let result = window.prompt("[blocking] scan QR:");
@@ -249,52 +249,53 @@ Window.prototype.setToolbarItems = function (menuItems : contracts.MenuItemInfo[
     console?.log("developer: registered menu items as window.devMenuItems");
 };
 
-Window.prototype.setScanSuccessSound = function (scanSuccessSoundUrl) {
-    if (this.Android === undefined) {
-        console?.log("setPausedScanOverlayImage ignoring because doesn't run within android");
-        return;
-    }
+Window.prototype.registerMediaAsset = function (fromUrl) {
+    let self = this;
 
-    let scanSuccessSoundReq = new XMLHttpRequest();       
-    scanSuccessSoundReq.open("GET", scanSuccessSoundUrl, true);
-    scanSuccessSoundReq.responseType = "arraybuffer";
-
-    scanSuccessSoundReq.onload = (_) => {
-        let arrayBuffer : ArrayBuffer|null = scanSuccessSoundReq.response;
-
-        if (arrayBuffer == null) {
-            console?.log("got empty arrayBuffer");
+    return new Promise<string>(function (resolve,reject) {
+        if (self.Android === undefined) {
+            console?.log("registerMediaAsset ignoring because doesn't run within android");
+            resolve("not-running-within-android")
             return;
         }
 
-        let fileContent = new Uint8Array(arrayBuffer).toString();
-        window.Android.setScanSuccessSound(fileContent);
-    };
-    scanSuccessSoundReq.send(null);
+        let req = new XMLHttpRequest();       
+        req.open("GET", fromUrl, true);
+        req.responseType = "arraybuffer";
+
+        req.onload = (_) => {
+            let arrayBuffer : ArrayBuffer|null = req.response;
+
+            if (arrayBuffer == null) {                
+                reject("got empty arrayBuffer")
+                return;
+            }
+
+            let fileContent = new Uint8Array(arrayBuffer).toString();
+            resolve(
+                window.Android.registerMediaAsset(fileContent));
+            return;
+        };
+        req.send(null);
+    });
 }
 
-Window.prototype.setPausedScanOverlayImage = function (pausedScanOverlayImageUrl) {
+Window.prototype.setScanSuccessSound = function (mediaAssetId) {
     if (this.Android === undefined) {
-        console?.log("setPausedScanOverlayImage ignoring because doesn't run within android");
-        return;
+        console?.log("setScanSuccessSound ignoring because doesn't run within android");
+        return true;
     }
 
-    let isValidatingImageReq = new XMLHttpRequest();       
-    isValidatingImageReq.open("GET", pausedScanOverlayImageUrl, true);
-    isValidatingImageReq.responseType = "arraybuffer";
+    return window.Android.setScanSuccessSound(mediaAssetId);
+}
 
-    isValidatingImageReq.onload = (_) => {
-        let arrayBuffer : ArrayBuffer|null = isValidatingImageReq.response;
+Window.prototype.setPausedScanOverlayImage = function (mediaAssetId) {
+    if (this.Android === undefined) {
+        console?.log("setPausedScanOverlayImage ignoring because doesn't run within android");
+        return true;
+    }
 
-        if (arrayBuffer == null) {
-            console?.log("got empty arrayBuffer");
-            return;
-        }
-
-        let fileContent = new Uint8Array(arrayBuffer).toString();
-        window.Android.setPausedScanOverlayImage(fileContent);
-    };
-    isValidatingImageReq.send(null);
+    return window.Android.setPausedScanOverlayImage(mediaAssetId);
 }
 
 Window.prototype.openInBrowser = function (url : string) {

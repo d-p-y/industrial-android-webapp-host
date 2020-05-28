@@ -1,12 +1,11 @@
 package pl.todoit.IndustrialWebViewWithQr.model
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.launch
 import pl.todoit.IndustrialWebViewWithQr.*
-import pl.todoit.IndustrialWebViewWithQr.fragments.ScanQrFragment
-import pl.todoit.IndustrialWebViewWithQr.fragments.ScannerStateChange
-import pl.todoit.IndustrialWebViewWithQr.fragments.TakePhotoFragment
-import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
+import pl.todoit.IndustrialWebViewWithQr.fragments.*
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
 import java.io.File
@@ -77,15 +76,21 @@ class Navigator {
 
                 maybeWebApp.onNotifyWebAppAboutMenuItemActivated(request.mi)
             }
-
-            is NavigationRequest.WebBrowser_SetScanSuccessSound -> {
-                Timber.d("setting scan success sound")
-                App.Instance.setSoundSuccessScan(request.content)
-                act.updateSoundSuccessScan()
+            is NavigationRequest.WebBrowser_RegisterMediaAsset -> {
+                Timber.d("registering media asset fileName=${request.safeFileNameForCacheDir}")
+                App.Instance.launch(Dispatchers.IO) {
+                    File(act.cacheDir, request.safeFileNameForCacheDir).writeBytes(request.content)
+                }
             }
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
-                Timber.d("setting scan overlay image")
-                App.Instance.overlayImageOnPause = OverlayImage(request.content)
+                Timber.d("setting scan overlay image to ${request.mediaAssetIdentifier}")
+                App.Instance.overlayImageOnPause = File(act.cacheDir, request.mediaAssetIdentifier)
+            }
+            is NavigationRequest.WebBrowser_SetScanSuccessSound -> {
+                Timber.d("setting scan success sound to ${request.mediaAssetIdentifier}")
+                val f = File(act.cacheDir, request.mediaAssetIdentifier)
+                App.Instance.soundSuccessScan = f
+                act.updateSoundSuccessScan(f)
             }
             is NavigationRequest.WebBrowser_RequestedTakePhoto -> {
                 //TODO see if currently doesn't have another active popup such as barcode scanner
@@ -197,8 +202,8 @@ class Navigator {
     /**
      * @return true if actually shown. false if request was rejected
      */
-    private suspend fun replacePopupWithScanQr(act:MainActivity, scanReq: ScanRequest, overlayImage: OverlayImage?) =
-        act.replacePopupFragment(ScanQrFragment().apply {req = Pair(scanReq, overlayImage)} )
+    private suspend fun replacePopupWithScanQr(act:MainActivity, scanReq: ScanRequest, overlayImage: File?) =
+        act.replacePopupFragment(ScanQrFragment().apply {req = ScanQrReq(scanReq, overlayImage) } )
 
     private suspend fun replacePopupWithTakePhoto(act : MainActivity, request:SendChannel<File>) =
         act.replacePopupFragment(

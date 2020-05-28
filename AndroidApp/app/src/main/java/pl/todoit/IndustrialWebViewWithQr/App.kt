@@ -35,7 +35,8 @@ class App : Application(), CoroutineScope by MainScope() {
 
     val navigator = Navigator()
     var maxComputationsAtOnce = 0
-    var overlayImageOnPause : OverlayImage? = null
+    var overlayImageOnPause : File? = null
+    var soundSuccessScan : File? = null
     private var _jpegTempFileNo = 0
 
     lateinit var knownConnections : MutableList<ConnectionInfo>
@@ -57,6 +58,16 @@ class App : Application(), CoroutineScope by MainScope() {
 
     private val connectionInfosFileName = "connectionInfos.json"
     private val scanSuccessSoundFileName = "successScanSound"
+
+    fun isAssetPresent(cacheFileName : String) : Boolean {
+        val pth = File(cacheDir, cacheFileName)
+        if ((cacheDir.absolutePath + "/" + cacheFileName) != pth.absolutePath) {
+            Timber.e("attempted to check presence of file outside of cache dir.Potentially insecure thus rejected name=$cacheFileName")
+            return false
+        }
+
+        return pth.exists()
+    }
 
     fun getBuiltinConnections() = listOf(
         ConnectionInfo(
@@ -179,7 +190,8 @@ class App : Application(), CoroutineScope by MainScope() {
 
         Instance = this
 
-        cleanSoundSuccessScanIfNeeded()
+        soundSuccessScan = null
+        overlayImageOnPause = null
 
         //if executed as field initializer it fails because context.getFilesDir() fails
         knownConnections = maybeReadPersistedKnownConnections()?.toMutableList() ?: getBuiltinConnections().toMutableList()
@@ -241,18 +253,4 @@ class App : Application(), CoroutineScope by MainScope() {
 
     fun getConnectionManagerNewUrl(url : String) = getConnectionMenuUrl(ConnectionManagerMode.NewConnection(url))
     fun getConnectionManagerEditUrl(ci : ConnectionInfo) = getConnectionMenuUrl(ConnectionManagerMode.EditConnection(ci))
-
-    private fun cleanSoundSuccessScanIfNeeded() {
-        var f = getScanSuccessSoundFilePath()
-        if (f.exists()) {
-            f.delete()
-        }
-    }
-
-    fun setSoundSuccessScan(content: ByteArray) {
-        var f = getScanSuccessSoundFilePath()
-        f.writeBytes(content)
-    }
-
-    fun getScanSuccessSoundFilePath() = File(filesDir, scanSuccessSoundFileName)
 }

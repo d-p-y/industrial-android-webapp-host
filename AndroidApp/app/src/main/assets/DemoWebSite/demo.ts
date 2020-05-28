@@ -10,8 +10,19 @@ window.addEventListener('load', (_) => {
         window.document.location.href = ((i >= 0) ? window.document.location.href.substring(0, i) : window.document.location.href) + "#" + newState
     };
 
-    window.setPausedScanOverlayImage("test.png");
-    window.setScanSuccessSound("store_scanner_beep.mp3");
+    window.setTimeout(async () => {
+        let overlayImg = await window.registerMediaAsset("test.png")
+        let scanBeep = await window.registerMediaAsset("store_scanner_beep.mp3")
+
+        //simple shortcut: just give it some time to read images
+        window.setTimeout(async () => {
+            let res1 = window.setPausedScanOverlayImage(overlayImg);
+            console?.log("setPausedScanOverlayImage success?="+res1);
+
+            let res2 = window.setScanSuccessSound(scanBeep);
+            console?.log("setScanSuccessSound success?="+res2);
+        }, 500);        
+    });
 
     let lblLog = document.createElement("div");
     lblLog.id = "visibleLogger";

@@ -22,6 +22,7 @@ import pl.todoit.IndustrialWebViewWithQr.model.extensions.closeOnDestroy
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.sendAndClose
 import timber.log.Timber
 import java.io.ByteArrayInputStream
+import java.io.File
 
 
 fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
@@ -37,12 +38,14 @@ fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
     torchToggler.alpha = 0.4f
 }
 
+class ScanQrReq(val details:ScanRequest, val overlayImg:File?)
+
 class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions,
                        IBeforeNavigationValidation, IMaybeHasTitle {
     private lateinit var _camera: CameraData
     private lateinit var _decoder : BarcodeDecoderForCameraPreview
 
-    lateinit var req : Pair<ScanRequest,OverlayImage?>
+    lateinit var req : ScanQrReq
 
     override fun getNeededAndroidManifestPermissions(): Array<String> = arrayOf(Manifest.permission.CAMERA)
     override fun onNeededPermissionRejected(rejectedPerms:List<String>) : PermissionRequestRejected {
@@ -51,7 +54,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
     }
 
     override fun getTitleMaybe() =
-        when(val x = req.first.layoutStrategy) {
+        when(val x = req.details.layoutStrategy) {
             is FitScreenLayoutStrategy ->x.screenTitle ?: "Scan QR code"
             is MatchWidthWithFixedHeightLayoutStrategy -> null
             else -> {
@@ -60,7 +63,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
     private fun backButtonCausesCancellation() : Boolean =
-        when(req.first.layoutStrategy) {
+        when(req.details.layoutStrategy) {
             is FitScreenLayoutStrategy -> true
             is MatchWidthWithFixedHeightLayoutStrategy -> false
             else -> {
@@ -113,12 +116,13 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             setTorchStateEnabled(toggled, torchToggler)
         }
 
-        val overlayImg = req.second
+        val overlayImg = req.overlayImg
         val screenDensityDpi = act.resources?.displayMetrics?.densityDpi
 
+        Timber.d("overlayimage in request?=${overlayImg?.absolutePath}")
+
         if (overlayImg != null && scannerOverlay != null && screenDensityDpi != null) {
-            val img = ByteArrayInputStream(overlayImg.content)
-            val bmp = BitmapFactory.decodeStream(img).apply { density = screenDensityDpi }
+            val bmp = BitmapFactory.decodeFile(overlayImg.absolutePath).apply { density = screenDensityDpi }
 
             scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active (hide early to avoid flicker)
             scannerOverlay.setImageDrawable(BitmapDrawable(act.resources, bmp))
@@ -126,7 +130,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             App.Instance.launchCoroutine {
                 Timber.d("show/hide overview image listener - starting")
 
-                val stateUpdate = req.first.scanResult.openSubscription()
+                val stateUpdate = req.details.scanResult.openSubscription()
                 for (item in stateUpdate) {
                     val maybeVis =
                         when(item) {
@@ -145,7 +149,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             }
         }
 
-        val layoutProp = computeParamsForTextureView(_camera, req.first.layoutStrategy)
+        val layoutProp = computeParamsForTextureView(_camera, req.details.layoutStrategy)
 
         if (layoutProp.dimensions != null) {
             if (layoutProp.marginURBL != null) {
@@ -166,7 +170,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         _decoder =
             BarcodeDecoderForCameraPreview(
                 arrayOf(BarcodeFormat.QR_CODE),
-                req.first.postSuccess,
+                req.details.postSuccess,
                 _camera,
                 {
                     when(it) {
@@ -177,19 +181,19 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
                             act.playSound(SndItem.ScanSuccess)
 
-                            req.first.scanResult.send(ScannerStateChange.Scanned(it.decodedBarcode))
+                            req.details.scanResult.send(ScannerStateChange.Scanned(it.decodedBarcode))
                             if (!it.expectMoreMessages) {
                                 App.Instance.navigator.navigateTo(NavigationRequest.ScanQr_Scanned())
                             }
                         }
                         is BarcodeDecoderNotification.Cancelling -> {
-                            req.first.scanResult.sendAndClose(ScannerStateChange.Cancelled())
+                            req.details.scanResult.sendAndClose(ScannerStateChange.Cancelled())
                             App.Instance.navigator.navigateTo(NavigationRequest.ScanQr_Back())
                         }
                         is BarcodeDecoderNotification.Pausing  ->
-                            req.first.scanResult.send(ScannerStateChange.Paused())
+                            req.details.scanResult.send(ScannerStateChange.Paused())
                         is BarcodeDecoderNotification.Resuming  ->
-                            req.first.scanResult.send(ScannerStateChange.Resumed())
+                            req.details.scanResult.send(ScannerStateChange.Resumed())
                     }
                 })
         lifecycle.closeOnDestroy(_decoder)

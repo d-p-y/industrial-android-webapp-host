@@ -21,6 +21,7 @@ import pl.todoit.IndustrialWebViewWithQr.model.*
 import timber.log.Timber
 import java.io.File
 import kotlinx.coroutines.channels.receiveOrNull
+import java.util.*
 
 fun String.escapeJsonForWebView() = replace("\"", "\\\"")
 
@@ -106,16 +107,34 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
             host, jsonStrict.parse(MenuItemInfo.serializer().list, menuItemsAsJson)))
 
     @JavascriptInterface
-    fun setScanSuccessSound(fileContent : String) =
+    fun registerMediaAsset(fileContent : String) : String {
+        val fileName = UUID.randomUUID().toString()
+
         App.Instance.navigator.postNavigateTo(
-            NavigationRequest.WebBrowser_SetScanSuccessSound(
+            NavigationRequest.WebBrowser_RegisterMediaAsset(
+                fileName,
                 fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray()))
 
+        return fileName
+    }
+
     @JavascriptInterface
-    fun setPausedScanOverlayImage(fileContent : String) =
-        App.Instance.navigator.postNavigateTo(
-            NavigationRequest.WebBrowser_SetScanOverlayImage(
-                fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray()))
+    fun setScanSuccessSound(mediaAssetIdentifier : String) =
+        if (!App.Instance.isAssetPresent(mediaAssetIdentifier)) false
+        else {
+            App.Instance.navigator.postNavigateTo(
+                NavigationRequest.WebBrowser_SetScanSuccessSound(mediaAssetIdentifier))
+            true
+        }
+
+    @JavascriptInterface
+    fun setPausedScanOverlayImage(mediaAssetIdentifier : String) =
+        if (!App.Instance.isAssetPresent(mediaAssetIdentifier)) false
+        else {
+            App.Instance.navigator.postNavigateTo(
+                NavigationRequest.WebBrowser_SetScanOverlayImage(mediaAssetIdentifier))
+            true
+        }
 
     @JavascriptInterface
     fun openInBrowser(url: String) {
