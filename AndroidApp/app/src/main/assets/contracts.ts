@@ -35,6 +35,7 @@ module contracts {
         public trueForAction : boolean = false;
         public title : string = "None";
         public enabled : boolean = true;
+        public iconMediaIdentifierId : string|null = null;
     }
 }
 

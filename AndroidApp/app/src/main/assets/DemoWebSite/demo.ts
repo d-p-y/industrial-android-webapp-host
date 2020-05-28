@@ -10,9 +10,12 @@ window.addEventListener('load', (_) => {
         window.document.location.href = ((i >= 0) ? window.document.location.href.substring(0, i) : window.document.location.href) + "#" + newState
     };
 
+    let sampleIconMediaId = "";
+
     window.setTimeout(async () => {
         let overlayImg = await window.registerMediaAsset("test.png")
         let scanBeep = await window.registerMediaAsset("store_scanner_beep.mp3")
+        sampleIconMediaId = await window.registerMediaAsset("sampleicon.png")
 
         //simple shortcut: just give it some time to read images
         window.setTimeout(async () => {
@@ -303,6 +306,7 @@ window.addEventListener('load', (_) => {
                 let itm1 = new contracts.MenuItemInfo();
                 itm1.trueForAction = true;
                 itm1.title = "Demo";
+                itm1.iconMediaIdentifierId = sampleIconMediaId;
                 itm1.webMenuItemId = "demoActionId";
 
                 let itm2 = new contracts.MenuItemInfo();

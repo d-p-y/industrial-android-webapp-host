@@ -20,8 +20,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.serialization.Serializable
 import pl.todoit.IndustrialWebViewWithQr.fragments.WebViewFragment
+import pl.todoit.IndustrialWebViewWithQr.fragments.drawableFromFileWithoutAutoScalling
 import pl.todoit.IndustrialWebViewWithQr.model.*
 import pl.todoit.IndustrialWebViewWithQr.model.extensions.playOnce
 import timber.log.Timber
@@ -163,7 +163,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         _menu = menu
-        setAppBarMenuItems(_menuItems)
+        val menuCreationError = setAppBarMenuItems(_menuItems)
+
+        if (menuCreationError != null) {
+            Timber.e(menuCreationError)
+        }
+
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -193,6 +198,13 @@ class MainActivity : AppCompatActivity() {
         (appBarActionIds + appBarMenuItmsIds)
             .forEach { menu.findItem(it).isVisible = false }
 
+        val res = resources
+
+        if (res == null) {
+            Timber.e("resources is not available")
+            return "null resources"
+        }
+
         val wrkItms =
             items
                 .withIndex()
@@ -210,6 +222,10 @@ class MainActivity : AppCompatActivity() {
             return "problem with finding menu items"
         }
 
+        if (wrkItms.any {it.first.iconMediaIdentifierId != null && !App.Instance.isAssetPresent(it.first.iconMediaIdentifierId!!) }) {
+            return "problem with unavailable or unsafe icon not present in cacheDir"
+        }
+
         wrkItms
             .filter {it.third != null}
             .forEach {
@@ -218,6 +234,11 @@ class MainActivity : AppCompatActivity() {
                     isVisible = true
                     isEnabled = it.first.enabled
                     title = it.first.title
+
+                    val iconId = it.first.iconMediaIdentifierId
+                    if (iconId != null) {
+                        icon = drawableFromFileWithoutAutoScalling(File(cacheDir, iconId), res)
+                    }
                 }
             }
 

@@ -166,7 +166,10 @@ class Navigator {
                     return
                 }
 
-                act.setAppBarMenuItems(request.menuItems)
+                val menuCreationErr = act.setAppBarMenuItems(request.menuItems)
+                if (menuCreationErr != null) {
+                    Timber.e(menuCreationErr)
+                }
             }
             is NavigationRequest._Activity_Back -> {
                 val currentPopup = act.getCurrentPopupFragment()

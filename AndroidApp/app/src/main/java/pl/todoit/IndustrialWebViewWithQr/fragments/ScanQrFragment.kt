@@ -3,6 +3,7 @@
 package pl.todoit.IndustrialWebViewWithQr.fragments
 
 import android.Manifest
+import android.content.res.Resources
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -24,7 +25,6 @@ import timber.log.Timber
 import java.io.ByteArrayInputStream
 import java.io.File
 
-
 fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
     if (toggled) {
         //enabling
@@ -36,6 +36,11 @@ fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
     //disabling
     torchToggler.setImageResource(R.drawable.ic_wb_sunny_black)
     torchToggler.alpha = 0.4f
+}
+
+fun drawableFromFileWithoutAutoScalling(inp:File, res:Resources) : Drawable {
+    val bmp = BitmapFactory.decodeFile(inp.absolutePath).apply { density = res.displayMetrics.densityDpi }
+    return BitmapDrawable(res, bmp)
 }
 
 class ScanQrReq(val details:ScanRequest, val overlayImg:File?)
@@ -117,15 +122,13 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         }
 
         val overlayImg = req.overlayImg
-        val screenDensityDpi = act.resources?.displayMetrics?.densityDpi
+        val screenDensityDpi = act.resources
 
         Timber.d("overlayimage in request?=${overlayImg?.absolutePath}")
 
         if (overlayImg != null && scannerOverlay != null && screenDensityDpi != null) {
-            val bmp = BitmapFactory.decodeFile(overlayImg.absolutePath).apply { density = screenDensityDpi }
-
+            scannerOverlay.setImageDrawable(drawableFromFileWithoutAutoScalling(overlayImg, act.resources))
             scannerOverlay.visibility = View.GONE //initially hidden as scanner starts active (hide early to avoid flicker)
-            scannerOverlay.setImageDrawable(BitmapDrawable(act.resources, bmp))
 
             App.Instance.launchCoroutine {
                 Timber.d("show/hide overview image listener - starting")
