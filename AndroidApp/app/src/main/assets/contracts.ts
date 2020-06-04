@@ -135,13 +135,17 @@ interface IAndroid {
 interface Window {  
     Android:IAndroid;
 
-    androidPostReplyToPromise(replyJson : string) : void;
+    /**
+     * called to notify app when QR scanner changed status or wants to post scanned result
+     * @param replyJsonUriEncoded URI-encoded JSONized AndroidReply instance 
+     */
+    androidPostReplyToPromise(replyJsonUriEncoded : string) : void;
 
     /**
      * Android calls it when user activated AppBar item previously registered with setToolbarItems()
-     * @param itemId MenuItemInfo->webMenuItemId of activated item
+     * @param itemIdUriEncoded URI-encoded activated item's value of MenuItemInfo->webMenuItemId
      */
-    androidPostToolbarItemActivated(itemId : string) : void;
+    androidPostToolbarItemActivated(itemIdUriEncoded : string) : void;
 
     /**
      * webapp is notified that backbutton was pressed and gets chance to act on it

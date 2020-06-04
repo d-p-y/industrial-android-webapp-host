@@ -323,6 +323,8 @@ window.addEventListener('load', (_) => {
         document.body.appendChild(addRemoveMenuItem);
 
         Window.prototype.androidPostToolbarItemActivated = function (webMenuItemId) {
+            webMenuItemId = window.decodeURIComponent(webMenuItemId);
+            
             logMsg("menu item pressed: "+webMenuItemId);
         };    
     }

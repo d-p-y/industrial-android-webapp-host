@@ -25,10 +25,10 @@ HTMLElement.prototype.replaceChildrenWith = function(node: Node) : void {
     this.appendChild(node);
 }
 
-Window.prototype.androidPostReplyToPromise = function (replyToJson : string) {
-    console?.log("androidPostReplyToPromise("+replyToJson+")");
+Window.prototype.androidPostReplyToPromise = function (replyToJsonUriEncoded : string) {
+    console?.log("androidPostReplyToPromise("+replyToJsonUriEncoded+")");
 
-    let decoded : AndroidReply = JSON.parse(replyToJson);
+    let decoded : AndroidReply = JSON.parse(window.decodeURIComponent(replyToJsonUriEncoded));
     console?.log("androidPostReplyToPromise decoded="+decoded);
 
     let noAutoClean = window.promiseNoAutoClean.has(decoded.PromiseId);

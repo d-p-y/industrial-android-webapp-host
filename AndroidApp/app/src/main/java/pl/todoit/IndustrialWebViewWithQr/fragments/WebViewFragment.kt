@@ -23,7 +23,7 @@ import java.io.File
 import kotlinx.coroutines.channels.receiveOrNull
 import java.util.*
 
-fun String.escapeJsonForWebView() = replace("\"", "\\\"")
+fun String.escapeJsonForWebView() = Uri.encode(this)
 
 fun postReply(host : WebViewFragment, reply : AndroidReply) {
     var replyJson = jsonStrict.stringify(AndroidReply.serializer(), reply)
