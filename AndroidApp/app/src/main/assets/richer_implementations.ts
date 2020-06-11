@@ -80,10 +80,10 @@ Window.prototype.promiseClean = function (promiseId : string) {
 }
 
 Window.prototype.scanQr = function(layoutData : contracts.LayoutStrategy) : Promise<string> {
-    let self = this;
+    let self : Window = this;
 
     return new Promise(function (resolve,reject) {
-        if (self.Android === undefined) {
+        if (self.IAWApp === undefined) {
             //dev friendly polyfill
             let result = window.prompt("[blocking] scan QR:");
 
@@ -100,14 +100,14 @@ Window.prototype.scanQr = function(layoutData : contracts.LayoutStrategy) : Prom
         self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
         self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
         
-        console?.log("calling self.Android.requestScanQr");
+        console?.log("calling self.IAWApp.requestScanQr");
 
-        self.Android.requestScanQr(promiseId, false, JSON.stringify(layoutData));
+        self.IAWApp.requestScanQr(promiseId, false, JSON.stringify(layoutData));
     });    
 }
 
 Window.prototype.scanQrCancellable = function(layoutData : contracts.LayoutStrategy) : [Promise<string>, () => void] {    
-    if (this.Android === undefined) {
+    if (this.IAWApp === undefined) {
         //dev friendly polyfill
 
         let canceller = function() {
@@ -128,7 +128,7 @@ Window.prototype.scanQrCancellable = function(layoutData : contracts.LayoutStrat
     }
 
     let promiseId = (this.nextPromiseId++).toString();
-    let self = this;
+    let self : Window = this;
 
     return [
         new Promise(function (resolve,reject) {
@@ -136,18 +136,18 @@ Window.prototype.scanQrCancellable = function(layoutData : contracts.LayoutStrat
             self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
             self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
             
-            console?.log("calling self.Android.requestScanQr");
+            console?.log("calling self.IAWApp.requestScanQr");
 
-            self.Android.requestScanQr(promiseId, false, JSON.stringify(layoutData));
+            self.IAWApp.requestScanQr(promiseId, false, JSON.stringify(layoutData));
         }),
         () => {
             console?.log("requesting scanQr cancellation");
-            self.Android.cancelScanQr(promiseId)
+            self.IAWApp.cancelScanQr(promiseId)
         }];
 }
 
 Window.prototype.scanQrValidatableAndCancellable = function (layoutData : contracts.LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>), onCancellation : () => void) : (() => void) {
-    if (this.Android === undefined) {
+    if (this.IAWApp === undefined) {
         //dev friendly polyfill
 
         let ended = false;
@@ -183,7 +183,7 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : contra
 
     let promiseId = (this.nextPromiseId++).toString();
     window.promiseDisableAutoClean(promiseId);
-    let self = this;
+    let self : Window = this;
 
     let onGotBarcode = async (isCancellation:boolean, barcode:string|null) => {
         console?.log("onGotBarcode(isCancellation="+isCancellation+" barcode="+barcode+")");
@@ -198,10 +198,10 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : contra
 
             if (accepted) {
                 console?.log("onGotBarcode cancellation");        
-                self.Android.cancelScanQr(promiseId)
+                self.IAWApp.cancelScanQr(promiseId)
             } else {
                 console?.log("onGotBarcode resumption");
-                self.Android.resumeScanQr(promiseId)
+                self.IAWApp.resumeScanQr(promiseId)
             }
         }
     }
@@ -210,29 +210,29 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : contra
     self.promiseResolvedCallBacks.set(promiseId, (x:string) => onGotBarcode(false, x));
     self.promiseRejectedCallBacks.set(promiseId, (x:string) => onGotBarcode(true, x));
 
-    console?.log("calling self.Android.requestScanQr");
+    console?.log("calling self.IAWApp.requestScanQr");
 
-    self.Android.requestScanQr(promiseId, true, JSON.stringify(layoutData));
+    self.IAWApp.requestScanQr(promiseId, true, JSON.stringify(layoutData));
 
     return () => {
         console?.log("requesting scanQr cancellation");        
-        self.Android.cancelScanQr(promiseId)
+        self.IAWApp.cancelScanQr(promiseId)
     };
 }
 
 Window.prototype.showToast = function(label : string, longDuration : boolean) : void {
-    if (this.Android === undefined) {
+    if (this.IAWApp === undefined) {
         //dev friendly polyfill
         window.alert(label);
         return;
     }
 
-    this.Android.showToast(label, longDuration);
+    this.IAWApp.showToast(label, longDuration);
 }
 
 Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
-    if (this.Android !== undefined) {
-        this.Android.setToolbarBackButtonState(isEnabled);
+    if (this.IAWApp !== undefined) {
+        this.IAWApp.setToolbarBackButtonState(isEnabled);
         return;
     }
 
@@ -240,8 +240,8 @@ Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
 }
 
 Window.prototype.setToolbarItems = function (menuItems : contracts.MenuItemInfo[]) {
-    if (this.Android !== undefined) {
-        this.Android.setToolbarItems(JSON.stringify(menuItems));
+    if (this.IAWApp !== undefined) {
+        this.IAWApp.setToolbarItems(JSON.stringify(menuItems));
         return;
     }
     
@@ -250,10 +250,10 @@ Window.prototype.setToolbarItems = function (menuItems : contracts.MenuItemInfo[
 };
 
 Window.prototype.registerMediaAsset = function (fromUrl) {
-    let self = this;
+    let self : Window = this;
 
     return new Promise<string>(function (resolve,reject) {
-        if (self.Android === undefined) {
+        if (self.IAWApp === undefined) {
             console?.log("registerMediaAsset ignoring because doesn't run within android");
             resolve("not-running-within-android")
             return;
@@ -273,7 +273,7 @@ Window.prototype.registerMediaAsset = function (fromUrl) {
 
             let fileContent = new Uint8Array(arrayBuffer).toString();
             resolve(
-                window.Android.registerMediaAsset(fileContent));
+                window.IAWApp.registerMediaAsset(fileContent));
             return;
         };
         req.send(null);
@@ -281,58 +281,58 @@ Window.prototype.registerMediaAsset = function (fromUrl) {
 }
 
 Window.prototype.setScanSuccessSound = function (mediaAssetId) {
-    if (this.Android === undefined) {
+    if (this.IAWApp === undefined) {
         console?.log("setScanSuccessSound ignoring because doesn't run within android");
         return true;
     }
 
-    return window.Android.setScanSuccessSound(mediaAssetId);
+    return window.IAWApp.setScanSuccessSound(mediaAssetId);
 }
 
 Window.prototype.setPausedScanOverlayImage = function (mediaAssetId) {
-    if (this.Android === undefined) {
+    if (this.IAWApp === undefined) {
         console?.log("setPausedScanOverlayImage ignoring because doesn't run within android");
         return true;
     }
 
-    return window.Android.setPausedScanOverlayImage(mediaAssetId);
+    return window.IAWApp.setPausedScanOverlayImage(mediaAssetId);
 }
 
 Window.prototype.openInBrowser = function (url : string) {
-    if (this.Android === undefined) {
+    if (this.IAWApp === undefined) {
         window.open(url, '_blank')
         return;
     }
 
-    this.Android.openInBrowser(url);
+    this.IAWApp.openInBrowser(url);
 };
 Window.prototype.getKnownConnections = function() {
-    if (this.Android === undefined) {        
+    if (this.IAWApp === undefined) {        
         return "[{\"url\":\"http://wikipedia.com\",\"name\":\"Wikipedia (EN)\"}, {\"url\":\"http://duck.com\",\"name\":\"DuckDuckGo\"}]";
     }
 
-    return this.Android.getKnownConnections();
+    return this.IAWApp.getKnownConnections();
 };
 Window.prototype.saveConnection = function(connInfoJson) {
-    if (this.Android === undefined) {        
+    if (this.IAWApp === undefined) {        
         return "true";
     }
 
-    return this.Android.saveConnection(connInfoJson);
+    return this.IAWApp.saveConnection(connInfoJson);
 };
 Window.prototype.createShortcut = function (url : string) {
-    if (this.Android === undefined) {        
+    if (this.IAWApp === undefined) {        
         return "false";
     }
 
-    return this.Android.createShortcut(url);
+    return this.IAWApp.createShortcut(url);
 };
 Window.prototype.finishConnectionManager = function (url : string | null) {
-    if (this.Android === undefined) {        
+    if (this.IAWApp === undefined) {        
         return "false";
     }
 
-    return this.Android.finishConnectionManager(url);
+    return this.IAWApp.finishConnectionManager(url);
 };
 
 window.addEventListener('load', (_) => {

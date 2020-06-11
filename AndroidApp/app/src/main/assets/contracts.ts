@@ -45,7 +45,7 @@ interface AndroidReply {
     Barcode : string;
 }
 
-interface IAndroid {
+interface IAWAppHostApi {
     //implicit API: triggering browser's file picker (f.e. by tapping on <input type='file'>) is understood as take photo request
 
     //implicit API: URL fragment element ( proto://site:port/path?query#fragment ) is understood as persistent state that webapp wants to be preserved between run times
@@ -133,7 +133,7 @@ interface IAndroid {
 }
 
 interface Window {  
-    Android:IAndroid;
+    IAWApp:IAWAppHostApi;
 
     /**
      * called to notify app when QR scanner changed status or wants to post scanned result

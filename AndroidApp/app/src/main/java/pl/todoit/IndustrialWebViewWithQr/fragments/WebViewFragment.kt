@@ -72,7 +72,7 @@ fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperatio
 
 class WebViewExposedMethods(private var host: WebViewFragment) {
     companion object {
-        fun getJavascriptWindowPropertyName() = "Android"
+        fun getJavascriptWindowPropertyName() = "IAWApp"
     }
 
     @JavascriptInterface
