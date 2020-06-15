@@ -20,6 +20,7 @@ interface Window {
     
     showToast(label : string, longDuration : boolean) : void;    
     setToolbarBackButtonState(isEnabled : boolean) : void;
+    setToolbarSearchState(activate : boolean) : void;
     setToolbarItems(menuItems : contracts.MenuItemInfo[]): void;
 
     openInBrowser(url : string) : void;

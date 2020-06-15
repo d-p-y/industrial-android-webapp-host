@@ -22,13 +22,13 @@ import java.io.File
 import kotlinx.coroutines.channels.receiveOrNull
 import java.util.*
 
-fun String.escapeJsonForWebView() = Uri.encode(this)
+fun String.escapeByUriComponentEncode() = Uri.encode(this)
 
 fun postReply(host : WebViewFragment, reply : AndroidReply) {
     var replyJson = jsonStrict.stringify(AndroidReply.serializer(), reply)
     var msg =
         "androidPostReplyToPromise(\"" +
-        replyJson.escapeJsonForWebView() +
+        replyJson.escapeByUriComponentEncode() +
         "\")"
     host.getWebView()?.evaluateJavascript(msg, null)
 }
@@ -99,6 +99,11 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
             host.activity,
             SensitiveWebExposedOperation.SaveConnection(
                 jsonStrict.parse(ConnectionInfo.serializer(), connInfoAsJson)))
+
+    @JavascriptInterface
+    fun setToolbarSearchState(active : Boolean) =
+        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ToolbarSearchChanged(
+            host, active))
 
     @JavascriptInterface
     fun setToolbarItems(menuItemsAsJson : String) =
@@ -332,15 +337,31 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         val webView = getWebView()
 
         if (webView == null) {
-            Timber.e("bug: no webView?")
+            Timber.e("onNotifyWebAppAboutMenuItemActivated: no webView?")
             return
         }
 
         webView.evaluateJavascript(
             "(window.androidPostToolbarItemActivated === undefined) ? \"no function\" : window.androidPostToolbarItemActivated(\"" +
-                jsonStrict.stringify(String.serializer(), itm.webMenuItemId).escapeJsonForWebView() +
+                jsonStrict.stringify(String.serializer(), itm.webMenuItemId).escapeByUriComponentEncode() +
             "\")",
             ValueCallback { Timber.e("androidPostToolbarItemActivated() reply=$it") })
+    }
+
+    fun onToolbarSearchUpdate(committed : Boolean, query : String) {
+        val webView = getWebView()
+
+        if (webView == null) {
+            Timber.e("onToolbarSearchUpdate: no webView?")
+            return
+        }
+
+        webView.evaluateJavascript(
+            "(window.androidPostToolbarSearchUpdate === undefined) ? \"no function\" : window.androidPostToolbarSearchUpdate(" +
+                (if (committed) "true" else "false") + "," +
+                '"' + query.escapeByUriComponentEncode() + '"' +
+            ")",
+            ValueCallback { Timber.e("androidPostToolbarSearchUpdate() reply=$it") })
     }
 
     override suspend fun onBackPressedConsumed() : Boolean {

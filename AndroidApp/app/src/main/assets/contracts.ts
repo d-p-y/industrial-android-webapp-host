@@ -98,6 +98,13 @@ interface IAWAppHostApi {
     openInBrowser(url : string) : void;
 
     /**
+     * enables or disables AppBar search control. When search is active it reports users actions using androidPostToolbarSearchUpdate(bool, string)
+     * 
+     * @param activate 'true' to show, 'false' to hide
+     */
+    setToolbarSearchState(activate : boolean) : void;
+
+    /**
      * replaces AppBar menu items with provided items. When item is activated by user androidPostToolbarItemActivated() will be called
      * 
      * @param menuItemInfosAsJson JSONized list of MenuItemInfo instances
@@ -146,6 +153,14 @@ interface Window {
      * @param itemIdUriEncoded URI-encoded activated item's value of MenuItemInfo->webMenuItemId
      */
     androidPostToolbarItemActivated(itemIdUriEncoded : string) : void;
+
+    /**
+     * webapp is notified when user typed something into search (or confirmed search intent)
+     * 
+     * @param committed 'false' if user didn't yet confirm search
+     * @param query text typed into search input URI-encoded
+     */
+    androidPostToolbarSearchUpdate(committed : boolean, query : string) : void;
 
     /**
      * webapp is notified that backbutton was pressed and gets chance to act on it

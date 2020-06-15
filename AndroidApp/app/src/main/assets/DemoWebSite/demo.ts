@@ -351,6 +351,26 @@ window.addEventListener('load', (_) => {
     };
     document.body.appendChild(btnChangeTitle);
 
+    {
+        let searchEnabled = false;
+        let getBtnCaption = () => searchEnabled ? "Disable search-in-appbar" : "Enable search-in-appbar";
+        let toggleAppBarSearch = document.createElement("input");
+        toggleAppBarSearch.type = "button";
+        toggleAppBarSearch.value = getBtnCaption();
+        toggleAppBarSearch.onclick = () => {
+            searchEnabled = !searchEnabled;
+            window.setToolbarSearchState(searchEnabled);
+            toggleAppBarSearch.value = getBtnCaption();
+        };
+        document.body.appendChild(toggleAppBarSearch);
+
+        Window.prototype.androidPostToolbarSearchUpdate = function (committed, query) {
+            query = decodeURIComponent(query);
+
+            logMsg((committed ? "searchRequest" : "searchTextUpdate") + ": " + query);
+        };    
+    }
+
     let btnClearLog = document.createElement("input");
     btnClearLog.type = "button";
     btnClearLog.value = "Clear log below";

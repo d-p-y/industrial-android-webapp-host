@@ -5,6 +5,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
     <item
+        android:id="@+id/menuItemSearch"
+        android:enabled="true"
+        android:icon="@drawable/ic_search_black_24dp"
+        android:title="Search"
+        android:visible="false"
+        app:actionViewClass="android.widget.SearchView"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/menuActionProgrammatic0"
         android:title="Action0"
         app:showAsAction="always"

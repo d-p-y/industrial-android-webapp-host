@@ -230,6 +230,15 @@ Window.prototype.showToast = function(label : string, longDuration : boolean) : 
     this.IAWApp.showToast(label, longDuration);
 }
 
+Window.prototype.setToolbarSearchState = function (activate : boolean) {
+    if (this.IAWApp !== undefined) {
+        this.IAWApp.setToolbarSearchState(activate);
+        return;
+    }
+
+    console?.log("toolbar search state is now " + (activate ? "enabled" : "disabled"));
+};
+
 Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
     if (this.IAWApp !== undefined) {
         this.IAWApp.setToolbarBackButtonState(isEnabled);

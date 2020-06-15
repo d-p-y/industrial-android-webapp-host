@@ -160,6 +160,14 @@ class Navigator {
 
                 act.setToolbarTitle(request.sender.getTitle())
             }
+            is NavigationRequest.WebBrowser_ToolbarSearchChanged -> {
+                if (request.sender != act.getCurrentMasterFragment()) {
+                    Timber.d("ignored search action toggler request from inactive master fragment")
+                    return
+                }
+
+                act.setToolbarSearchState(request.isActive)
+            }
             is NavigationRequest.WebBrowser_ToolbarMenuChanged -> {
                 if (request.sender != act.getCurrentMasterFragment()) {
                     Timber.d("ignored change name request from inactive master fragment")

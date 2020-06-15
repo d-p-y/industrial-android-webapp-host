@@ -12,6 +12,7 @@ import android.media.SoundPool
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import android.widget.SearchView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -76,6 +77,8 @@ val appBarMenuItmsIds = arrayOf(
 class MainActivity : AppCompatActivity() {
     private var _menu : Menu? = null
     private var _menuItems = listOf<MenuItemInfo>()
+    private var _toolbarSearchIsActive = false
+
     private lateinit var _sm: SensorManager
     private val _sensorListeners = mutableListOf<Closeable>()
 
@@ -168,6 +171,8 @@ class MainActivity : AppCompatActivity() {
         if (menuCreationError != null) {
             Timber.e(menuCreationError)
         }
+
+        setToolbarSearchState(_toolbarSearchIsActive)
 
         return super.onCreateOptionsMenu(menu)
     }
@@ -298,6 +303,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun setToolbarSearchState(isActive : Boolean) {
+        _toolbarSearchIsActive = isActive
+
+        val searchItemId = _menu?.findItem(R.id.menuItemSearch)
+
+        if (searchItemId == null) {
+            Timber.d("didn't find menuItemSearch within menu")
+            return
+        }
+
+        searchItemId.isVisible = _toolbarSearchIsActive
+        val sv = searchItemId.actionView
+
+        if (sv !is SearchView) {
+            Timber.d("menuItemSearch is not of SearchView type")
+            return
+        }
+
+        sv.setOnQueryTextListener( object : SearchView.OnQueryTextListener {
+            fun webAppNotifySearchUpdate(query : String?, committed : Boolean) : Boolean {
+                val webViewFrag = getCurrentMasterFragment()
+
+                if (webViewFrag !is WebViewFragment) {
+                    Timber.e("onQueryTextSubmit without webviewfragment in master")
+                    return true //search handled
+                }
+
+                webViewFrag.onToolbarSearchUpdate(committed, query ?: "")
+                return true//search handled
+            }
+
+            override fun onQueryTextSubmit(query: String?) : Boolean = webAppNotifySearchUpdate(query, true)
+            override fun onQueryTextChange(newText: String?) : Boolean = webAppNotifySearchUpdate(newText, false)
+        })
+    }
+
     fun setToolbarBackButtonState(enabled : Boolean) {
         val tb = supportActionBar
 
@@ -405,6 +446,7 @@ class MainActivity : AppCompatActivity() {
                 val existState = App.Instance.getOrCreateConnectionByUrl(currentUrl)
 
                 if (newState != existState.webAppPersistentState) {
+                    //in-memory persistence
                     existState.webAppPersistentState = newState
                     App.Instance.persistConnection(existState)
                 }
@@ -415,7 +457,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        App.Instance.persistKnownConnections()
+        App.Instance.persistKnownConnections() //to-disk persistence
 
         val cpy = _sensorListeners.toList()
         _sensorListeners.clear()
