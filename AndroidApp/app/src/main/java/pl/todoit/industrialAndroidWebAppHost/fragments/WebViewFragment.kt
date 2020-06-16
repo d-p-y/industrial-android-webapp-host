@@ -102,8 +102,8 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
 
     @JavascriptInterface
     fun setToolbarSearchState(active : Boolean) =
-        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ToolbarSearchChanged(
-            host, active))
+        App.Instance.navigator.postNavigateTo(
+            NavigationRequest.WebBrowser_ToolbarSearchChanged(host, active))
 
     @JavascriptInterface
     fun setToolbarItems(menuItemsAsJson : String) =
@@ -343,7 +343,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
 
         webView.evaluateJavascript(
             "(window.androidPostToolbarItemActivated === undefined) ? \"no function\" : window.androidPostToolbarItemActivated(\"" +
-                jsonStrict.stringify(String.serializer(), itm.webMenuItemId).escapeByUriComponentEncode() +
+                itm.webMenuItemId.escapeByUriComponentEncode() +
             "\")",
             ValueCallback { Timber.e("androidPostToolbarItemActivated() reply=$it") })
     }
