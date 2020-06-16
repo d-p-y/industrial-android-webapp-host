@@ -267,7 +267,7 @@ class MainActivity : AppCompatActivity() {
         val maybeUserItem = _menuItems.firstOrNull { it.physicalMenuItemId == item.itemId }
 
         if (maybeUserItem != null) {
-            Timber.d("onOptionsItemSelected() activated user item, delegating to browser")
+            Timber.d("onOptionsItemSelected() activated user item ${maybeUserItem.webMenuItemId}, delegating to browser")
             App.Instance.navigator.postNavigateTo(NavigationRequest._Toolbar_ItemActivated(maybeUserItem))
             return true
         }
@@ -313,13 +313,19 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        searchItemId.isVisible = _toolbarSearchIsActive
         val sv = searchItemId.actionView
 
         if (sv !is SearchView) {
             Timber.d("menuItemSearch is not of SearchView type")
             return
         }
+
+        if (!_toolbarSearchIsActive) {
+            //clear it on deactivation while it is still visible
+            sv.setQuery("", false) //clear former entry
+            sv.isIconified = true
+        }
+        searchItemId.isVisible = _toolbarSearchIsActive
 
         sv.setOnQueryTextListener( object : SearchView.OnQueryTextListener {
             fun webAppNotifySearchUpdate(query : String?, committed : Boolean) : Boolean {
@@ -330,7 +336,10 @@ class MainActivity : AppCompatActivity() {
                     return true //search handled
                 }
 
-                webViewFrag.onToolbarSearchUpdate(committed, query ?: "")
+                if (_toolbarSearchIsActive) {
+                    webViewFrag.onToolbarSearchUpdate(committed, query ?: "")
+                }
+
                 return true//search handled
             }
 

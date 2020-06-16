@@ -170,7 +170,7 @@ class Navigator {
             }
             is NavigationRequest.WebBrowser_ToolbarMenuChanged -> {
                 if (request.sender != act.getCurrentMasterFragment()) {
-                    Timber.d("ignored change name request from inactive master fragment")
+                    Timber.d("ignored change toolbar request from inactive master fragment")
                     return
                 }
 
