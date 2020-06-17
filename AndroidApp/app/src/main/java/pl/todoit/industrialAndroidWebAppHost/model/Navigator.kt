@@ -168,6 +168,14 @@ class Navigator {
 
                 act.setToolbarSearchState(request.isActive)
             }
+            is NavigationRequest.WebBrowser_ToolbarColorsChanged -> {
+                if (request.sender != act.getCurrentMasterFragment()) {
+                    Timber.d("ignored color change request from inactive master fragment")
+                    return
+                }
+
+                act.setToolbarColors(request.backgroundColor, request.foregroundColor)
+            }
             is NavigationRequest.WebBrowser_ToolbarMenuChanged -> {
                 if (request.sender != act.getCurrentMasterFragment()) {
                     Timber.d("ignored change toolbar request from inactive master fragment")

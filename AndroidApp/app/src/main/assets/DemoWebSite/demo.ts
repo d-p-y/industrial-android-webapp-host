@@ -352,6 +352,21 @@ window.addEventListener('load', (_) => {
     document.body.appendChild(btnChangeTitle);
 
     {
+        let fgCol = ["#ff0000","#00ff00","#0000ff","#000000"];
+        let bgCol = ["#00ff00","#0000ff","#ff0000","#ffffff"];
+        let iCol = 0;
+
+        let btnChangeColors = document.createElement("input");
+        btnChangeColors.type = "button";
+        btnChangeColors.value = "Change AppBar colors";
+        btnChangeColors.onclick = () => {
+            window.setToolbarColors(bgCol[iCol], fgCol[iCol]);            
+            iCol = ++iCol % fgCol.length;
+        };
+        document.body.appendChild(btnChangeColors);
+    }
+
+    {
         let searchEnabled = false;
         let getBtnCaption = () => searchEnabled ? "Disable search-in-appbar" : "Enable search-in-appbar";
         let toggleAppBarSearch = document.createElement("input");

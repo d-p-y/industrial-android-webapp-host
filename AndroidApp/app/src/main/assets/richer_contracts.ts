@@ -21,6 +21,7 @@ interface Window {
     showToast(label : string, longDuration : boolean) : void;    
     setToolbarBackButtonState(isEnabled : boolean) : void;
     setToolbarSearchState(activate : boolean) : void;
+    setToolbarColors(backgroundColor : string, foregroundColor : string) : void;
     setToolbarItems(menuItems : contracts.MenuItemInfo[]): void;
 
     openInBrowser(url : string) : void;

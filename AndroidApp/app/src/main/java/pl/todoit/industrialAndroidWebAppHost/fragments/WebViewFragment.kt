@@ -106,6 +106,11 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
             NavigationRequest.WebBrowser_ToolbarSearchChanged(host, active))
 
     @JavascriptInterface
+    fun setToolbarColors(backgroundColor : String, foregroundColor : String) =
+        App.Instance.navigator.postNavigateTo(
+            NavigationRequest.WebBrowser_ToolbarColorsChanged(host, backgroundColor, foregroundColor))
+
+    @JavascriptInterface
     fun setToolbarItems(menuItemsAsJson : String) =
         App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ToolbarMenuChanged(
             host, jsonStrict.parse(MenuItemInfo.serializer().list, menuItemsAsJson)))

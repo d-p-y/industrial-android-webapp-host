@@ -105,6 +105,14 @@ interface IAWAppHostApi {
     setToolbarSearchState(activate : boolean) : void;
 
     /**
+     * changes AppBar's color and AppBar's text color
+     * 
+     * @param backgroundColor AppBar color in format understood by android.graphics.Color.parseColor() typically #RRGGBB
+     * @param foregroundColor text color in format understood by android.graphics.Color.parseColor() typically #RRGGBB
+     */
+    setToolbarColors(backgroundColor : string, foregroundColor : string) : void;
+
+    /**
      * replaces AppBar menu items with provided items. When item is activated by user androidPostToolbarItemActivated() will be called
      * 
      * @param menuItemInfosAsJson JSONized list of MenuItemInfo instances

@@ -3,6 +3,7 @@ package pl.todoit.industrialAndroidWebAppHost
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -294,13 +295,27 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        Timber.e("changing toolbar visibility to $visible")
+        Timber.d("changing toolbar visibility to $visible")
 
         if (visible) {
             tb.show()
         } else {
             tb.hide()
         }
+    }
+
+    fun setToolbarColors(bgColor : String, fgColor : String) {
+        val tb = findViewById<Toolbar>(R.id.toolBar)
+
+        if (tb !is Toolbar) {
+            Timber.e("no toolbar or not appcompat Toolbar- cannot change button state")
+            return
+        }
+
+        Timber.d("changing toolbar colors to $bgColor $fgColor")
+
+        tb.setBackgroundColor(Color.parseColor(bgColor))
+        tb.setTitleTextColor(Color.parseColor(fgColor))
     }
 
     fun setToolbarSearchState(isActive : Boolean) {

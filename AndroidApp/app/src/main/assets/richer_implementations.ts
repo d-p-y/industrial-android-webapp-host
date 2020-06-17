@@ -239,6 +239,15 @@ Window.prototype.setToolbarSearchState = function (activate : boolean) {
     console?.log("toolbar search state is now " + (activate ? "enabled" : "disabled"));
 };
 
+Window.prototype.setToolbarColors = function(bgColor, fgColor) {
+    if (this.IAWApp !== undefined) {
+        this.IAWApp.setToolbarColors(bgColor, fgColor);
+        return;
+    }
+
+    console?.log("toolbar color bg=" + bgColor +" fg="+fgColor);    
+}
+
 Window.prototype.setToolbarBackButtonState = function (isEnabled : boolean) {
     if (this.IAWApp !== undefined) {
         this.IAWApp.setToolbarBackButtonState(isEnabled);
