@@ -507,6 +507,10 @@ class MainActivity : AppCompatActivity() {
         removeMasterFragmentIfNeeded()
         supportFragmentManager.beginTransaction().add(R.id.base_fragment, fragment).commit()
 
+        if (fragment is ITogglesBackButtonVisibility) {
+            setToolbarBackButtonState(fragment.isBackButtonEnabled())
+        }
+
         if (fragment is IHasTitle) {
             setToolbarTitle(fragment.getTitle())
         }

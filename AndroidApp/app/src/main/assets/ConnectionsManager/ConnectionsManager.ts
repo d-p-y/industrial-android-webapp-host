@@ -272,7 +272,7 @@ window.addEventListener('load', (_) => {
             let rawConnections : ConnectionInfo[] = JSON.parse( window.getKnownConnections());
             let conns = rawConnections.filter(x => x.url == url);
 
-            if (conns.length != 1) {
+            if (url == null || conns.length != 1) {
                 let err = document.createElement("div");
                 err.textContent = "mode 'edit' for nonpersisted url: "+url;
                 document.body.appendChild(err);
@@ -280,7 +280,7 @@ window.addEventListener('load', (_) => {
             }
 
             document.body.replaceChildrenWith(createConnectionCreatorEditorForm(
-                null,
+                () => window.finishConnectionManager(url as string), //above already verified that it's not null,
                 url => window.finishConnectionManager(url),
                 conns[0]
             ));
