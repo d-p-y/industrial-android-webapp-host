@@ -76,10 +76,30 @@ class Navigator {
 
                 maybeWebApp.onNotifyWebAppAboutMenuItemActivated(request.mi)
             }
-            is NavigationRequest.WebBrowser_RegisterMediaAsset -> {
-                Timber.d("registering media asset fileName=${request.safeFileNameForCacheDir}")
-                App.Instance.launch(Dispatchers.IO) {
-                    File(act.cacheDir, request.safeFileNameForCacheDir).writeBytes(request.content)
+            is NavigationRequest.WebBrowser_RegisterMediaAssetIfNeeded -> {
+                var success = false
+                var hashedContentAsFileName = ""
+
+                try {
+                    val bytes = request.fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray()
+                    hashedContentAsFileName = bytes.unsecureHashAsSafeFileName()
+
+                    Timber.d("registerMediaAsset webRequestId=${request.webRequestId} will maybe-be-stored as $hashedContentAsFileName")
+
+                    App.Instance.launch(Dispatchers.IO) {
+                        val outp = File(act.cacheDir, hashedContentAsFileName)
+
+                        val alreadyExists = outp.exists()
+                        Timber.d("registering media asset fileName=$hashedContentAsFileName already exists?=$alreadyExists")
+
+                        if (!alreadyExists) {
+                            outp.writeBytes(bytes)
+                        }
+                    }
+                    success = true
+                } finally {
+                    Timber.d("registerMediaAsset webRequestId=${request.webRequestId} success?=$success")
+                    request.continuation(if (success) hashedContentAsFileName else "")
                 }
             }
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {

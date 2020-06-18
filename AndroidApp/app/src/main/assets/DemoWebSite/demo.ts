@@ -17,14 +17,11 @@ window.addEventListener('load', (_) => {
         let scanBeep = await window.registerMediaAsset("store_scanner_beep.mp3")
         sampleIconMediaId = await window.registerMediaAsset("sampleicon.png")
 
-        //simple shortcut: just give it some time to read images
-        window.setTimeout(async () => {
-            let res1 = window.setPausedScanOverlayImage(overlayImg);
-            console?.log("setPausedScanOverlayImage success?="+res1);
+        let res1 = window.setPausedScanOverlayImage(overlayImg);
+        console?.log("setPausedScanOverlayImage success?="+res1);
 
-            let res2 = window.setScanSuccessSound(scanBeep);
-            console?.log("setScanSuccessSound success?="+res2);
-        }, 500);        
+        let res2 = window.setScanSuccessSound(scanBeep);
+        console?.log("setScanSuccessSound success?="+res2);    
     });
 
     let lblLog = document.createElement("div");

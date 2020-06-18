@@ -21,7 +21,7 @@ sealed class NavigationRequest {
     class WebBrowser_ToolbarMenuChanged(val sender : Fragment, val menuItems:List<MenuItemInfo>) : NavigationRequest()
     class WebBrowser_ToolbarSearchChanged(val sender : Fragment, val isActive : Boolean) : NavigationRequest()
     class WebBrowser_ToolbarColorsChanged(val sender: Fragment, val backgroundColor : String, val foregroundColor : String) : NavigationRequest()
-    class WebBrowser_RegisterMediaAsset(val safeFileNameForCacheDir:String, val content:ByteArray) : NavigationRequest()
+    class WebBrowser_RegisterMediaAssetIfNeeded(val webRequestId : String, val fileContent : String, val continuation : (String)->Unit ) : NavigationRequest()
     class WebBrowser_SetScanSuccessSound(val mediaAssetIdentifier: String) : NavigationRequest()
     class WebBrowser_SetScanOverlayImage(val mediaAssetIdentifier: String) : NavigationRequest()
     class WebBrowser_RequestedScanQr(val req: ScanRequest) : NavigationRequest()

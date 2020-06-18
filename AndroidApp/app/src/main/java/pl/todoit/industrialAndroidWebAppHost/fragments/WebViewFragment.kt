@@ -1,5 +1,6 @@
 package pl.todoit.industrialAndroidWebAppHost.fragments
 
+import android.util.Base64
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -19,9 +20,20 @@ import pl.todoit.industrialAndroidWebAppHost.model.*
 import timber.log.Timber
 import java.io.File
 import kotlinx.coroutines.channels.receiveOrNull
+import java.security.MessageDigest
 import java.util.*
 
 fun String.escapeByUriComponentEncode() = Uri.encode(this)
+fun WebView.evaluateJavascript(str : String) = this.evaluateJavascript(str, null)
+
+/**
+ * 'unsecure' as in 'not cryptographically safe'
+ */
+fun ByteArray.unsecureHashAsSafeFileName() =
+    Base64 //calculating SHA-1 is purportedly faster than MD5
+        .encodeToString(MessageDigest.getInstance("SHA-1").digest(this), Base64.DEFAULT)
+        .trimEnd() //trailing newline
+        .replace('/', '.') //see 6.8. of https://tools.ietf.org/html/rfc2045
 
 fun postScanQrReply(host : WebViewFragment, reply : IAWAppScanReply) {
     var replyJson = jsonStrict.stringify(IAWAppScanReply.serializer(), reply)
@@ -29,7 +41,7 @@ fun postScanQrReply(host : WebViewFragment, reply : IAWAppScanReply) {
         "androidPostScanQrReply(\"" +
         replyJson.escapeByUriComponentEncode() +
         "\")"
-    host.getWebView()?.evaluateJavascript(msg, null)
+    host.getWebView()?.evaluateJavascript(msg)
 }
 
 sealed class ScannerStateChange {
@@ -115,16 +127,21 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
             host, jsonStrict.parse(MenuItemInfo.serializer().list, menuItemsAsJson)))
 
     @JavascriptInterface
-    fun registerMediaAsset(fileContent : String) : String {
-        val fileName = UUID.randomUUID().toString()
-
+    fun registerMediaAsset(webRequestId : String, fileContent : String) =
         App.Instance.navigator.postNavigateTo(
-            NavigationRequest.WebBrowser_RegisterMediaAsset(
-                fileName,
-                fileContent.split(',').map { it.toInt().toUByte().toByte() }.toByteArray()))
-
-        return fileName
-    }
+            NavigationRequest.WebBrowser_RegisterMediaAssetIfNeeded(
+                webRequestId,
+                fileContent,
+                {
+                    val msg =
+                        "androidPostMediaAssetReady(" +
+                            "\"" + webRequestId.escapeByUriComponentEncode() + "\"," +
+                            "\""+it+"\"" +
+                        ")"
+                    host.getWebView()?.evaluateJavascript(msg)
+                }
+            )
+        )
 
     @JavascriptInterface
     fun setScanSuccessSound(mediaAssetIdentifier : String) =
@@ -348,8 +365,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         webView.evaluateJavascript(
             "(window.androidPostToolbarItemActivated === undefined) ? \"no function\" : window.androidPostToolbarItemActivated(\"" +
                 itm.webMenuItemId.escapeByUriComponentEncode() +
-            "\")",
-            ValueCallback { Timber.e("androidPostToolbarItemActivated() reply=$it") })
+            "\")")
     }
 
     fun onToolbarSearchUpdate(committed : Boolean, query : String) {
@@ -364,8 +380,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
             "(window.androidPostToolbarSearchUpdate === undefined) ? \"no function\" : window.androidPostToolbarSearchUpdate(" +
                 (if (committed) "true" else "false") + "," +
                 '"' + query.escapeByUriComponentEncode() + '"' +
-            ")",
-            ValueCallback { Timber.e("androidPostToolbarSearchUpdate() reply=$it") })
+            ")")
     }
 
     override suspend fun onBackPressedConsumed() : Boolean {

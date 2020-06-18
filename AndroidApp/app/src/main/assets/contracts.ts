@@ -72,13 +72,13 @@ interface IAWAppHostApi {
     resumeScanQr(webRequestId : string) : void;
 
     /**
-     * adds file into android cache dir and returns its identifier (to be used for setPausedScanOverlayImage(),setScanSuccessSound(), toolbar icons etc ).
-     * NOTE: returned mediaAssetHandleId is not ready immediately as bytes are stored to disk in parallel!
+     * requests adding file into android cache dir. request is processed asynchronously and when it is actually ready its deterministic identifier (calculated from content bytes) 
+     * is returned using androidPostMediaAssetReady() callback. That identifier may be used for setPausedScanOverlayImage(),setScanSuccessSound(), toolbar icons etc
      * 
-     * @param fileContent comma separated ints that are valid unsigned bytes
-     * @returns mediaAssetHandleId
+     * @param webRequestId media upload-or-reuse identifier
+     * @param fileContent comma separated ints that are valid unsigned bytes     
      */
-    registerMediaAsset(fileContent : string) : string;
+    registerMediaAsset(webRequestId : string, fileContent : string) : void;
 
     /**
      * set scan success sound
@@ -170,6 +170,13 @@ interface Window {
      * @param query text typed into search input URI-encoded
      */
     androidPostToolbarSearchUpdate(committed : boolean, query : string) : void;
+
+    /**
+     * webapp is notified when android stored file (or encountered problem). When success,  deterministic hash-based identifier is passed as 2nd param
+     * @param webRequestIdUriEncoded webRequestId as requested via registerMediaAsset()
+     * @param properMediaFileId actual media identifier to be used when requesting images, sounds
+     */
+    androidPostMediaAssetReady(webRequestIdUriEncoded : string, properMediaFileId : string) : void;
 
     /**
      * webapp is notified that backbutton was pressed and gets chance to act on it

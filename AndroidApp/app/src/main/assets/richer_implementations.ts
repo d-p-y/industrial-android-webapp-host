@@ -267,10 +267,39 @@ Window.prototype.setToolbarItems = function (menuItems : contracts.MenuItemInfo[
     console?.log("developer: registered menu items as window.devMenuItems");
 };
 
+Window.prototype.androidPostMediaAssetReady = function (rawPromiseId : string, properMediaFileId : string) {
+    let promiseId = window.decodeURIComponent(rawPromiseId);
+    console?.log("androidPostMediaAssetReady(" + promiseId + "," + properMediaFileId +" )");
+    
+    let resolved = window.promiseResolvedCallBacks.get(promiseId);
+    
+    if (resolved === undefined) {
+        console?.log("androidPostMediaAssetReady resolved is undefined");
+        return;
+    }
+
+    let rejected = window.promiseRejectedCallBacks.get(promiseId);
+   
+    if (rejected === undefined) {
+        console?.log("androidPostMediaAssetReady rejected is undefined");
+        return;
+    }
+        
+    window.promiseResolvedCallBacks.delete(promiseId);
+    window.promiseRejectedCallBacks.delete(promiseId);
+    
+    console?.log("androidPostMediaAssetReady calling resolved?"+ (properMediaFileId.length >0));
+    if (properMediaFileId.length > 0) {
+        resolved(properMediaFileId);
+    } else {
+        rejected(properMediaFileId);
+    }    
+};
+
 Window.prototype.registerMediaAsset = function (fromUrl) {
     let self : Window = this;
 
-    return new Promise<string>(function (resolve,reject) {
+    let dl = new Promise<string>(function (resolve,reject) {
         if (self.IAWApp === undefined) {
             console?.log("registerMediaAsset ignoring because doesn't run within android");
             resolve("not-running-within-android")
@@ -289,13 +318,34 @@ Window.prototype.registerMediaAsset = function (fromUrl) {
                 return;
             }
 
-            let fileContent = new Uint8Array(arrayBuffer).toString();
+            console?.log("downloaded file, passing it to next promise");
             resolve(
-                window.IAWApp.registerMediaAsset(fileContent));
+                new Uint8Array(arrayBuffer).toString());
+
             return;
         };
         req.send(null);
     });
+
+    let ul = (fileContent : string) : Promise<string> => {
+        let promiseId = (this.nextPromiseId++).toString();
+       
+        return new Promise<string>(function (resolve, reject) {                                    
+            self.promiseResolvedCallBacks.set(promiseId, (x:string) => {
+                console?.log("registerMediaAsset confirmed mediaAssetId=" + x);
+                resolve(x);
+            });
+            self.promiseRejectedCallBacks.set(promiseId, (x:string) => {
+                console?.log("registerMediaAsset failed for promiseId=" + promiseId);
+                reject(x);
+            });
+
+            console?.log("calling registerMediaAsset");
+            window.IAWApp.registerMediaAsset(promiseId, fileContent);
+        });
+    };
+
+    return dl.then(ul);
 }
 
 Window.prototype.setScanSuccessSound = function (mediaAssetId) {
