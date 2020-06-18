@@ -39,8 +39,8 @@ module contracts {
     }
 }
 
-interface AndroidReply {
-    PromiseId : string;    
+interface IAWAppScanReply {
+    WebRequestId : string;    
     IsCancellation : boolean;
     Barcode : string;
 }
@@ -53,22 +53,23 @@ interface IAWAppHostApi {
     //implicit API: changing title is noticed and propagated as AppBar title
 
     /**
-     * @param promiseId 
+     * @param webRequestId scanning request identifier to be later used as parameter to cancelScanQr() resumeScanQr() androidPostScanQrReply()
      * @param askJsForValidation when true it means that when barcode is detected scanner gets paused and waits until cancelScanQr(promisedId) or resumeScanQr(promisedId) is invoked
      * @param LayoutStrategyAsJson 
      */
-    requestScanQr(promiseId : string, askJsForValidation : boolean, LayoutStrategyAsJson : string) : void;
+    requestScanQr(webRequestId : string, askJsForValidation : boolean, LayoutStrategyAsJson : string) : void;
 
     /**
      * cancels requested scan OR paused scan. Causes requestScanQr to be invoked with IsCancellation=true when ready
-     * @param promiseId 
+     * @param webRequestId used formerly in requestScanQr()
      */
-    cancelScanQr(promiseId : string) : void;
+    cancelScanQr(webRequestId : string) : void;
 
     /**
-     * resumes paused validable request. Validable is the one requested using requestScanQr(askJsForValidation=true)
+     * resumes paused validatable request. Validatable is the one requested using requestScanQr(askJsForValidation=true)
+     * @param webRequestId used formerly in requestScanQr()
      */
-    resumeScanQr(promiseId : string) : void;
+    resumeScanQr(webRequestId : string) : void;
 
     /**
      * adds file into android cache dir and returns its identifier (to be used for setPausedScanOverlayImage(),setScanSuccessSound(), toolbar icons etc ).
@@ -152,9 +153,9 @@ interface Window {
 
     /**
      * called to notify app when QR scanner changed status or wants to post scanned result
-     * @param replyJsonUriEncoded URI-encoded JSONized AndroidReply instance 
+     * @param replyJsonUriEncoded URI-encoded JSON-serialized IAWAppScanReply instance 
      */
-    androidPostReplyToPromise(replyJsonUriEncoded : string) : void;
+    androidPostScanQrReply(scanReplyJsonUriEncoded : string) : void;
 
     /**
      * Android calls it when user activated AppBar item previously registered with setToolbarItems()

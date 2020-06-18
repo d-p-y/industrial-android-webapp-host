@@ -13,7 +13,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.builtins.list
-import kotlinx.serialization.builtins.serializer
 import pl.todoit.industrialAndroidWebAppHost.*
 import pl.todoit.industrialAndroidWebAppHost.fragments.barcodeDecoding.ProcessorSuccess
 import pl.todoit.industrialAndroidWebAppHost.model.*
@@ -24,10 +23,10 @@ import java.util.*
 
 fun String.escapeByUriComponentEncode() = Uri.encode(this)
 
-fun postReply(host : WebViewFragment, reply : AndroidReply) {
-    var replyJson = jsonStrict.stringify(AndroidReply.serializer(), reply)
+fun postScanQrReply(host : WebViewFragment, reply : IAWAppScanReply) {
+    var replyJson = jsonStrict.stringify(IAWAppScanReply.serializer(), reply)
     var msg =
-        "androidPostReplyToPromise(\"" +
+        "androidPostScanQrReply(\"" +
         replyJson.escapeByUriComponentEncode() +
         "\")"
     host.getWebView()?.evaluateJavascript(msg, null)
@@ -172,10 +171,10 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
         Toast.makeText(host.activity, text, if (durationLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
 
     @JavascriptInterface
-    fun requestScanQr(promiseId : String, asksJsForValidation:Boolean, layoutStrategyAsJson : String) {
+    fun requestScanQr(webRequestId : String, asksJsForValidation:Boolean, layoutStrategyAsJson : String) {
         App.Instance.launchCoroutine {
             val req = ScanRequest(
-                promiseId,
+                webRequestId,
                 if (!asksJsForValidation) PauseOrFinish.Finish else PauseOrFinish.Pause,
                 deserializeLayoutStrategy(layoutStrategyAsJson))
 
@@ -189,15 +188,15 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                         is ScannerStateChange.Scanned -> {
                             Timber.d("decoderReplyChannel got: scanned")
                             //showToast("${rawReply.barcode.stats.itemsConsumedPercent()}% ${rawReply.barcode.stats.productingEveryMs}->${rawReply.barcode.stats.consumingEveryMs}", true)
-                            AndroidReply(
-                                PromiseId = promiseId,
+                            IAWAppScanReply(
+                                WebRequestId = webRequestId,
                                 IsCancellation = false,
                                 Barcode = rawReply.barcode.result)
                         }
                         is ScannerStateChange.Cancelled -> {
                             Timber.d("decoderReplyChannel got: cancelled")
-                            AndroidReply(
-                                PromiseId = promiseId,
+                            IAWAppScanReply(
+                                WebRequestId = webRequestId,
                                 IsCancellation = true,
                                 Barcode = null)
                         }
@@ -212,20 +211,20 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                     }
 
                 if (maybeReply != null) {
-                    postReply(host, maybeReply)
+                    postScanQrReply(host, maybeReply)
                 }
             }
-            Timber.d("decoderReplyChannel finished with requestScanQr($promiseId) due to channel closure")
+            Timber.d("decoderReplyChannel finished with requestScanQr($webRequestId) due to channel closure")
         }
     }
 
     @JavascriptInterface
-    fun resumeScanQr(promiseId : String) =
-        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ResumeScanQr(promiseId))
+    fun resumeScanQr(webRequestId : String) =
+        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ResumeScanQr(webRequestId))
 
     @JavascriptInterface
-    fun cancelScanQr(promiseId : String) =
-        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_CancelScanQr(promiseId))
+    fun cancelScanQr(webRequestId : String) =
+        App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_CancelScanQr(webRequestId))
 }
 
 val trues = arrayOf("true")

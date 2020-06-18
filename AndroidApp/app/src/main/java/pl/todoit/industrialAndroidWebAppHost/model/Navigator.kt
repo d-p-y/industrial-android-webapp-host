@@ -12,7 +12,7 @@ import java.io.File
 
 class Navigator {
     private var _mainActivity : MainActivity? = null
-    private var _scanPromiseId : String? = null
+    private var _webRequestId : String? = null
     private val _navigation = Channel<NavigationRequest>(1) //so it is not blocked when sent from consumer
 
     suspend fun navigateTo(to:NavigationRequest) = _navigation.send(to)
@@ -104,45 +104,45 @@ class Navigator {
                 act.removePopupFragmentIfNeeded()
             }
             is NavigationRequest.WebBrowser_RequestedScanQr -> {
-                if (_scanPromiseId != null) {
+                if (_webRequestId != null) {
                     Timber.d("rejected request to start scanner as former scan request is still active")
                     request.req.scanResult.sendAndClose(ScannerStateChange.Cancelled())
                     return
                 }
 
                 if (replacePopupWithScanQr(act, request.req, App.Instance.overlayImageOnPause)) {
-                    _scanPromiseId = request.req.jsPromiseId
+                    _webRequestId = request.req.webRequestId
                 }
             }
             is NavigationRequest.WebBrowser_ResumeScanQr -> {
                 val currentPopup = act.getCurrentPopupFragment()
-                if (currentPopup !is ScanQrFragment || _scanPromiseId != request.jsPromiseId) {
-                    Timber.e("resuming request ignored because scanner is not active anymore OR jsPromiseId not matches")
+                if (currentPopup !is ScanQrFragment || _webRequestId != request.webRequestId) {
+                    Timber.e("resuming request ignored because scanner is not active anymore OR webRequestId not matches")
                     return
                 }
 
-                Timber.d("requesting resuming scanning because scanner is still active AND jsPromiseId matches")
+                Timber.d("requesting resuming scanning because scanner is still active AND webRequestId matches")
                 currentPopup.onReceivedScanningResumeRequest()
             }
             is NavigationRequest.WebBrowser_CancelScanQr -> {
                 val currentPopup = act.getCurrentPopupFragment()
-                if (currentPopup !is ScanQrFragment || _scanPromiseId != request.jsPromiseId) {
-                    Timber.e("cancellation request ignored because scanner is not active anymore OR jsPromiseId not matches")
+                if (currentPopup !is ScanQrFragment || _webRequestId != request.webRequestId) {
+                    Timber.e("cancellation request ignored because scanner is not active anymore OR webRequestId not matches")
                     return
                 }
 
-                Timber.d("requesting cancellation of scanning because scanner is still active AND jsPromiseId matches")
+                Timber.d("requesting cancellation of scanning because scanner is still active AND webRequestId matches")
                 currentPopup.onReceivedScanningCancellationRequest()
             }
             is NavigationRequest.ScanQr_Scanned -> {
                 //TODO see if current popup is actually ScanQrFragment
                 act.removePopupFragmentIfNeeded()
-                _scanPromiseId = null
+                _webRequestId = null
             }
             is NavigationRequest.ScanQr_Back -> {
                 //TODO see if current popup is actually ScanQrFragment
                 act.removePopupFragmentIfNeeded()
-                _scanPromiseId = null
+                _webRequestId = null
             }
             is NavigationRequest._ToolbarBackButtonStateChanged -> {
                 if (request.sender != act.getCurrentMasterFragment()) {

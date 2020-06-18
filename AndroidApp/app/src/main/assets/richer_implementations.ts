@@ -25,22 +25,22 @@ HTMLElement.prototype.replaceChildrenWith = function(node: Node) : void {
     this.appendChild(node);
 }
 
-Window.prototype.androidPostReplyToPromise = function (replyToJsonUriEncoded : string) {
+Window.prototype.androidPostScanQrReply = function (replyToJsonUriEncoded : string) {
     console?.log("androidPostReplyToPromise("+replyToJsonUriEncoded+")");
 
-    let decoded : AndroidReply = JSON.parse(window.decodeURIComponent(replyToJsonUriEncoded));
+    let decoded : IAWAppScanReply = JSON.parse(window.decodeURIComponent(replyToJsonUriEncoded));
     console?.log("androidPostReplyToPromise decoded="+decoded);
 
-    let noAutoClean = window.promiseNoAutoClean.has(decoded.PromiseId);
+    let noAutoClean = window.promiseNoAutoClean.has(decoded.WebRequestId);
 
-    let resolved = window.promiseResolvedCallBacks.get(decoded.PromiseId);
+    let resolved = window.promiseResolvedCallBacks.get(decoded.WebRequestId);
     
     if (resolved === undefined) {
         console?.log("androidPostReplyToPromise resolved is undefined");
         return;
     }
 
-    let rejected = window.promiseRejectedCallBacks.get(decoded.PromiseId);
+    let rejected = window.promiseRejectedCallBacks.get(decoded.WebRequestId);
    
     if (rejected === undefined) {
         console?.log("androidPostReplyToPromise rejected is undefined");
@@ -50,8 +50,8 @@ Window.prototype.androidPostReplyToPromise = function (replyToJsonUriEncoded : s
     console?.log("androidPostReplyToPromise IsCanc="+decoded.IsCancellation+" noAutoClean="+noAutoClean + " barcode="+decoded.Barcode);
     
     if (!noAutoClean) {
-        window.promiseResolvedCallBacks.delete(decoded.PromiseId);
-        window.promiseRejectedCallBacks.delete(decoded.PromiseId);
+        window.promiseResolvedCallBacks.delete(decoded.WebRequestId);
+        window.promiseRejectedCallBacks.delete(decoded.WebRequestId);
     }
 
     if (decoded.IsCancellation === false) {
@@ -60,7 +60,7 @@ Window.prototype.androidPostReplyToPromise = function (replyToJsonUriEncoded : s
         return;
     }
 
-    if (decoded.IsCancellation === true) {
+    if (decoded.IsCancellation === true) { //looks stupid I know but TypeScript's JSON.parse() doesn't guarantee any type safety
         console?.log("androidPostReplyToPromise cancel");
         rejected(decoded.Barcode);
         return;
