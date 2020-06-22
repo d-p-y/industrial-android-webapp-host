@@ -4,6 +4,29 @@
 
 ///<reference path='contracts.ts'/>
 
+class ConnectionInfo {
+    public persisted : boolean = false;
+
+    public url : string = "";
+    public name : string = "";
+    public webAppPersistentState : string|null = null;
+    public forceReloadFromNet : boolean = false;
+    public remoteDebuggerEnabled : boolean = false;
+    public forwardConsoleLogToLogCat : boolean = false;
+    public hapticFeedbackOnBarcodeRecognized : boolean = false;
+    public mayManageConnections : boolean = false;
+    public isConnectionManager : boolean = false;
+    public hapticFeedbackOnAutoFocused : boolean = false;
+    public hasPermissionToTakePhoto : boolean = false;
+    public photoJpegQuality : Number = 0;
+
+    public static fromUrl(url : string) {
+        let res = new ConnectionInfo();
+        res.url = url;
+        return res;
+    }
+}
+
 interface Window {
     scanQr(layoutData : contracts.LayoutStrategy) : Promise<string>;
     scanQrCancellable(layoutData : contracts.LayoutStrategy) : [Promise<string>,() => void];
@@ -38,13 +61,13 @@ interface Window {
     /**
      * private API returning fake mocked data when running outside of WebView
      */
-    getKnownConnections() : string; 
+    getKnownConnections() : ConnectionInfo[]; 
 
     /**
      * private API 
      * @returns 'true' when running outside of WebView
      */
-    saveConnection(connInfoAsJson : string) : string;
+    saveConnection(connInfoAsJson : ConnectionInfo) : string;
 
     /**
      * private API 

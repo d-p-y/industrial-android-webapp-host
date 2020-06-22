@@ -1,19 +1,6 @@
 ///<reference path='../contracts.ts'/>
 ///<reference path='../richer_implementations.ts'/>
 
-class ConnectionInfo {
-    public persisted : boolean = false;
-
-    public url : string = "";
-    public name : string = "";
-
-    public static fromUrl(url : string) {
-        let res = new ConnectionInfo();
-        res.url = url;
-        return res;
-    }
-}
-
 function createShortcutForm(onBack : (() => void)) : Node {
     document.title = "Create shortcut";
     window.setToolbarBackButtonState(true);
@@ -22,7 +9,7 @@ function createShortcutForm(onBack : (() => void)) : Node {
         return true
     };
     
-    let rawConnections : ConnectionInfo[] = JSON.parse( window.getKnownConnections());
+    let rawConnections = window.getKnownConnections();
 
     let result = document.createElement("div");
     result.style.display = "flex";
@@ -54,7 +41,7 @@ function createConnectionChooserForm(activateNewConnectionScreen : (() => void),
     window.setToolbarBackButtonState(false);
     window.androidBackConsumed = () => false;
 
-    let rawConnections : ConnectionInfo[] = JSON.parse(window.getKnownConnections());
+    let rawConnections = window.getKnownConnections();
 
     let result = document.createElement("div");
     result.className = "chooser";
@@ -98,6 +85,29 @@ function createConnectionChooserForm(activateNewConnectionScreen : (() => void),
     return result;
 }
 
+function createSimpleSwitch() : [HTMLInputElement, HTMLLabelElement] {
+    let res = document.createElement("label");
+    res.className = "switch";
+
+    let inp = document.createElement("input");
+    inp.type = "checkbox";
+
+    res.appendChild(inp);
+
+    let cnt = document.createElement("div");
+    cnt.className = "container";
+    
+    let tgl = document.createElement("div");
+    tgl.className = "toggle";
+
+    cnt.appendChild(tgl);    
+    res.appendChild(cnt);
+
+    return [inp, res];
+
+    //<label class="switch"><input type="checkbox"><div class="container"><div class="toggle"></div></div></label>
+}
+
 function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone : ((url:string) => void), ci : ConnectionInfo) : Node {
     document.title = ci.persisted ? "Edit connection" : "New connection";
     window.setToolbarBackButtonState(onBack != null);
@@ -110,40 +120,159 @@ function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone 
 
     let result = document.createElement("div");
     result.className = "createOrEdit";
-        
 
     let inpName = document.createElement("input");
-    inpName.id = "inpName";
-    if (ci.name != null) {
-        inpName.value = ci.name;
-    }
-    
-
-    let lblName = document.createElement("label");
-    lblName.textContent = "Connection name";
-    lblName.htmlFor = inpName.id;
-
-    result.appendChild(lblName);
-    result.appendChild(inpName);
-
-
-
     let inpUrl = document.createElement("input");
-    inpUrl.id = "inpUrl";
-    inpUrl.placeholder = "https://example.com";
-    if (ci.url != null) {
-        inpUrl.value = ci.url;
+    let inpPhotoJpegQuality = document.createElement("input");
+    inpPhotoJpegQuality.type = "number";
+    inpPhotoJpegQuality.min = "1";
+    inpPhotoJpegQuality.max = "100";
+    inpPhotoJpegQuality.placeholder = "Typically around 80";
+
+    let [inpForceReloadFromNet, widgetForceReloadFromNet] = createSimpleSwitch();
+    let [inpRemoteDebuggerEnabled, widgetRemoteDebuggerEnabled] = createSimpleSwitch();
+    let [inpForwardConsoleLogToLogCat, widgetForwardConsoleLogToLogCat] = createSimpleSwitch();
+    let [inpHapticFeedbackOnBarcodeRecognized, widgetHapticFeedbackOnBarcodeRecognized] = createSimpleSwitch();
+    let [inpMayManageConnections, widgetMayManageConnections] = createSimpleSwitch();
+    let [inpIsConnectionManager, widgetIsConnectionManager] = createSimpleSwitch();
+    let [inpHapticFeedbackOnAutoFocused, widgetHapticFeedbackOnAutoFocused] = createSimpleSwitch();
+    let [inpHasPermissionToTakePhoto, widgetHasPermissionToTakePhoto] = createSimpleSwitch();
+
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "Connection name";
+        result.appendChild(lbl);
+        
+        inpName.placeholder = "Some app name";
+        if (ci.name != null) {
+            inpName.value = ci.name;
+        }    
+        result.appendChild(inpName);
+    }
+
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "URL";  
+        result.appendChild(lbl);
+        
+        inpUrl.placeholder = "https://example.com";
+        if (ci.url != null) {
+            inpUrl.value = ci.url;
+        }
+        result.appendChild(inpUrl);
+    }
+
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "[Developer] Force full web reloading on URL open?";  
+        result.appendChild(lbl);
+        
+        if (ci.forceReloadFromNet != null) {
+            inpForceReloadFromNet.checked = ci.forceReloadFromNet;
+        }
+        result.appendChild(widgetForceReloadFromNet);
+    }
+
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "[Developer] Enable Chrome remote debugging?";  
+        result.appendChild(lbl);
+            
+        if (ci.remoteDebuggerEnabled != null) {
+            inpRemoteDebuggerEnabled.checked = ci.remoteDebuggerEnabled;
+        }
+        result.appendChild(widgetRemoteDebuggerEnabled);
+    }
+
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "[Developer] Forward console.log to logcat?";  
+        result.appendChild(lbl);
+            
+        if (ci.forwardConsoleLogToLogCat != null) {
+            inpForwardConsoleLogToLogCat.checked = ci.forwardConsoleLogToLogCat;
+        }
+        result.appendChild(widgetForwardConsoleLogToLogCat);
     }
     
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "[Developer] Haptic feedback on barcode recognized?";
+        result.appendChild(lbl);
+            
+        if (ci.hapticFeedbackOnBarcodeRecognized != null) {
+            inpHapticFeedbackOnBarcodeRecognized.checked = ci.hapticFeedbackOnBarcodeRecognized;
+        }
+        result.appendChild(widgetHapticFeedbackOnBarcodeRecognized);
+    }
+    
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "[Sensitive] May edit connections?";
+        result.appendChild(lbl);
+            
+        if (ci.mayManageConnections != null) {
+            inpMayManageConnections.checked = ci.mayManageConnections;
+        }
+        result.appendChild(widgetMayManageConnections);
+    }
 
-    let lblUrl = document.createElement("label");
-    lblUrl.textContent = "URL";
-    lblUrl.htmlFor = inpUrl.id;
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "[Sensitive] Is the default connection manager?";
+        result.appendChild(lbl);
+            
+        if (ci.isConnectionManager != null) {
+            inpIsConnectionManager.checked = ci.isConnectionManager;
+        }
+        result.appendChild(widgetIsConnectionManager);
+    }
 
-    result.appendChild(lblUrl);
-    result.appendChild(inpUrl);
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "Haptic feedback on auto focused?";
+        result.appendChild(lbl);
+            
+        if (ci.hapticFeedbackOnAutoFocused != null) {
+            inpHapticFeedbackOnAutoFocused.checked = ci.hapticFeedbackOnAutoFocused;
+        }
+        result.appendChild(widgetHapticFeedbackOnAutoFocused);
+    }
 
+    
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "[Sensitive] Has permission to take photo?";
+        result.appendChild(lbl);
+            
+        if (ci.hasPermissionToTakePhoto != null) {
+            inpHasPermissionToTakePhoto.checked = ci.hasPermissionToTakePhoto;
+        }
+        result.appendChild(widgetHasPermissionToTakePhoto);
+    }
 
+    {
+        let lbl = document.createElement("div");
+        lbl.className = "label";
+        lbl.textContent = "JPEG compression (the higher the better)";
+        result.appendChild(lbl);
+            
+        if (ci.photoJpegQuality != null) {
+            inpPhotoJpegQuality.value = ci.photoJpegQuality.toString();
+        }
+        result.appendChild(inpPhotoJpegQuality);
+    }
+    
     let btnSave = document.createElement("input");
     btnSave.type = "button";
     btnSave.value = ci.persisted ? "Save change" : "Create";
@@ -154,10 +283,17 @@ function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone 
         let ci = new ConnectionInfo();
         ci.url = inpUrl.value;
         ci.name = inpName.value;
+        ci.forceReloadFromNet = inpForceReloadFromNet.checked;
+        ci.remoteDebuggerEnabled = inpRemoteDebuggerEnabled.checked;
+        ci.forwardConsoleLogToLogCat = inpForwardConsoleLogToLogCat.checked;
+        ci.hapticFeedbackOnBarcodeRecognized = inpHapticFeedbackOnBarcodeRecognized.checked;
+        ci.isConnectionManager = inpIsConnectionManager.checked;
+        ci.hapticFeedbackOnAutoFocused = inpHapticFeedbackOnAutoFocused.checked;
+        ci.hasPermissionToTakePhoto = inpHasPermissionToTakePhoto.checked;
+        ci.photoJpegQuality = parseInt(inpPhotoJpegQuality.value, 10);
         let succ : boolean = 
             JSON.parse(
-                window.saveConnection(
-                    JSON.stringify(ci)));
+                window.saveConnection(ci));
         if (ci.persisted) {
             console.log("altering succeeded?="+succ);
         } else {
@@ -209,12 +345,7 @@ function stringToMenuMode(inp : string|undefined) : MenuMode | null {
 }
 
 window.addEventListener('load', (_) => {
-    document.body.removeAllChildren();
-    document.body.style.backgroundColor = "#e6ffff";
-    document.body.style.display = "flex";
-    document.body.style.flexDirection = "column";
-    document.body.style.height = "100vh";
-    
+    document.body.removeAllChildren();    
     let params = decodeQueryParams();
     
     let mode = stringToMenuMode(params.get("mode"));
@@ -269,7 +400,7 @@ window.addEventListener('load', (_) => {
         
             url = window.decodeURIComponent(url);
 
-            let rawConnections : ConnectionInfo[] = JSON.parse( window.getKnownConnections());
+            let rawConnections = window.getKnownConnections();
             let conns = rawConnections.filter(x => x.url == url);
 
             if (url == null || conns.length != 1) {

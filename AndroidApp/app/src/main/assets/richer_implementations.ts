@@ -375,18 +375,29 @@ Window.prototype.openInBrowser = function (url : string) {
     this.IAWApp.openInBrowser(url);
 };
 Window.prototype.getKnownConnections = function() {
-    if (this.IAWApp === undefined) {        
-        return "[{\"url\":\"http://wikipedia.com\",\"name\":\"Wikipedia (EN)\"}, {\"url\":\"http://duck.com\",\"name\":\"DuckDuckGo\"}]";
+    if (this.IAWApp === undefined) {  
+        let fst = new ConnectionInfo();
+        fst.url = "http://wikipedia.com";
+        fst.name = "Wikipedia (EN)";
+        fst.photoJpegQuality = 80;
+
+        let snd = new ConnectionInfo();
+        snd.url = "http://duck.com";
+        snd.name = "DuckDuckGo";
+        snd.photoJpegQuality = 90;
+
+        return [fst, snd];
     }
 
-    return this.IAWApp.getKnownConnections();
+    let res : ConnectionInfo[] = JSON.parse(this.IAWApp.getKnownConnections());
+    return res;
 };
 Window.prototype.saveConnection = function(connInfoJson) {
     if (this.IAWApp === undefined) {        
         return "true";
     }
 
-    return this.IAWApp.saveConnection(connInfoJson);
+    return this.IAWApp.saveConnection(JSON.stringify(connInfoJson));
 };
 Window.prototype.createShortcut = function (url : string) {
     if (this.IAWApp === undefined) {        
