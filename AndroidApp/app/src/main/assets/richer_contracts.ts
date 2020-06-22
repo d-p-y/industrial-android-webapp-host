@@ -18,7 +18,7 @@ class ConnectionInfo {
     public isConnectionManager : boolean = false;
     public hapticFeedbackOnAutoFocused : boolean = false;
     public hasPermissionToTakePhoto : boolean = false;
-    public photoJpegQuality : Number = 0;
+    public photoJpegQuality : number = 80; //reasonable default
 
     public static fromUrl(url : string) {
         let res = new ConnectionInfo();

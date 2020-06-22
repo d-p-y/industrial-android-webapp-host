@@ -274,9 +274,9 @@ function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone 
     }
     
     let btnSave = document.createElement("input");
+    btnSave.className = "save";
     btnSave.type = "button";
-    btnSave.value = ci.persisted ? "Save change" : "Create";
-    btnSave.style.gridColumn = "1/3";
+    btnSave.value = ci.persisted ? "Save change" : "Create";    
     result.appendChild(btnSave);
     
     btnSave.addEventListener("click", () => {
