@@ -41,7 +41,7 @@ function createConnectionChooserForm(activateNewConnectionScreen : (() => void),
     window.setToolbarBackButtonState(false);
     window.androidBackConsumed = () => false;
 
-    let rawConnections = window.getKnownConnections();
+    let rawConnections = window.getKnownConnections().filter(x => !x.isConnectionManager);
 
     let result = document.createElement("div");
     result.className = "chooser";

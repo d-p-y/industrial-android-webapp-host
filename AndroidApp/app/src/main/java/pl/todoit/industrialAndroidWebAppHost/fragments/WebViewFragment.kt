@@ -64,7 +64,7 @@ fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperatio
             jsonStrict.stringify(
                 ConnectionInfo.serializer().list,
                 if (inp.caller?.mayManageConnections == true)
-                App.Instance.knownConnections.map { it.copy(webAppPersistentState = null) }.filter { !it.isConnectionManager }
+                App.Instance.knownConnections.map { it.copy(webAppPersistentState = null) }
                 else listOf())
         is SensitiveWebExposedOperation.CreateShortcut ->
             if (inp.caller?.mayManageConnections == true && inp.conn != null && act != null) {
