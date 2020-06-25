@@ -51,13 +51,10 @@ interface Window {
 
     //helpers to keep track of promises
     nextPromiseId : number;
-
-    promiseNoAutoClean : Set<string>;
-    promiseResolvedCallBacks : Map<string, (result:string) => void>;
-    promiseRejectedCallBacks : Map<string, (error:string) => void>;
-    promiseDisableAutoClean(promiseId : string) : void;
-    promiseClean(promiseId : string) : void;
     
+    callbackScanQr : Map<string, (result:IAWAppScanReply) => void>;
+    callbackRegisterMedia : Map<string, (result:string) => void>;
+        
     /**
      * private API returning fake mocked data when running outside of WebView
      */

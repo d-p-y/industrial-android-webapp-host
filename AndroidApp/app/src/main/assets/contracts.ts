@@ -40,7 +40,8 @@ module contracts {
 }
 
 interface IAWAppScanReply {
-    WebRequestId : string;    
+    WebRequestId : string;
+    IsDisposal : boolean;
     IsCancellation : boolean;
     Barcode : string|null;
 }
@@ -152,7 +153,17 @@ interface Window {
     IAWApp:IAWAppHostApi;
 
     /**
-     * called to notify app when QR scanner changed status or wants to post scanned result
+     * called to notify app when QR scanner changed status or wants to post scanned result. Typically there will be following notifications 
+     * "happy path scanned code" [Barcode!=null !IsCancellation !IsDisposal] [Barcode==null IsCancellation !IsDisposal] [Barcode==null !IsCancellation IsDisposal]
+     * thus first carrying scanned value, second informing that scanner won't deliver new values, third that camera is turned off (it takes few millis)
+     * 
+     * "happy path cancelled scanning f.e. by back button" [Barcode==null IsCancellation !IsDisposal] [Barcode==null !IsCancellation IsDisposal]
+     * thus first informing that scanner won't deliver new values, second that camera is turned off (it takes few millis)
+     * 
+     * "validatable scanning - similar to above as above, just scanner waits for explicit cancelScanQr() to start closing procedure causing [Barcode==null IsCancellation !IsDisposal] [Barcode==null !IsCancellation IsDisposal] to be sent
+     * 
+     * such design makes it easier to implement common subscriber
+     * 
      * @param replyJsonUriEncoded URI-encoded JSON-serialized IAWAppScanReply instance 
      */
     androidPostScanQrReply(scanReplyJsonUriEncoded : string) : void;

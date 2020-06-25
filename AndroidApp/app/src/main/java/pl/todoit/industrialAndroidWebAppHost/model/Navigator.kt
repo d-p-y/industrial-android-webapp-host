@@ -126,7 +126,8 @@ class Navigator {
             is NavigationRequest.WebBrowser_RequestedScanQr -> {
                 if (_webRequestId != null) {
                     Timber.d("rejected request to start scanner as former scan request is still active")
-                    request.req.scanResult.sendAndClose(ScannerStateChange.Cancelled())
+                    request.req.scanResult.send(ScannerStateChange.Cancelled())
+                    request.req.scanResult.sendAndClose(ScannerStateChange.Disposed())
                     return
                 }
 

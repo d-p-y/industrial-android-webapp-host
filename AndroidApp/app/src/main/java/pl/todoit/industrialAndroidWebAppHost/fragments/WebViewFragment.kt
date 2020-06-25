@@ -21,7 +21,6 @@ import timber.log.Timber
 import java.io.File
 import kotlinx.coroutines.channels.receiveOrNull
 import java.security.MessageDigest
-import java.util.*
 
 fun String.escapeByUriComponentEncode() = Uri.encode(this)
 fun WebView.evaluateJavascript(str : String) = this.evaluateJavascript(str, null)
@@ -49,6 +48,7 @@ sealed class ScannerStateChange {
     class Paused() : ScannerStateChange()
     class Resumed() : ScannerStateChange()
     class Cancelled() : ScannerStateChange()
+    class Disposed() : ScannerStateChange()
 }
 
 sealed class SensitiveWebExposedOperation(val caller : ConnectionInfo? = App.Instance.getConnectionByUrl(App.Instance.currentConnection.url)) {
@@ -210,6 +210,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                             //showToast("${rawReply.barcode.stats.itemsConsumedPercent()}% ${rawReply.barcode.stats.productingEveryMs}->${rawReply.barcode.stats.consumingEveryMs}", true)
                             IAWAppScanReply(
                                 WebRequestId = webRequestId,
+                                IsDisposal = false,
                                 IsCancellation = false,
                                 Barcode = rawReply.barcode.result)
                         }
@@ -217,7 +218,16 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                             Timber.d("decoderReplyChannel got: cancelled")
                             IAWAppScanReply(
                                 WebRequestId = webRequestId,
+                                IsDisposal = false,
                                 IsCancellation = true,
+                                Barcode = null)
+                        }
+                        is ScannerStateChange.Disposed -> {
+                            Timber.d("decoderReplyChannel got: disposed")
+                            IAWAppScanReply(
+                                WebRequestId = webRequestId,
+                                IsDisposal = true,
+                                IsCancellation = false,
                                 Barcode = null)
                         }
                         is ScannerStateChange.Paused -> {

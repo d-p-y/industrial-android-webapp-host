@@ -22,6 +22,7 @@ import pl.todoit.industrialAndroidWebAppHost.model.Result
 import pl.todoit.industrialAndroidWebAppHost.model.extensions.closeOnDestroy
 import pl.todoit.industrialAndroidWebAppHost.model.extensions.sendAndClose
 import timber.log.Timber
+import java.io.Closeable
 import java.io.File
 
 fun setTorchStateEnabled(toggled : Boolean, torchToggler:ImageView) {
@@ -104,7 +105,11 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
             return null
         }
 
-        lifecycle.closeOnDestroy(_camera)
+        lifecycle.closeOnDestroy(
+            _camera,
+            Closeable {
+                //notify that camera resource is released
+                App.Instance.launchCoroutine { req.details.scanResult.sendAndClose(ScannerStateChange.Disposed())}} )
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
         val scannerOverlay = result.findViewById<ImageView>(R.id.scannerOverlay)
@@ -189,7 +194,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                             }
                         }
                         is BarcodeDecoderNotification.Cancelling -> {
-                            req.details.scanResult.sendAndClose(ScannerStateChange.Cancelled())
+                            req.details.scanResult.send(ScannerStateChange.Cancelled())
                             App.Instance.navigator.navigateTo(NavigationRequest.ScanQr_Back())
                         }
                         is BarcodeDecoderNotification.Pausing  ->

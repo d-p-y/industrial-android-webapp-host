@@ -26,60 +26,29 @@ HTMLElement.prototype.replaceChildrenWith = function(node: Node) : void {
 }
 
 Window.prototype.androidPostScanQrReply = function (replyToJsonUriEncoded : string) {
-    console?.log("androidPostReplyToPromise("+replyToJsonUriEncoded+")");
+    console?.log("androidPostScanQrReply("+replyToJsonUriEncoded+")");
 
     let decoded : IAWAppScanReply = JSON.parse(window.decodeURIComponent(replyToJsonUriEncoded));
-    console?.log("androidPostReplyToPromise decoded="+decoded);
+    console?.log("androidPostScanQrReply decoded="+decoded);
 
-    let noAutoClean = window.promiseNoAutoClean.has(decoded.WebRequestId);
-
-    let resolved = window.promiseResolvedCallBacks.get(decoded.WebRequestId);
+    let resolved = window.callbackScanQr.get(decoded.WebRequestId);
     
     if (resolved === undefined) {
-        console?.log("androidPostReplyToPromise resolved is undefined");
+        console?.log("androidPostScanQrReply resolved is undefined");
         return;
     }
 
-    let rejected = window.promiseRejectedCallBacks.get(decoded.WebRequestId);
-   
-    if (rejected === undefined) {
-        console?.log("androidPostReplyToPromise rejected is undefined");
-        return;
-    }
+    console?.log("androidPostScanQrReply IsDisposal="+decoded.IsDisposal+" IsCanc="+decoded.IsCancellation + " barcode="+decoded.Barcode);
     
-    console?.log("androidPostReplyToPromise IsCanc="+decoded.IsCancellation+" noAutoClean="+noAutoClean + " barcode="+decoded.Barcode);
-    
-    if (!noAutoClean) {
-        window.promiseResolvedCallBacks.delete(decoded.WebRequestId);
-        window.promiseRejectedCallBacks.delete(decoded.WebRequestId);
-    }
-
-    //bool checking underneath looks stupid, I know, it's TypeScript's JSON.parse() that doesn't guarantee any type safety
-
-    if (decoded.IsCancellation === true || decoded.Barcode == null) {
-        console?.log("androidPostReplyToPromise cancel");
-        rejected(decoded.Barcode ?? "null barcode");
+    if (decoded.IsDisposal == true) {
+        window.callbackScanQr.delete(decoded.WebRequestId);
         return;
     }
 
-    if (decoded.IsCancellation === false) {
-        console?.log("androidPostReplyToPromise not cancel");
-        resolved(decoded.Barcode);
-        return;
-    }
- 
-    console?.log("androidPostReplyToPromise unknown");
+    console?.log("androidPostScanQrReply calling resolved()");
+    resolved(decoded);
+    return;
 };
-
-Window.prototype.promiseDisableAutoClean = function (promiseId : string) {
-    window.promiseNoAutoClean.add(promiseId);
-}
-
-Window.prototype.promiseClean = function (promiseId : string) {
-    window.promiseNoAutoClean.delete(promiseId);
-    window.promiseResolvedCallBacks.delete(promiseId);
-    window.promiseRejectedCallBacks.delete(promiseId);
-}
 
 Window.prototype.scanQr = function(layoutData : contracts.LayoutStrategy) : Promise<string> {
     let self : Window = this;
@@ -98,10 +67,22 @@ Window.prototype.scanQr = function(layoutData : contracts.LayoutStrategy) : Prom
 
         //calls android host
         let promiseId = (self.nextPromiseId++).toString();
+        let resolved = false;
         
-        self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
-        self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
-        
+        self.callbackScanQr.set(promiseId, (x:IAWAppScanReply) => {
+            if (resolved) {
+                console?.log("promise already resolved");
+                return;
+            }
+            resolved = true;
+
+            if (x.IsCancellation || x.Barcode == null) {
+                reject("cancellation or null barcode");
+            } else {
+                resolve(x.Barcode);
+            }            
+        });
+                
         console?.log("calling self.IAWApp.requestScanQr");
 
         self.IAWApp.requestScanQr(promiseId, false, JSON.stringify(layoutData));
@@ -131,13 +112,27 @@ Window.prototype.scanQrCancellable = function(layoutData : contracts.LayoutStrat
 
     let promiseId = (this.nextPromiseId++).toString();
     let self : Window = this;
+    let resolved = false;
 
     return [
         new Promise(function (resolve,reject) {
             //calls android host    
-            self.promiseResolvedCallBacks.set(promiseId, (x:string) => resolve(x));
-            self.promiseRejectedCallBacks.set(promiseId, (x:string) => reject(x));
-            
+            self.callbackScanQr.set(
+                promiseId, 
+                (x:IAWAppScanReply) => {
+                    if (resolved) {
+                        console?.log("promise already resolved");
+                        return;
+                    }
+                    resolved = true;
+
+                    if (x.IsCancellation || x.Barcode == null) {
+                        reject("cancellation or null barcode")
+                    } else {
+                        resolve(x.Barcode);
+                    }
+                });
+                        
             console?.log("calling self.IAWApp.requestScanQr");
 
             self.IAWApp.requestScanQr(promiseId, false, JSON.stringify(layoutData));
@@ -183,18 +178,20 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : contra
         return canceller;
     }
 
-    let promiseId = (this.nextPromiseId++).toString();
-    window.promiseDisableAutoClean(promiseId);
+    let promiseId = (this.nextPromiseId++).toString();    
     let self : Window = this;
 
-    let onGotBarcode = async (isCancellation:boolean, barcode:string|null) => {
-        console?.log("onGotBarcode(isCancellation="+isCancellation+" barcode="+barcode+")");
+    let onGotBarcode = async (reply:IAWAppScanReply) => {
+        console?.log("onGotBarcode(isDisposal=" + reply.IsDisposal + " isCancellation="+reply.IsCancellation+" barcode="+reply.Barcode+")");
         
-        if (isCancellation) {
-            window.promiseClean(promiseId);
+        if (reply.IsDisposal) {
+            return;
+        }
+
+        if (reply.IsCancellation) {            
             onCancellation();
         } else {
-            let accepted = await validate(barcode);
+            let accepted = await validate(reply.Barcode);
 
             console?.log("onGotBarcode accepted?="+accepted);
 
@@ -209,9 +206,8 @@ Window.prototype.scanQrValidatableAndCancellable = function (layoutData : contra
     }
 
     //calls android host    
-    self.promiseResolvedCallBacks.set(promiseId, (x:string) => onGotBarcode(false, x));
-    self.promiseRejectedCallBacks.set(promiseId, (x:string) => onGotBarcode(true, x));
-
+    self.callbackScanQr.set(promiseId, (x:IAWAppScanReply) => onGotBarcode(x));
+    
     console?.log("calling self.IAWApp.requestScanQr");
 
     self.IAWApp.requestScanQr(promiseId, true, JSON.stringify(layoutData));
@@ -273,29 +269,18 @@ Window.prototype.androidPostMediaAssetReady = function (rawPromiseId : string, p
     let promiseId = window.decodeURIComponent(rawPromiseId);
     console?.log("androidPostMediaAssetReady(" + promiseId + "," + properMediaFileId +" )");
     
-    let resolved = window.promiseResolvedCallBacks.get(promiseId);
+    let resolved = window.callbackRegisterMedia.get(promiseId);
     
     if (resolved === undefined) {
         console?.log("androidPostMediaAssetReady resolved is undefined");
         return;
     }
-
-    let rejected = window.promiseRejectedCallBacks.get(promiseId);
-   
-    if (rejected === undefined) {
-        console?.log("androidPostMediaAssetReady rejected is undefined");
-        return;
-    }
         
-    window.promiseResolvedCallBacks.delete(promiseId);
-    window.promiseRejectedCallBacks.delete(promiseId);
+    window.callbackRegisterMedia.delete(promiseId);
     
     console?.log("androidPostMediaAssetReady calling resolved?"+ (properMediaFileId.length >0));
-    if (properMediaFileId.length > 0) {
-        resolved(properMediaFileId);
-    } else {
-        rejected(properMediaFileId);
-    }    
+    
+    resolved(properMediaFileId);
 };
 
 Window.prototype.registerMediaAsset = function (fromUrl) {
@@ -332,16 +317,12 @@ Window.prototype.registerMediaAsset = function (fromUrl) {
     let ul = (fileContent : string) : Promise<string> => {
         let promiseId = (this.nextPromiseId++).toString();
        
-        return new Promise<string>(function (resolve, reject) {                                    
-            self.promiseResolvedCallBacks.set(promiseId, (x:string) => {
+        return new Promise<string>(function (resolve, _) {                                    
+            self.callbackRegisterMedia.set(promiseId, (x:string) => {
                 console?.log("registerMediaAsset confirmed mediaAssetId=" + x);
                 resolve(x);
             });
-            self.promiseRejectedCallBacks.set(promiseId, (x:string) => {
-                console?.log("registerMediaAsset failed for promiseId=" + promiseId);
-                reject(x);
-            });
-
+            
             console?.log("calling registerMediaAsset");
             window.IAWApp.registerMediaAsset(promiseId, fileContent);
         });
@@ -418,8 +399,7 @@ Window.prototype.finishConnectionManager = function (url : string | null) {
 
 window.addEventListener('load', (_) => {
     //initialize
-    window.nextPromiseId = 1;
-    window.promiseNoAutoClean = new Set<string>();
-    window.promiseResolvedCallBacks = new Map<string, (result:string) => void >();
-    window.promiseRejectedCallBacks = new Map<string, (result:string) => void >();
+    window.nextPromiseId = 1;    
+    window.callbackScanQr = new Map<string, (result:IAWAppScanReply) => void >();
+    window.callbackRegisterMedia = new Map<string, (result:string) => void >();
 });
