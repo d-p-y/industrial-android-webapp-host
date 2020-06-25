@@ -392,12 +392,12 @@ Window.prototype.getKnownConnections = function() {
     let res : ConnectionInfo[] = JSON.parse(this.IAWApp.getKnownConnections());
     return res;
 };
-Window.prototype.saveConnection = function(connInfoJson) {
+Window.prototype.saveConnection = function(maybeExistingUrl, connInfoJson) {
     if (this.IAWApp === undefined) {        
         return "true";
     }
 
-    return this.IAWApp.saveConnection(JSON.stringify(connInfoJson));
+    return this.IAWApp.saveConnection(maybeExistingUrl, JSON.stringify(connInfoJson));
 };
 Window.prototype.createShortcut = function (url : string) {
     if (this.IAWApp === undefined) {        

@@ -109,6 +109,7 @@ function createSimpleSwitch() : [HTMLInputElement, HTMLLabelElement] {
 }
 
 function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone : ((url:string) => void), ci : ConnectionInfo) : Node {
+    let ciUrl = (ci?.url == null || ci.url.length <= 0) ? null : ci.url;
     document.title = ci.persisted ? "Edit connection" : "New connection";
     window.setToolbarBackButtonState(onBack != null);
     window.androidBackConsumed = () => {
@@ -123,6 +124,7 @@ function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone 
 
     let inpName = document.createElement("input");
     let inpUrl = document.createElement("input");
+    inpUrl.type = "url";
     let inpPhotoJpegQuality = document.createElement("input");
     inpPhotoJpegQuality.type = "number";
     inpPhotoJpegQuality.min = "1";
@@ -293,7 +295,7 @@ function createConnectionCreatorEditorForm(onBack : (() => void) | null, onDone 
         ci.photoJpegQuality = parseInt(inpPhotoJpegQuality.value, 10);
         let succ : boolean = 
             JSON.parse(
-                window.saveConnection(ci));
+                window.saveConnection(ciUrl, ci));
         if (ci.persisted) {
             console.log("altering succeeded?="+succ);
         } else {

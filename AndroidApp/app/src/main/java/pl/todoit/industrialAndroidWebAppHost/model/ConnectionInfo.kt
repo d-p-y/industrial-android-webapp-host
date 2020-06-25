@@ -51,6 +51,11 @@ data class ConnectionInfo(
     val photoJpegQuality : Int = 85 //valid range 1-100
 )
 
+fun ConnectionInfo.restoreStateFrom(from: ConnectionInfo) {
+    this.persisted = from.persisted
+    this.webAppPersistentState = from.webAppPersistentState
+}
+
 fun ConnectionInfo.urlWithoutFragment() = urlWithoutFragment(url)
 fun ConnectionInfo.urlWithoutQueryAndFragment() = urlWithoutQueryAndFragment(url)
 fun ConnectionInfo.urlAndMaybeFragment() = urlAndMaybeFragment(url)

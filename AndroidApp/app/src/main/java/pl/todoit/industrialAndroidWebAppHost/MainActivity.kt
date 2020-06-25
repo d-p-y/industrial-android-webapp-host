@@ -472,7 +472,7 @@ class MainActivity : AppCompatActivity() {
                 if (newState != existState.webAppPersistentState) {
                     //in-memory persistence
                     existState.webAppPersistentState = newState
-                    App.Instance.persistConnection(existState)
+                    App.Instance.persistConnection(currentUrl, existState)
                 }
             }
         }

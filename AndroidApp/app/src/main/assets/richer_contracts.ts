@@ -67,7 +67,7 @@ interface Window {
      * private API 
      * @returns 'true' when running outside of WebView
      */
-    saveConnection(connInfoAsJson : ConnectionInfo) : string;
+    saveConnection(maybeExistingUrl : string|null, connInfoAsJson : ConnectionInfo) : string;
 
     /**
      * private API 

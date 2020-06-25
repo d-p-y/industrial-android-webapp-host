@@ -131,7 +131,7 @@ interface IAWAppHostApi {
      * private, sensitive APIs that may only be called if has adequate ConnectionInfo permission
      * @returns 'true' if success, 'false' if error or no permission
      */
-    saveConnection(connInfoAsJson : string) : string;
+    saveConnection(maybeExistingUrl : string|null, connInfoAsJson : string) : string;
 
     /**
      * private API 

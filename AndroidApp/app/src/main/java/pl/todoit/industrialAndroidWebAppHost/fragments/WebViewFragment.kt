@@ -53,7 +53,7 @@ sealed class ScannerStateChange {
 
 sealed class SensitiveWebExposedOperation(val caller : ConnectionInfo? = App.Instance.getConnectionByUrl(App.Instance.currentConnection.url)) {
     class GetKnownConnections() : SensitiveWebExposedOperation()
-    class SaveConnection(val conn:ConnectionInfo) : SensitiveWebExposedOperation()
+    class SaveConnection(val maybeExistingUrl:String?, val conn:ConnectionInfo) : SensitiveWebExposedOperation()
     class CreateShortcut(val conn:ConnectionInfo?) : SensitiveWebExposedOperation()
     class FinishConnectionManager(val maybeUrl : String?) : SensitiveWebExposedOperation()
 }
@@ -72,7 +72,7 @@ fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperatio
             } else "false"
         is SensitiveWebExposedOperation.SaveConnection ->
             if (inp.caller?.mayManageConnections == true) {
-                App.Instance.persistConnection(inp.conn)
+                App.Instance.persistConnection(inp.maybeExistingUrl, inp.conn)
                 "true"
             } else "false"
         is SensitiveWebExposedOperation.FinishConnectionManager ->
@@ -107,10 +107,11 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
             SensitiveWebExposedOperation.GetKnownConnections())
 
     @JavascriptInterface
-    fun saveConnection(connInfoAsJson : String) =
+    fun saveConnection(maybeExistingUrl : String?, connInfoAsJson : String) =
         maybeExecuteSensitiveOperation(
             host.activity,
             SensitiveWebExposedOperation.SaveConnection(
+                maybeExistingUrl,
                 jsonStrict.parse(ConnectionInfo.serializer(), connInfoAsJson)))
 
     @JavascriptInterface

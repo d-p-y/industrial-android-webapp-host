@@ -157,23 +157,28 @@ class App : Application(), CoroutineScope by MainScope() {
         return true
     }
 
-    fun persistConnection(conn:ConnectionInfo) {
-        val maybeExisting = knownConnections
-            .mapIndexed { i,x -> if (x.urlWithoutFragment() == conn.urlWithoutFragment()) Pair(i,x) else null }
-            .filterNotNull()
-            .firstOrNull()
+    fun persistConnection(maybeExistingUrl : String?, conn:ConnectionInfo) {
+        val maybeExisting =
+            if (maybeExistingUrl == null) null
+            else {
+                val existingUrl = urlWithoutFragment(maybeExistingUrl)
+                Timber.d("looking for connectionInfo using $existingUrl")
+
+                knownConnections
+                    .mapIndexed { i,x -> if (x.urlWithoutFragment() == existingUrl) Pair(i,x) else null }
+                    .filterNotNull()
+                    .firstOrNull()
+            }
 
         if (maybeExisting != null) {
             Timber.d("replacing connectionInfo at ${maybeExisting.first}")
 
-            //restore state
-            conn.persisted = maybeExisting.second.persisted
-            conn.webAppPersistentState = maybeExisting.second.webAppPersistentState
+            conn.restoreStateFrom(maybeExisting.second)
 
             knownConnections.removeAt(maybeExisting.first)
             knownConnections.add(maybeExisting.first, conn)
         } else {
-            Timber.d("appending new connectionInfo")
+            Timber.d("appending new connectionInfo because didn't find url=$maybeExisting")
             knownConnections.add(conn)
         }
     }
