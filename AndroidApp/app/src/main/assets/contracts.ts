@@ -42,7 +42,7 @@ module contracts {
 interface IAWAppScanReply {
     WebRequestId : string;    
     IsCancellation : boolean;
-    Barcode : string;
+    Barcode : string|null;
 }
 
 interface IAWAppHostApi {

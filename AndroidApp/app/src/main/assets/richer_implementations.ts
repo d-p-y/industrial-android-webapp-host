@@ -54,18 +54,20 @@ Window.prototype.androidPostScanQrReply = function (replyToJsonUriEncoded : stri
         window.promiseRejectedCallBacks.delete(decoded.WebRequestId);
     }
 
+    //bool checking underneath looks stupid, I know, it's TypeScript's JSON.parse() that doesn't guarantee any type safety
+
+    if (decoded.IsCancellation === true || decoded.Barcode == null) {
+        console?.log("androidPostReplyToPromise cancel");
+        rejected(decoded.Barcode ?? "null barcode");
+        return;
+    }
+
     if (decoded.IsCancellation === false) {
         console?.log("androidPostReplyToPromise not cancel");
         resolved(decoded.Barcode);
         return;
     }
-
-    if (decoded.IsCancellation === true) { //looks stupid I know but TypeScript's JSON.parse() doesn't guarantee any type safety
-        console?.log("androidPostReplyToPromise cancel");
-        rejected(decoded.Barcode);
-        return;
-    }
-
+ 
     console?.log("androidPostReplyToPromise unknown");
 };
 
