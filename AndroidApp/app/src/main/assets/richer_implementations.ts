@@ -38,8 +38,13 @@ Window.prototype.androidPostScanQrReply = function (replyToJsonUriEncoded : stri
         return;
     }
 
-    console?.log("androidPostScanQrReply IsDisposal="+decoded.IsDisposal+" IsCanc="+decoded.IsCancellation + " barcode="+decoded.Barcode);
+    console?.log("androidPostScanQrReply IsDisposal="+decoded.IsDisposal + " IsPaused"+ decoded.IsPaused +" IsCanc="+decoded.IsCancellation + " barcode="+decoded.Barcode);
     
+    if (decoded.IsPaused == true) {
+        console?.log("androidPostScanQrReply scanner acknowledged that it is paused");
+        return
+    }
+
     if (decoded.IsDisposal == true) {
         window.callbackScanQr.delete(decoded.WebRequestId);
         return;

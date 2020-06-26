@@ -42,6 +42,7 @@ module contracts {
 interface IAWAppScanReply {
     WebRequestId : string;
     IsDisposal : boolean;
+    IsPaused : boolean;
     IsCancellation : boolean;
     Barcode : string|null;
 }
@@ -160,7 +161,7 @@ interface Window {
      * "happy path cancelled scanning f.e. by back button" [Barcode==null IsCancellation !IsDisposal] [Barcode==null !IsCancellation IsDisposal]
      * thus first informing that scanner won't deliver new values, second that camera is turned off (it takes few millis)
      * 
-     * "validatable scanning - similar to above as above, just scanner waits for explicit cancelScanQr() to start closing procedure causing [Barcode==null IsCancellation !IsDisposal] [Barcode==null !IsCancellation IsDisposal] to be sent
+     * "validatable scanning - similar to above as above, just scanner sends notification that it paused and waits for explicit cancelScanQr() or resumeScanQr. If cancelled it starts closing procedure causing [Barcode==null IsCancellation !IsDisposal] [Barcode==null !IsCancellation IsDisposal] to be sent
      * 
      * such design makes it easier to implement common subscriber
      * 

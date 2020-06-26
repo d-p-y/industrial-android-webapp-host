@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class IAWAppScanReply (
     var WebRequestId : String,
     var IsDisposal : Boolean,
+    var IsPaused : Boolean,
     var IsCancellation : Boolean,
     var Barcode : String?
 )

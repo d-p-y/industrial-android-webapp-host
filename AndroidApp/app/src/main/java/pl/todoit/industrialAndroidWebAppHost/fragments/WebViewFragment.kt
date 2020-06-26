@@ -211,6 +211,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                             IAWAppScanReply(
                                 WebRequestId = webRequestId,
                                 IsDisposal = false,
+                                IsPaused = false,
                                 IsCancellation = false,
                                 Barcode = rawReply.barcode.result)
                         }
@@ -219,6 +220,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                             IAWAppScanReply(
                                 WebRequestId = webRequestId,
                                 IsDisposal = false,
+                                IsPaused = false,
                                 IsCancellation = true,
                                 Barcode = null)
                         }
@@ -227,12 +229,18 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
                             IAWAppScanReply(
                                 WebRequestId = webRequestId,
                                 IsDisposal = true,
+                                IsPaused = false,
                                 IsCancellation = false,
                                 Barcode = null)
                         }
                         is ScannerStateChange.Paused -> {
                             Timber.d("decoderReplyChannel got: paused")
-                            null
+                            IAWAppScanReply(
+                                WebRequestId = webRequestId,
+                                IsDisposal = false,
+                                IsPaused = true,
+                                IsCancellation = false,
+                                Barcode = null)
                         }
                         is ScannerStateChange.Resumed -> {
                             Timber.d("decoderReplyChannel got: resumed")
