@@ -46,7 +46,7 @@ fun drawableFromFileWithoutAutoScalling(inp:File, res:Resources) : Drawable {
 class ScanQrReq(val details:ScanRequest, val overlayImg:File?)
 
 class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissions,
-                       IBeforeNavigationValidation, IMaybeHasTitle {
+                       IBeforeNavigationValidation, IMaybeHasTitle, ITogglesToolbarVisibility {
     private lateinit var _camera: CameraData
     private lateinit var _decoder : BarcodeDecoderForCameraPreview
 
@@ -58,9 +58,18 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
         return PermissionRequestRejected.MayNotOpenFragment
     }
 
+    override fun isToolbarVisible() =
+        when(val x = req.details.layoutStrategy) {
+            is FillScreenLayoutStrategy -> !x.hideToolbar
+            is MatchWidthWithFixedHeightLayoutStrategy -> null
+            else -> {
+                Timber.e("unsupported layoutstartegy - cannot determine isToolbarVisible")
+                null}
+        }
+
     override fun getTitleMaybe() =
         when(val x = req.details.layoutStrategy) {
-            is FitScreenLayoutStrategy ->x.screenTitle ?: "Scan QR code"
+            is FillScreenLayoutStrategy ->x.screenTitle ?: "Scan QR code"
             is MatchWidthWithFixedHeightLayoutStrategy -> null
             else -> {
                 Timber.e("unsupported layoutstartegy - cannot determine screen name")
@@ -69,7 +78,7 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
     private fun backButtonCausesCancellation() : Boolean =
         when(req.details.layoutStrategy) {
-            is FitScreenLayoutStrategy -> true
+            is FillScreenLayoutStrategy -> true
             is MatchWidthWithFixedHeightLayoutStrategy -> false
             else -> {
                 Timber.e("unsupported layoutstartegy - cannot determine if backbutton should be supported")
@@ -111,9 +120,15 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
                 //notify that camera resource is released
                 App.Instance.launchCoroutine { req.details.scanResult.sendAndClose(ScannerStateChange.Disposed())}} )
 
+        val innerContainer = result.findViewById<FrameLayout>(R.id.innerContainer)
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
         val scannerOverlay = result.findViewById<ImageView>(R.id.scannerOverlay)
         val torchToggler = result.findViewById<ImageView>(R.id.torchToggler)
+
+        if (innerContainer == null) {
+            Timber.e("innerContainer is null")
+            return null
+        }
 
         var toggled = false
         setTorchStateEnabled(toggled, torchToggler)
@@ -158,19 +173,24 @@ class ScanQrFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermissi
 
         val layoutProp = computeParamsForTextureView(_camera, req.details.layoutStrategy)
 
-        if (layoutProp.dimensions != null) {
-            if (layoutProp.marginURBL != null) {
-                container?.setPadding(
-                    layoutProp.marginURBL[3], layoutProp.marginURBL[0], layoutProp.marginURBL[1], layoutProp.marginURBL[2])
-            } else {
-                container?.setPadding(0, 0, 0, 0) //to reset former request (if there was any)
-            }
-
-            camSurfaceView.layoutParams = FrameLayout.LayoutParams(
-                layoutProp.dimensions.first.toAndroid(),
-                layoutProp.dimensions.second.toAndroid()
-            )
+        if (layoutProp.marginURBL != null) {
+            container?.setPadding(
+                layoutProp.marginURBL[3], layoutProp.marginURBL[0], layoutProp.marginURBL[1], layoutProp.marginURBL[2])
+        } else {
+            container?.setPadding(0, 0, 0, 0) //to reset former request (if there was any)
         }
+
+        camSurfaceView.layoutParams = FrameLayout.LayoutParams(
+            layoutProp.dimensions.first.toAndroid(),
+            layoutProp.dimensions.second.toAndroid()
+        )
+
+        val cntPar = FrameLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        cntPar.gravity = layoutProp.layoutGravity
+        innerContainer.layoutParams = cntPar
 
         camSurfaceView.setTransform(layoutProp.matrix)
 

@@ -11,15 +11,17 @@ module contracts {
         }
     }
     
-    export class FitScreenLayoutStrategy extends LayoutStrategy {
+    export class FillScreenLayoutStrategy extends LayoutStrategy {
         public screenTitle?:string; //optional
+        public hideToolbar:boolean = false;
         public constructor() {
-            super("FitScreenLayoutStrategy");
+            super("FillScreenLayoutStrategy");
         }
     }
     
     export class MatchWidthWithFixedHeightLayoutStrategy extends LayoutStrategy {
-        public paddingTopMm:number = 0; //Int
+        public paddingOriginIsTop:boolean = true;
+        public paddingMm:number = 0; //Int
         public heightMm:number = 0; //Int
     
         public constructor() {

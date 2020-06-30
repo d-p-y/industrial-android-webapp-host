@@ -32,6 +32,7 @@ class CameraData(
     val cameraInfo : Camera.CameraInfo,
     val camera : Camera,
     val displayToCameraAngle : RightAngleRotation,
+    val toolbar : ToolbarHeight,
     val screenResolution : WidthAndHeightWithOrientation,
     val mmToPx:Float,
     val autoFocusSupported : Boolean) : Closeable {
@@ -120,6 +121,8 @@ fun CameraData.setTorchState(enabled : Boolean) {
     this.camera.parameters = params //needed to trigger changes
 }
 
+class ToolbarHeight(val heightPx : Int, val visible : Boolean)
+
 fun initializeFirstMatchingCamera(act: AppCompatActivity, hasAnyOfFocusMode:List<String>, condition : (Camera.CameraInfo) -> Boolean) : Result<CameraData, String> {
     val cameras =
         (0 until Camera.getNumberOfCameras())
@@ -179,12 +182,16 @@ fun initializeFirstMatchingCamera(act: AppCompatActivity, hasAnyOfFocusMode:List
 
     Timber.d("camera preview size (${camPreviewSize.width};${camPreviewSize.height})")
 
-    val actBar = act.supportActionBar
-    val actBarHeight = if (actBar == null) 0 else (if (actBar.isShowing) actBar.height else 0)
-    val screenRes = WidthAndHeight(display.width, display.height - actBarHeight)
-
+    val screenRes = WidthAndHeight(display.width, display.height)
     val previewFormat = camera.parameters.previewFormat
-    Timber.d("screen size (${screenRes.width}; ${screenRes.height - actBarHeight} = ${screenRes.height} - $actBarHeight) orientation=$screenAngle previewFrmat=$previewFormat")
+    Timber.d("screen size (${screenRes.width}; ${screenRes.height}) orientation=$screenAngle previewFrmat=$previewFormat")
+
+    val actBar = act.supportActionBar
+    val toolbarHeight = ToolbarHeight(
+        heightPx = actBar?.height ?: 0,
+        visible = actBar?.isShowing ?: false
+    )
+    Timber.d("toolbar visible?=${toolbarHeight.visible} heightPx=${toolbarHeight.heightPx}")
 
     val naturalToCameraAngle = cameraInfo.orientation
     var cameraAngle = when(cameraInfo.orientation) {
@@ -213,6 +220,7 @@ fun initializeFirstMatchingCamera(act: AppCompatActivity, hasAnyOfFocusMode:List
         cameraInfo,
         camera,
         displayToCameraRightAngle,
+        toolbarHeight,
         WidthAndHeightWithOrientation(screenRes.width, screenRes.height, screenAngle),
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_MM,

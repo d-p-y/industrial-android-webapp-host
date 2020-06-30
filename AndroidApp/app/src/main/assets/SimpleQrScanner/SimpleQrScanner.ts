@@ -55,7 +55,7 @@ window.addEventListener('load', (_) => {
     btnScanQr.addEventListener("click", async _ => {
         btnScanQr.style.display = "none";
         try {
-            var scannedContent = await window.scanQr(new contracts.FitScreenLayoutStrategy());
+            var scannedContent = await window.scanQr(new contracts.FillScreenLayoutStrategy());
             scannedCode.textContent = scannedContent;
                         
             if (scannedContent.toLowerCase().startsWith("http://") || scannedContent.toLowerCase().startsWith("https://")) {                

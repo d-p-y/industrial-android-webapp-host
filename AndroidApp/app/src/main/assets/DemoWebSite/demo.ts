@@ -138,7 +138,7 @@ window.addEventListener('load', (_) => {
     {
         let btnReqScan = document.createElement("input");
         btnReqScan.type = "button";
-        btnReqScan.value = "Scan QR fixed height+validate+cancel";
+        btnReqScan.value = "Scan QR fixed height at bottom+validate+cancel";
         document.body.appendChild(btnReqScan);
         
         btnReqScan.onclick = _ => {
@@ -188,7 +188,8 @@ window.addEventListener('load', (_) => {
             document.body.appendChild(cntrlsContainer);
 
             let strat = new contracts.MatchWidthWithFixedHeightLayoutStrategy();
-            strat.paddingTopMm = 20;
+            strat.paddingOriginIsTop = false;
+            strat.paddingMm = 10;
             strat.heightMm = 30;
             
             let onAccept = (_:boolean) => {};
@@ -251,7 +252,7 @@ window.addEventListener('load', (_) => {
             try {
                 btnCancel.style.display = "initial";
                 let strat = new contracts.MatchWidthWithFixedHeightLayoutStrategy();
-                strat.paddingTopMm = 10;
+                strat.paddingMm = 10;
                 strat.heightMm = 50;
                 let [resultPromise, cancellator] = window.scanQrCancellable(strat);
 
@@ -277,7 +278,7 @@ window.addEventListener('load', (_) => {
         btn.value = "Scan QR with fit screen";
         btn.onclick = async _ => {
             try {            
-                let strat = new contracts.FitScreenLayoutStrategy();  
+                let strat = new contracts.FillScreenLayoutStrategy();  
                 strat.screenTitle = "Need QR code";              
                 let res = await window.scanQr(strat);
                 console?.log("scanned: "+res);

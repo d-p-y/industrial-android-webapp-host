@@ -516,7 +516,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (fragment is ITogglesToolbarVisibility) {
-            setToolbarVisibility(fragment.isToolbarVisible())
+            val toolbarVisible = fragment.isToolbarVisible()
+            if (toolbarVisible != null) {
+                setToolbarVisibility(toolbarVisible)
+            }
         }
 
         Timber.d("replaceMasterFragment currentMasterFragment=$fragment")
@@ -536,7 +539,10 @@ class MainActivity : AppCompatActivity() {
             setToolbarTitle(currentMasterFragment.getTitle())
         }
         if (currentMasterFragment is ITogglesToolbarVisibility) {
-            setToolbarVisibility(currentMasterFragment.isToolbarVisible())
+            val toolbarVisible = currentMasterFragment.isToolbarVisible()
+            if (toolbarVisible != null) {
+                setToolbarVisibility(toolbarVisible)
+            }
         }
     }
 
@@ -591,8 +597,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        setToolbarVisibility(
-            if (fragment is ITogglesToolbarVisibility) fragment.isToolbarVisible() else true)
+        if (fragment is ITogglesToolbarVisibility) {
+            var toolbarIsVisible = fragment.isToolbarVisible()
+
+            if (toolbarIsVisible != null) {
+                setToolbarVisibility(toolbarIsVisible)
+            }
+        }
 
         Timber.d("replacePopupFragment currentPopupFragmentTag=${getCurrentPopupFragment()}")
 

@@ -436,7 +436,7 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
     }
 
     //TODO implement web API to toggle it (needing ConnectionInfo permission being true by default)
-    override fun isToolbarVisible(): Boolean = true
+    override fun isToolbarVisible() = true
 
     fun maybeGetWebAppUrl() : String? = getWebView()?.url
 }

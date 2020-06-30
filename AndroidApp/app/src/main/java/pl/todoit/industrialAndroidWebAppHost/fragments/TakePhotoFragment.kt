@@ -111,6 +111,8 @@ class TakePhotoFragment : Fragment(), IProcessesBackButtonEvents, IRequiresPermi
         lifecycle.closeOnDestroy(_sensorListener)
 
         val camSurfaceView = result.findViewById<TextureView>(R.id.camSurfaceView)
+        //TODO should invoke here: computeMatrix(CameraData, expectedHeightPx)
+
         val torchToggler = result.findViewById<ImageView>(R.id.torchToggler)
         val takePictureAction = result.findViewById<ImageView>(R.id.takePictureAction)
 

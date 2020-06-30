@@ -9,12 +9,14 @@ import timber.log.Timber
 open class LayoutStrategy(var typeName:String) {}
 
 @Serializable
-class FitScreenLayoutStrategy(
-    val screenTitle:String?=null) : LayoutStrategy(FitScreenLayoutStrategy::class.simpleName!!) {}
+class FillScreenLayoutStrategy(
+    val hideToolbar:Boolean = false,
+    val screenTitle:String?=null) : LayoutStrategy(FillScreenLayoutStrategy::class.simpleName!!) {}
 
 @Serializable
 class MatchWidthWithFixedHeightLayoutStrategy (
-    val paddingTopMm:Int,
+    val paddingOriginIsTop:Boolean = true,
+    val paddingMm:Int,
     val heightMm:Int) : LayoutStrategy(MatchWidthWithFixedHeightLayoutStrategy::class.simpleName!!) {}
 
 class ScanRequest(
@@ -28,10 +30,10 @@ fun deserializeLayoutStrategy(layoutStrategyAsJson:String) : LayoutStrategy {
     val baseType = jsonForgiving.parse(LayoutStrategy.serializer(), layoutStrategyAsJson)
 
     return when(baseType.typeName) {
-        FitScreenLayoutStrategy::class.simpleName -> jsonStrict.parse(FitScreenLayoutStrategy.serializer(), layoutStrategyAsJson)
+        FillScreenLayoutStrategy::class.simpleName -> jsonStrict.parse(FillScreenLayoutStrategy.serializer(), layoutStrategyAsJson)
         MatchWidthWithFixedHeightLayoutStrategy::class.simpleName -> jsonStrict.parse(MatchWidthWithFixedHeightLayoutStrategy.serializer(), layoutStrategyAsJson)
         else -> {
             Timber.e("unknown strategy ${baseType.typeName}")
-            FitScreenLayoutStrategy()}
+            FillScreenLayoutStrategy()}
     }
 }
