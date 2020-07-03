@@ -48,7 +48,8 @@ data class ConnectionInfo(
     val isConnectionManager : Boolean = false,
     val hapticFeedbackOnAutoFocused : Boolean = true,
     val hasPermissionToTakePhoto : Boolean = true,
-    val photoJpegQuality : Int = 85 //valid range 1-100
+    val photoJpegQuality : Int = 85, //valid range 1-100
+    val saveFormData : Boolean = false //as it breaks "native app" impression
 )
 
 fun ConnectionInfo.restoreStateFrom(from: ConnectionInfo) {

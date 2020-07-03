@@ -283,6 +283,8 @@ class WebViewFragment : Fragment(), IHasTitle, ITogglesBackButtonVisibility, IPr
         var result = inflater.inflate(R.layout.fragment_web_view, container, false)
         var webView = result.findViewById<WebView>(R.id.webView)
 
+        webView.settings.saveFormData = req.saveFormData
+        //WebViewDatabase.getInstance(this.activity).clearFormData()
         webView.settings.javaScriptEnabled = true
         webView.settings.loadsImagesAutomatically = true
         webView.settings.allowUniversalAccessFromFileURLs = true //otherwise XMLHttpRequest to assets don't work due to CORS problem
