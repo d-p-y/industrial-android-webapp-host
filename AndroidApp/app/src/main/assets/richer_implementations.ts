@@ -288,13 +288,22 @@ Window.prototype.androidPostMediaAssetReady = function (rawPromiseId : string, p
     resolved(properMediaFileId);
 };
 
+Window.prototype.hasMediaAsset = function (mediaAssetIdentifier : string) {
+    if (this.IAWApp === undefined) {
+        console?.log("hasMediaAsset ignoring because doesn't run within android");        
+        return false;
+    }
+
+    return this.IAWApp.hasMediaAsset(mediaAssetIdentifier);
+};
+
 Window.prototype.registerMediaAsset = function (fromUrl) {
     let self : Window = this;
 
     let dl = new Promise<string>(function (resolve,reject) {
         if (self.IAWApp === undefined) {
             console?.log("registerMediaAsset ignoring because doesn't run within android");
-            resolve("not-running-within-android")
+            resolve("not-running-within-android");
             return;
         }
 

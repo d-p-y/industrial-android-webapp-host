@@ -85,16 +85,25 @@ interface IAWAppHostApi {
     registerMediaAsset(webRequestId : string, fileContent : string) : void;
 
     /**
+     * check whether mediaAsset is still cached
+     * 
+     * @param mediaAssetIdentifier 
+     */
+    hasMediaAsset(mediaAssetIdentifier : string) : boolean;
+
+    /**
      * set scan success sound
+     * 
      * @param as returned by registerMediaAsset() call
-     * @returns true if asset is known (is still in cache)
+     * @returns true if success (asset may not be cached anymore)
      */
     setScanSuccessSound(mediaAssetIdentifier : string) : boolean;
 
     /**
      * set image drawn on top of camera scanner preview when scanning is paused
+     * 
      * @param as returned by registerMediaAsset() call
-     * @returns true if asset is known (is still in cache)
+     * @returns true if success (asset may not be cached anymore)
      */
     setPausedScanOverlayImage(mediaAssetIdentifier : string) : boolean;
 

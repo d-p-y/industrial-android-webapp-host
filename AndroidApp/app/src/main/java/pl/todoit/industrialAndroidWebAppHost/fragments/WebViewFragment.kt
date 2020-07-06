@@ -147,6 +147,9 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
         )
 
     @JavascriptInterface
+    fun hasMediaAsset(mediaAssetId : String) = App.Instance.isAssetPresent(mediaAssetId)
+
+    @JavascriptInterface
     fun setScanSuccessSound(mediaAssetIdentifier : String) =
         if (!App.Instance.isAssetPresent(mediaAssetIdentifier)) false
         else {

@@ -37,6 +37,7 @@ interface Window {
      */
     scanQrValidatableAndCancellable(layoutData : contracts.LayoutStrategy, validate : ((barcode:string|null) => Promise<boolean>), onCancellation : () => void ) : (() => void);
     
+    hasMediaAsset(mediaAssetIdentifier : string) : boolean;
     registerMediaAsset(fromUrl:string) : Promise<string>;
     setScanSuccessSound(assetId:string) : boolean;
     setPausedScanOverlayImage(assetId:string) : boolean;

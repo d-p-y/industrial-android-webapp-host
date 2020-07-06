@@ -1,5 +1,6 @@
 package pl.todoit.industrialAndroidWebAppHost.model
 
+import android.app.Activity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
@@ -104,10 +105,14 @@ class Navigator {
             }
             is NavigationRequest.WebBrowser_SetScanOverlayImage -> {
                 Timber.d("setting scan overlay image to ${request.mediaAssetIdentifier}")
+
+                //safety already checked in the caller
                 App.Instance.overlayImageOnPause = File(act.cacheDir, request.mediaAssetIdentifier)
             }
             is NavigationRequest.WebBrowser_SetScanSuccessSound -> {
                 Timber.d("setting scan success sound to ${request.mediaAssetIdentifier}")
+
+                //safety already checked in the caller
                 val f = File(act.cacheDir, request.mediaAssetIdentifier)
                 App.Instance.soundSuccessScan = f
                 act.updateSoundSuccessScan(f)
