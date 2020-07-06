@@ -1,27 +1,60 @@
 ///<reference path='../richer_implementations.ts'/>
 
 window.addEventListener('load', (_) => {
-    let getStateAsJson = () => "";
+    let iFrag = document.location.href.indexOf("#");
+    let rawState = iFrag >=0 ? document.location.href.substring(iFrag+1) : encodeURIComponent("[]");
+    rawState = decodeURIComponent(rawState);
+    console?.log("raw state: "+ rawState)
+
+    let appState = new Map<string,string>(JSON.parse(rawState));
+    console?.log("got state: restoring it: "+ appState)
+
     let persistState = () => {
         let i = window.document.location.href.indexOf('#');
-        let newState = encodeURIComponent(getStateAsJson())
+        let newState = encodeURIComponent(
+            JSON.stringify(
+                Array.from(
+                    appState.entries())));
 
         //replace existing state if there's any
-        window.document.location.href = ((i >= 0) ? window.document.location.href.substring(0, i) : window.document.location.href) + "#" + newState
+        window.document.location.href = ((i >= 0) ? window.document.location.href.substring(0, i) : window.document.location.href) + "#" + newState;
     };
 
     let sampleIconMediaId = "";
 
-    window.setTimeout(async () => {
-        let overlayImg = await window.registerMediaAsset("test.png")
-        let scanBeep = await window.registerMediaAsset("store_scanner_beep.mp3")
-        sampleIconMediaId = await window.registerMediaAsset("sampleicon.png")
+    let getCachedOrRegister = async (stateVarName: string, fileName : string) => {
+        let mediaAssetId = appState.has(stateVarName) ? appState.get(stateVarName) : null;
 
+        if (mediaAssetId != null) {
+            if (!window.hasMediaAsset(mediaAssetId)) {
+                appState.delete(stateVarName);
+                console?.log("had obsolete in cache:"+fileName);
+                mediaAssetId = null;
+            } else {
+                console?.log("has up-to-date in cache:"+fileName);
+            }
+        }
+        
+        if (mediaAssetId == null) {
+            console?.log("registering media asset");
+            mediaAssetId = await window.registerMediaAsset(fileName);
+            appState.set(stateVarName, mediaAssetId);
+        }
+        return mediaAssetId;
+    };
+
+    window.setTimeout(async () => {
+        let overlayImg = await getCachedOrRegister("overlayImg", "test.png");
         let res1 = window.setPausedScanOverlayImage(overlayImg);
         console?.log("setPausedScanOverlayImage success?="+res1);
 
+        let scanBeep = await getCachedOrRegister("scanBeep", "store_scanner_beep.mp3");
         let res2 = window.setScanSuccessSound(scanBeep);
-        console?.log("setScanSuccessSound success?="+res2);    
+        console?.log("setScanSuccessSound success?="+res2);
+
+        sampleIconMediaId = await getCachedOrRegister("sampleIcon", "sampleicon.png");
+        console?.log("sampleIconMediaId registered as="+sampleIconMediaId);
+        persistState();
     });
 
     let lblLog = document.createElement("div");
@@ -30,10 +63,14 @@ window.addEventListener('load', (_) => {
     lblLog.textContent = new Date().toJSON() + "\n";
     let logMsg = (m:string) => {
         lblLog.textContent += m + "\n";
+
+        appState.set("log", lblLog.textContent ?? "");  
         persistState();
     };
     let clearLogMsg = () => {
         lblLog.textContent = "cleared at " + new Date().toJSON() + "\n";
+
+        appState.set("log", lblLog.textContent ?? "");
         persistState();
     };
 
@@ -345,6 +382,7 @@ window.addEventListener('load', (_) => {
     btnChangeTitle.value = "Change title";
     btnChangeTitle.onclick = () => {
         document.title = "some title #" + new Date().getMilliseconds();
+        appState.set("title", document.title);
         persistState();
     };
     document.body.appendChild(btnChangeTitle);
@@ -392,14 +430,9 @@ window.addEventListener('load', (_) => {
 
     document.body.appendChild(lblLog);
     
-    getStateAsJson = () => JSON.stringify([lblLog.textContent, document.title]);
-   
-    let iFrag = document.location.href.indexOf("#");
-    if (iFrag >= 0) {        
-        let fromJson : [string, string] = JSON.parse(decodeURIComponent(document.location.href.substring(iFrag+1)))
-        console?.log("got state: restoring it: "+ fromJson[0])
-        lblLog.textContent = fromJson[0];
-        document.title = fromJson[1];
+    if (iFrag >= 0) {
+        lblLog.textContent = appState.get("log") ?? "";
+        document.title = appState.get("title") ?? "";
     } else {
         document.title = "Showcase app";
     }
