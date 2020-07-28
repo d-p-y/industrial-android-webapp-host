@@ -1,12 +1,12 @@
-# industrial-webview-with-qr Kotlin Android app hosting WebView with QR scanning ability
+# Industrial Android WebApp Host 
 
 ## Purpose
 
-(TODO)
+(TODO web, QR scanning, photo, updates)
 
 ## Instalation
 
-(TODO link to Google's Play Store)
+[from Google Play Store](https://play.google.com/store/apps/details?id=pl.todoit.industrialAndroidWebAppHost)
 
 ## Features
 
@@ -14,16 +14,16 @@
 
 ## Design
 
-(give rationale here about manual fragments navigation instead of mainstream way)
+(TODO: PWA, manual fragments navigation)
 
-## Needed tools
+## Tools
 * VSCode with typescript plugin
 * Android Studio 3.6.0 or later
 
 ## Authors
 
-(TODO)
+Dominik Pytlewski
 
 ## License
 
-(TODO)
+Apache License 2.0
