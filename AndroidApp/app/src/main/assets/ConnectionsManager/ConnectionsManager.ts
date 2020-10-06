@@ -1,8 +1,12 @@
 ///<reference path='../contracts.ts'/>
 ///<reference path='../richer_implementations.ts'/>
 
-function createShortcutForm(onBack : (() => void)) : Node {
-    document.title = "Create shortcut";
+function createShortcutForm(
+        title : string,
+        action : ((_:ConnectionInfo) => void),
+        onBack : (() => void)) : Node {
+
+    document.title = title;
     window.setToolbarBackButtonState(true);
     window.androidBackConsumed = () => {
         onBack();
@@ -22,9 +26,7 @@ function createShortcutForm(onBack : (() => void)) : Node {
                 let btn = document.createElement("input");
                 btn.type = "button";
                 btn.addEventListener("click", _ => {
-                    let res = window.createShortcut(x.url);
-                    console.log("createShortcutForm success?="+res);
-                    window.showToast("Shortcut created!", false);
+                    action(x);                    
                     onBack();
                 });
                 btn.value = x.name;
@@ -36,7 +38,11 @@ function createShortcutForm(onBack : (() => void)) : Node {
     return result;
 }
 
-function createConnectionChooserForm(activateNewConnectionScreen : (() => void), activateCreateShortcutScreen : (() => void)) : Node {
+function createConnectionChooserForm(
+        activateNewConnectionScreen : (() => void), 
+        activateCreateShortcutScreen : (() => void),
+        activateChooseItemToRemoveScreen : (() => void) ) : Node {
+
     document.title = "Connect to";
     window.setToolbarBackButtonState(false);
     window.androidBackConsumed = () => false;
@@ -59,16 +65,25 @@ function createConnectionChooserForm(activateNewConnectionScreen : (() => void),
                        
     result.appendChildren(btns);
 
-
-    let addAnother = document.createElement("a");
-    addAnother.href = "#";
-    addAnother.textContent = "Add connection...";
-    addAnother.addEventListener("click", ev => {
+    let addItem = document.createElement("a");
+    addItem.href = "#";
+    addItem.textContent = "Add connection...";
+    addItem.addEventListener("click", ev => {
         ev.preventDefault(); 
         console.log("switching to createConnection");
         activateNewConnectionScreen();
     });
-    result.appendChild(addAnother);
+    result.appendChild(addItem);
+
+    let removeItem = document.createElement("a");
+    removeItem.href = "#";
+    removeItem.textContent = "Remove connection...";
+    removeItem.addEventListener("click", ev => {
+        ev.preventDefault(); 
+        console.log("switching to chooseItemToRemoveScreen");
+        activateChooseItemToRemoveScreen();
+    });
+    result.appendChild(removeItem);
 
     
     let createShortcut = document.createElement("a");
@@ -331,17 +346,18 @@ function decodeQueryParams() : Map<string,string> {
 }
 
 enum MenuMode {
-    choice = "choice",
+    connect = "connect",
     edit = "edit",
-    new = "new"
+    new = "new",
+    remove = "remove"
 }
-
 
 function stringToMenuMode(inp : string|undefined) : MenuMode | null {
     switch (inp) {
-        case "choice" : return MenuMode.choice;
+        case "connect" : return MenuMode.connect;
         case "edit" : return MenuMode.edit;
         case "new" : return MenuMode.new;
+        case "remove" : return MenuMode.remove;
         default: return null;
     }
 }
@@ -354,10 +370,11 @@ window.addEventListener('load', (_) => {
     let url = params.get("url");
 
     switch(mode) {
-        case MenuMode.choice: {
+        case MenuMode.connect: {
             let activateConnectionChooser = () => {};
             let activateConnectionCreator = () => {};
             let activateCreateShortcutCreator = () => {};
+            let activateChooseItemToRemoveCreator = () => {};
 
             let connectionCreator = () => createConnectionCreatorEditorForm(
                 () => activateConnectionChooser(), 
@@ -365,16 +382,38 @@ window.addEventListener('load', (_) => {
                 new ConnectionInfo());
             let connectionChooser = () => createConnectionChooserForm(
                 () => activateConnectionCreator(),
-                () => activateCreateShortcutCreator());
-            let shortcutCreator = () => createShortcutForm(() => activateConnectionChooser());
+                () => activateCreateShortcutCreator(),
+                () => activateChooseItemToRemoveCreator() );
+            let shortcutCreator = () => createShortcutForm(
+                "Create shortcut",
+                x => {
+                    let res = window.createShortcut(x.url);
+                    console.log("createShortcutForm success?="+res);
+                    if (res === "true") {
+                        window.showToast("Shortcut created", false);
+                    }                    
+                },
+                () => activateConnectionChooser());
+            let connectionRemover = () => createShortcutForm(
+                "Remove connection",
+                x => {
+                    let res = window.removeConnection(x);
+                    console.log("removeConnection success?="+res);
+                    if (res === "true") {
+                        window.showToast("Connection removed", false);
+                    }
+                },
+                () => activateConnectionChooser());
 
             activateConnectionChooser = () => document.body.replaceChildrenWith(connectionChooser());
             activateConnectionCreator = () => document.body.replaceChildrenWith(connectionCreator());
             activateCreateShortcutCreator = () => document.body.replaceChildrenWith(shortcutCreator());
-                
+            activateChooseItemToRemoveCreator = () => document.body.replaceChildrenWith(connectionRemover());
+
             activateConnectionChooser();
             break
         }
+        
         case MenuMode.new: {
             if (url === undefined) {
                 let err = document.createElement("div");

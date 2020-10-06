@@ -160,6 +160,26 @@ class App : Application(), CoroutineScope by MainScope() {
         return true
     }
 
+    fun removeConnection(conn:ConnectionInfo) : Boolean {
+        val neededUrl = conn.urlWithoutFragment()
+        Timber.d("looking for connectionInfo using $neededUrl")
+
+        val maybeExisting =
+            knownConnections
+                .mapIndexed { i,x -> if (x.urlWithoutFragment() == neededUrl) Pair(i,x) else null }
+                .filterNotNull()
+                .firstOrNull()
+
+        if (maybeExisting == null) {
+            Timber.d("could not find connection")
+            return false
+        }
+        Timber.d("removing connectionInfo at ${maybeExisting.first}")
+
+        knownConnections.removeAt(maybeExisting.first)
+        return true
+    }
+
     fun persistConnection(maybeExistingUrl : String?, conn:ConnectionInfo) {
         val maybeExisting =
             if (maybeExistingUrl == null) null
@@ -255,7 +275,7 @@ class App : Application(), CoroutineScope by MainScope() {
         val x = knownConnections.first {it.isConnectionManager}
 
         val result = when(mode) {
-            is ConnectionManagerMode.ConnectionChooser -> x.copy(url = x.url + "?mode=choice")
+            is ConnectionManagerMode.ConnectionChooser -> x.copy(url = x.url + "?mode=connect")
             is ConnectionManagerMode.EditConnection -> x.copy(url = x.url + "?mode=edit&url=${URLEncoder.encode(mode.connInfo.url, "UTF-8")}")
             is ConnectionManagerMode.NewConnection -> x.copy(url = x.url + "?mode=new&url=${URLEncoder.encode(mode.url, "UTF-8")}")
         }

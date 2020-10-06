@@ -135,16 +135,22 @@ interface IAWAppHostApi {
 
 
     /**
-     * private, sensitive APIs that may only be called if has adequate ConnectionInfo permission
+     * private, sensitive API that may only be called if has adequate ConnectionInfo permission
      * @returns ConnectionInfo[] as JSON. Empty if have no permission
      */
     getKnownConnections() : string;
 
     /**
-     * private, sensitive APIs that may only be called if has adequate ConnectionInfo permission
+     * private, sensitive API that may only be called if has adequate ConnectionInfo permission
      * @returns 'true' if success, 'false' if error or no permission
      */
     saveConnection(maybeExistingUrl : string|null, connInfoAsJson : string) : string;
+    
+    /**
+     * private, sensitive APIsthat may only be called if has adequate ConnectionInfo permission
+     * @returns 'true' if success, 'false' if error or no permission
+     */
+    removeConnection(connInfoAsJson : string) : string;
 
     /**
      * private API 

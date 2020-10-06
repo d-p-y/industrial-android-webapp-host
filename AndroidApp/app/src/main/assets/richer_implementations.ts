@@ -389,16 +389,23 @@ Window.prototype.getKnownConnections = function() {
     let res : ConnectionInfo[] = JSON.parse(this.IAWApp.getKnownConnections());
     return res;
 };
-Window.prototype.saveConnection = function(maybeExistingUrl, connInfoJson) {
+Window.prototype.saveConnection = function(maybeExistingUrl, connInfo) {
     if (this.IAWApp === undefined) {        
         return "true";
     }
 
-    return this.IAWApp.saveConnection(maybeExistingUrl, JSON.stringify(connInfoJson));
+    return this.IAWApp.saveConnection(maybeExistingUrl, JSON.stringify(connInfo));
+};
+Window.prototype.removeConnection = function(connInfo) {
+    if (this.IAWApp === undefined) {        
+        return "true";
+    }
+
+    return this.IAWApp.removeConnection(JSON.stringify(connInfo));
 };
 Window.prototype.createShortcut = function (url : string) {
     if (this.IAWApp === undefined) {        
-        return "false";
+        return "true";
     }
 
     return this.IAWApp.createShortcut(url);
