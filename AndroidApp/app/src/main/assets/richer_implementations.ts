@@ -377,11 +377,13 @@ Window.prototype.getKnownConnections = function() {
         fst.url = "http://wikipedia.com";
         fst.name = "Wikipedia (EN)";
         fst.photoJpegQuality = 80;
+        fst.persisted = true;
 
         let snd = new ConnectionInfo();
         snd.url = "http://duck.com";
         snd.name = "DuckDuckGo";
         snd.photoJpegQuality = 90;
+        snd.persisted = true;
 
         return [fst, snd];
     }
