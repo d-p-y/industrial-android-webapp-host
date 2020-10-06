@@ -86,7 +86,7 @@ class App : Application(), CoroutineScope by MainScope() {
         ConnectionInfo(
             persisted = false,
             url = "file:///android_asset/DemoWebSite/index.html",
-            name = "Demo",
+            name = "Demo (local, embedded)",
             forceReloadFromNet = isForcedDevelopmentMode,
             remoteDebuggerEnabled = isForcedDevelopmentMode,
             hapticFeedbackOnBarcodeRecognized = true,
@@ -95,7 +95,16 @@ class App : Application(), CoroutineScope by MainScope() {
         ConnectionInfo(
             persisted = false,
             url = "file:///android_asset/SimpleQrScanner/index.html",
-            name = "Simple scanner",
+            name = "Simple scanner (local, embedded)",
+            forceReloadFromNet = isForcedDevelopmentMode,
+            remoteDebuggerEnabled = isForcedDevelopmentMode,
+            hapticFeedbackOnBarcodeRecognized = true,
+            forwardConsoleLogToLogCat = isForcedDevelopmentMode
+        ),
+        ConnectionInfo(
+            persisted = false,
+            url = "http://philadelphiademo.todoit.pl/",
+            name = "Philadelphia Toolkit Demo (online)",
             forceReloadFromNet = isForcedDevelopmentMode,
             remoteDebuggerEnabled = isForcedDevelopmentMode,
             hapticFeedbackOnBarcodeRecognized = true,
