@@ -10,7 +10,10 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import kotlinx.coroutines.*
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.list
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import pl.todoit.industrialAndroidWebAppHost.model.*
 import timber.log.Timber
 import java.io.File
@@ -114,7 +117,7 @@ class App : Application(), CoroutineScope by MainScope() {
 
         return if (f.exists()) {
             try {
-                jsonStrict.parse(ConnectionInfo.serializer().list, f.readText())
+                jsonStrict.decodeFromString<List<ConnectionInfo>>(f.readText())
                     .also { it.forEach { it.persisted = true }  }
             } catch (ex : Exception) {
                 Timber.e("unable to deserialize or read persisted connection infos")
@@ -126,7 +129,7 @@ class App : Application(), CoroutineScope by MainScope() {
     fun persistKnownConnections() {
         //TODO first write to temp file then rename for extra safety
         File(this.filesDir, connectionInfosFileName)
-            .writeText(jsonStrict.stringify(ConnectionInfo.serializer().list, knownConnections))
+            .writeText(jsonStrict.encodeToString(knownConnections))
         knownConnections.forEach {it.persisted = true}
     }
 

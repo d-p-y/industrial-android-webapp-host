@@ -2,6 +2,7 @@ package pl.todoit.industrialAndroidWebAppHost.model
 
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import pl.todoit.industrialAndroidWebAppHost.fragments.ScannerStateChange
 import timber.log.Timber
 
@@ -27,11 +28,13 @@ class ScanRequest(
 }
 
 fun deserializeLayoutStrategy(layoutStrategyAsJson:String) : LayoutStrategy {
-    val baseType = jsonForgiving.parse(LayoutStrategy.serializer(), layoutStrategyAsJson)
+    val baseType = jsonForgiving.decodeFromString<LayoutStrategy>(layoutStrategyAsJson)
 
     return when(baseType.typeName) {
-        FillScreenLayoutStrategy::class.simpleName -> jsonStrict.parse(FillScreenLayoutStrategy.serializer(), layoutStrategyAsJson)
-        MatchWidthWithFixedHeightLayoutStrategy::class.simpleName -> jsonStrict.parse(MatchWidthWithFixedHeightLayoutStrategy.serializer(), layoutStrategyAsJson)
+        FillScreenLayoutStrategy::class.simpleName ->
+            jsonStrict.decodeFromString<FillScreenLayoutStrategy>(layoutStrategyAsJson)
+        MatchWidthWithFixedHeightLayoutStrategy::class.simpleName ->
+            jsonStrict.decodeFromString<MatchWidthWithFixedHeightLayoutStrategy>(layoutStrategyAsJson)
         else -> {
             Timber.e("unknown strategy ${baseType.typeName}")
             FillScreenLayoutStrategy()}

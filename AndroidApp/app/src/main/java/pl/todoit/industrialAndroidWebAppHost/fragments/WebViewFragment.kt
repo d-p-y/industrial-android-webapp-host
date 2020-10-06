@@ -20,6 +20,8 @@ import pl.todoit.industrialAndroidWebAppHost.model.*
 import timber.log.Timber
 import java.io.File
 import kotlinx.coroutines.channels.receiveOrNull
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import java.security.MessageDigest
 
 fun String.escapeByUriComponentEncode() = Uri.encode(this)
@@ -35,7 +37,7 @@ fun ByteArray.unsecureHashAsSafeFileName() =
         .replace('/', '.') //see 6.8. of https://tools.ietf.org/html/rfc2045
 
 fun postScanQrReply(host : WebViewFragment, reply : IAWAppScanReply) {
-    var replyJson = jsonStrict.stringify(IAWAppScanReply.serializer(), reply)
+    var replyJson = jsonStrict.encodeToString(reply)
     var msg =
         "androidPostScanQrReply(\"" +
         replyJson.escapeByUriComponentEncode() +
@@ -61,8 +63,7 @@ sealed class SensitiveWebExposedOperation(val caller : ConnectionInfo? = App.Ins
 fun maybeExecuteSensitiveOperation(act:Context?, inp:SensitiveWebExposedOperation) : String =
     when(inp) {
         is SensitiveWebExposedOperation.GetKnownConnections ->
-            jsonStrict.stringify(
-                ConnectionInfo.serializer().list,
+            jsonStrict.encodeToString(
                 if (inp.caller?.mayManageConnections == true)
                 App.Instance.knownConnections.map { it.copy(webAppPersistentState = null) }
                 else listOf())
@@ -112,7 +113,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
             host.activity,
             SensitiveWebExposedOperation.SaveConnection(
                 maybeExistingUrl,
-                jsonStrict.parse(ConnectionInfo.serializer(), connInfoAsJson)))
+                jsonStrict.decodeFromString(connInfoAsJson)))
 
     @JavascriptInterface
     fun setToolbarSearchState(active : Boolean) =
@@ -127,7 +128,7 @@ class WebViewExposedMethods(private var host: WebViewFragment) {
     @JavascriptInterface
     fun setToolbarItems(menuItemsAsJson : String) =
         App.Instance.navigator.postNavigateTo(NavigationRequest.WebBrowser_ToolbarMenuChanged(
-            host, jsonStrict.parse(MenuItemInfo.serializer().list, menuItemsAsJson)))
+            host, jsonStrict.decodeFromString(menuItemsAsJson)))
 
     @JavascriptInterface
     fun registerMediaAsset(webRequestId : String, fileContent : String) =
