@@ -53,3 +53,4 @@ packages/
 *.js.map
 /AndroidApp/build/
 .idea
+/AndroidApp/local.properties
