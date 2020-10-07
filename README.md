@@ -1,24 +1,13 @@
-# Industrial Android WebApp Host 
+# IAWApp Host
+Industrial Android WebApp Host 
 
-## Purpose
+## Documentation
 
-(TODO web, QR scanning, photo, updates)
+[Website](https://d-p-y.github.io/industrial-android-webapp-host/)
 
 ## Instalation
 
 [from Google Play Store](https://play.google.com/store/apps/details?id=pl.todoit.industrialAndroidWebAppHost)
-
-## Features
-
-(TODO)
-
-## Design
-
-(TODO: PWA, manual fragments navigation)
-
-## Tools
-* VSCode with typescript plugin
-* Android Studio 3.6.0 or later
 
 ## Authors
 
