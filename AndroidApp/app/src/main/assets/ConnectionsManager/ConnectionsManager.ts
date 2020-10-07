@@ -118,6 +118,16 @@ function createConnectionChooserForm(
     details.appendChild(createShortcut);
 
 
+    let goToHomePage = document.createElement("a");
+    goToHomePage.href = "#";
+    goToHomePage.textContent = "More info about program";
+    goToHomePage.addEventListener("click", ev => {
+        ev.preventDefault(); 
+        console.log("switching to home page");
+        window.openInBrowser("https://d-p-y.github.io/industrial-android-webapp-host/");
+    });
+    details.appendChild(goToHomePage);
+
     return result;
 }
 
