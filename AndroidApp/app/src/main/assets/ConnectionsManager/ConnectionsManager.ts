@@ -65,6 +65,17 @@ function createConnectionChooserForm(
                        
     result.appendChildren(btns);
 
+    let actionsWrapper = document.createElement("details");
+
+    let summary = document.createElement("summary");
+    summary.textContent = "More actions...";    
+    actionsWrapper.appendChild(summary);
+
+    let details = document.createElement("div");
+    actionsWrapper.appendChild(details);
+
+    result.appendChild(actionsWrapper);
+
     let addItem = document.createElement("a");
     addItem.href = "#";
     addItem.textContent = "Add connection...";
@@ -73,7 +84,7 @@ function createConnectionChooserForm(
         console.log("switching to createConnection");
         activateNewConnectionScreen();
     });
-    result.appendChild(addItem);
+    details.appendChild(addItem);
 
     let editItem = document.createElement("a");
     editItem.href = "#";
@@ -83,7 +94,7 @@ function createConnectionChooserForm(
         console.log("switching to chooseItemToEditScreen");
         activateChooseItemToEditScreen();
     });
-    result.appendChild(editItem);
+    details.appendChild(editItem);
 
     let removeItem = document.createElement("a");
     removeItem.href = "#";
@@ -93,7 +104,7 @@ function createConnectionChooserForm(
         console.log("switching to chooseItemToRemoveScreen");
         activateChooseItemToRemoveScreen();
     });
-    result.appendChild(removeItem);
+    details.appendChild(removeItem);
 
     
     let createShortcut = document.createElement("a");
@@ -104,7 +115,7 @@ function createConnectionChooserForm(
         console.log("switching to createShortcut");
         activateChooseItemForShortcutScreen();
     });
-    result.appendChild(createShortcut);
+    details.appendChild(createShortcut);
 
 
     return result;
